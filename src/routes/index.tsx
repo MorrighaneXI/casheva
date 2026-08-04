@@ -120,7 +120,7 @@ function Dashboard() {
               </span>
             </CardHeader>
             <CardContent>
-              <p className="truncate text-2xl font-extrabold tracking-tight">
+              <p className="text-xl font-extrabold tracking-tight break-words">
                 {kpi.value}
               </p>
               <p className="mt-1 flex items-center gap-1 text-xs text-success">
@@ -214,7 +214,7 @@ function Dashboard() {
       </div>
 
       <Card className="shadow-card">
-        <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 sm:flex sm:justify-between">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <CardTitle>Pengajuan Pinjaman Terbaru</CardTitle>
             <CardDescription>Status alur persetujuan berjenjang</CardDescription>
