@@ -11,7 +11,7 @@ type SessionCtx = {
 const Ctx = createContext<SessionCtx | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [role, setRole] = useState<Role>(ROLES[0]);
+  const [role, setRole] = useState<Role>(ROLES[0] as Role);
   return (
     <Ctx.Provider
       value={{ role, setRole, satminkal: "Disinfolahtad", kotama: "Mabesad" }}
