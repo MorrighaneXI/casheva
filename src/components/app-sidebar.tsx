@@ -95,9 +95,9 @@ export function AppSidebar() {
                         <span className="truncate">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
-                    {"badge" in item && item.badge && !collapsed ? (
+                    {"badge" in item && item.badge && !collapsed && pending > 0 ? (
                       <SidebarMenuBadge className="bg-gold text-gold-foreground">
-                        {item.badge}
+                        {pending}
                       </SidebarMenuBadge>
                     ) : null}
                   </SidebarMenuItem>
