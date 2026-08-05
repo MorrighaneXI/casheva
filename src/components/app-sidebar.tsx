@@ -31,7 +31,7 @@ const items = [
   { title: "Data Anggota", url: "/anggota", icon: Users },
   { title: "Transaksi Simpanan", url: "/simpanan", icon: PiggyBank },
   { title: "Pengajuan Pinjaman", url: "/pinjaman", icon: HandCoins },
-  { title: "Verification Center", url: "/verifikasi", icon: ShieldCheck, badge: "7" },
+  { title: "Verification Center", url: "/verifikasi", icon: ShieldCheck, badge: true },
   { title: "Laporan & SHU", url: "/laporan", icon: FileBarChart },
   { title: "Pengaturan Kopstuk", url: "/kopstuk", icon: Stamp },
 ] as const;
@@ -40,7 +40,8 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { satminkal, kotama } = useSession();
+  const { satminkal, kotama, role, profile, pendingFor } = useSession();
+  const pending = pendingFor(role);
 
   return (
     <Sidebar collapsible="icon">

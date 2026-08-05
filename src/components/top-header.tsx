@@ -63,9 +63,27 @@ export function TopHeader() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          <div className="hidden items-center gap-2 rounded-xl border border-gold/40 bg-gold-soft px-3 py-1.5 lg:flex">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-accent-foreground/70">
+              Demo
+            </span>
+            <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+              <SelectTrigger className="h-7 w-[150px] border-0 bg-transparent px-1 text-xs font-semibold shadow-none focus:ring-0">
+                <SelectValue placeholder="Pilih peran" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((r) => (
+                  <SelectItem key={r} value={r}>
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <Select value={role} onValueChange={(v) => setRole(v as Role)}>
-            <SelectTrigger className="hidden h-9 w-[190px] md:flex">
-              <SelectValue placeholder="Pilih peran" />
+            <SelectTrigger className="flex h-9 w-[150px] md:hidden lg:hidden">
+              <SelectValue placeholder="Peran" />
             </SelectTrigger>
             <SelectContent>
               {ROLES.map((r) => (
@@ -84,14 +102,19 @@ export function TopHeader() {
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative" aria-label="Notifikasi">
                 <Bell className="size-4" />
-                <span className="absolute right-1 top-1 grid size-4 place-items-center rounded-full bg-gold text-[9px] font-bold text-gold-foreground">
-                  3
-                </span>
+                {pending > 0 && (
+                  <span className="absolute right-1 top-1 grid size-4 place-items-center rounded-full bg-destructive text-[9px] font-bold text-destructive-foreground">
+                    {pending}
+                  </span>
+                )}
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-80 p-0">
               <div className="border-b border-border px-4 py-3">
                 <p className="text-sm font-semibold">Notifikasi Persetujuan</p>
+                <p className="text-xs text-muted-foreground">
+                  {pending} berkas menunggu aksi {role}
+                </p>
               </div>
               <ul className="divide-y divide-border">
                 {notifications.map((n) => (
@@ -121,18 +144,26 @@ export function TopHeader() {
                 </span>
                 <span className="hidden min-w-0 sm:block">
                   <span className="block truncate text-xs font-semibold">
-                    Mayor Cba Arif Setiawan
+                    {profile.pangkat} {profile.nama}
                   </span>
                   <span className="block truncate text-[11px] text-muted-foreground">
-                    NRP 11110234
+                    NRP {profile.nrp}
                   </span>
                 </span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-64">
               <DropdownMenuLabel>
-                <p className="text-sm">Mayor Cba Arif Setiawan</p>
-                <Badge variant="outline" className="mt-1 font-normal">
+                <p className="text-sm">
+                  {profile.pangkat} {profile.nama}
+                </p>
+                <p className="text-xs font-normal text-muted-foreground">
+                  {profile.jabatan}
+                </p>
+                <p className="mt-1 text-[11px] font-normal text-muted-foreground">
+                  {kotama} · {satminkal}
+                </p>
+                <Badge variant="outline" className="mt-2 font-normal">
                   {role}
                 </Badge>
               </DropdownMenuLabel>
