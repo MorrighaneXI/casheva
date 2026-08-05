@@ -72,6 +72,9 @@ export function AppSidebar() {
             <p className="truncate text-xs text-sidebar-foreground/80">
               Kotama: {kotama}
             </p>
+            <p className="mt-1 truncate text-[11px] font-semibold text-sidebar-primary">
+              Peran: {role}
+            </p>
           </div>
         )}
       </SidebarHeader>
