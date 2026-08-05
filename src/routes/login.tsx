@@ -48,11 +48,10 @@ export const Route = createFileRoute("/login")({
 });
 
 const DEMO_CREDENTIALS: Record<Role, { username: string; password: string }> = {
-  "Admin Koperasi": { username: "admin.koperasi", password: "casheva2026" },
-  "Pimpinan/Dan/Ka": { username: "11020033", password: "casheva2026" },
+  "Juru Bayar": { username: "jurbay.disinfolahtad", password: "casheva2026" },
+  "Dan/Ka": { username: "danka.disinfolahtad", password: "casheva2026" },
   Kaprim: { username: "kaprim.mabesad", password: "casheva2026" },
-  Pengurus: { username: "21980045", password: "casheva2026" },
-  Pengawas: { username: "pengawas.itjen", password: "casheva2026" },
+  Bendahara: { username: "bendahara.koperasi", password: "casheva2026" },
 };
 
 function LoginPage() {
