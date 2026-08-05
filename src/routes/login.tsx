@@ -148,9 +148,15 @@ function LoginPage() {
               Sistem Informasi Koperasi Simpan Pinjam TNI AD
             </h1>
             <p className="mt-4 text-lg font-medium text-sidebar-primary">
-              Transparan, Akuntabel, dan Terintegrasi
+              Transparan, Akuntabel &amp; Terintegrasi
             </p>
+            <div className="mt-6 inline-flex flex-wrap items-center gap-2 rounded-xl border border-sidebar-border bg-sidebar-accent/60 px-4 py-2 text-xs font-semibold text-sidebar-accent-foreground">
+              <span>Kotama: {kotama}</span>
+              <span className="text-sidebar-foreground/40">|</span>
+              <span>Satminkal: {satminkal}</span>
+            </div>
           </div>
+
 
           <p className="relative text-xs text-sidebar-foreground/60">
             © 2026 Koperasi TNI AD · Disinfolahtad. Seluruh aktivitas dicatat
