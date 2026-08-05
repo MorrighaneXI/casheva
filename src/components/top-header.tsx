@@ -37,8 +37,9 @@ const notifications = [
 ];
 
 export function TopHeader() {
-  const { role, setRole } = useSession();
+  const { role, setRole, profile, satminkal, kotama, pendingFor } = useSession();
   const [dark, setDark] = useState(false);
+  const pending = pendingFor(role);
 
   const toggleTheme = () => {
     const next = !dark;
