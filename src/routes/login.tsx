@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   Info,
   ShieldCheck,
-  Building2,
 } from "lucide-react";
 
 import emblem from "@/assets/casheva-emblem.png";
@@ -149,11 +148,6 @@ function LoginPage() {
             <p className="mt-4 text-lg font-medium text-sidebar-primary">
               Transparan, Akuntabel, dan Terintegrasi
             </p>
-            <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-sidebar-border bg-sidebar-accent/70 px-4 py-2 text-sm text-sidebar-foreground">
-              <Building2 className="h-4 w-4 text-sidebar-primary" />
-              Kotama: Mabesad <span className="opacity-40">|</span> Satminkal:
-              Disinfolahtad
-            </div>
           </div>
 
           <p className="relative text-xs text-sidebar-foreground/60">
