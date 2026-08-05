@@ -99,6 +99,7 @@ function LoginPage() {
 
   const quickLogin = (role: Role) => {
     if (loading) return;
+    setRole(role);
     const creds = DEMO_CREDENTIALS[role];
     typeInto(creds.username, setUsername, 35, () =>
       typeInto(creds.password, setPassword, 30, runLogin),
@@ -279,15 +280,15 @@ function LoginPage() {
               <div className="mt-5 flex gap-2.5 rounded-lg border border-gold/30 bg-gold-soft px-3 py-2.5 text-xs leading-relaxed text-accent-foreground">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" />
                 <p>
-                  Akses terbatas khusus Pengurus &amp; Pejabat Koperasi.
-                  Pendaftaran akun baru dilakukan oleh Admin Koperasi.
+                  Akses terbatas khusus Pengurus &amp; Pejabat Koperasi. Akun
+                  anggota dikelola terpusat oleh Admin.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 rounded-xl border border-dashed border-border bg-card/60 p-4">
-              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                Quick Login As:
+            <div className="mt-5 rounded-xl border border-dashed border-gold/50 bg-gold-soft/50 p-4">
+              <p className="text-xs font-semibold tracking-wide text-accent-foreground uppercase">
+                Quick Demo Login As:
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {ROLES.map((role) => (
