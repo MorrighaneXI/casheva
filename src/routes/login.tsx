@@ -25,6 +25,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ROLES, type Role } from "@/lib/casheva-data";
+import { useSession } from "@/components/session-context";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/login")({
@@ -48,15 +49,15 @@ export const Route = createFileRoute("/login")({
 });
 
 const DEMO_CREDENTIALS: Record<Role, { username: string; password: string }> = {
-  "Admin Koperasi": { username: "admin.koperasi", password: "casheva2026" },
-  "Pimpinan/Dan/Ka": { username: "11020033", password: "casheva2026" },
+  "Juru Bayar": { username: "jurbay.disinfolahtad", password: "casheva2026" },
+  "Dan/Ka": { username: "danka.disinfolahtad", password: "casheva2026" },
   Kaprim: { username: "kaprim.mabesad", password: "casheva2026" },
-  Pengurus: { username: "21980045", password: "casheva2026" },
-  Pengawas: { username: "pengawas.itjen", password: "casheva2026" },
+  Bendahara: { username: "bendahara.koperasi", password: "casheva2026" },
 };
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { setRole, satminkal, kotama } = useSession();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -100,6 +101,7 @@ function LoginPage() {
 
   const quickLogin = (role: Role) => {
     if (loading) return;
+    setRole(role);
     const creds = DEMO_CREDENTIALS[role];
     typeInto(creds.username, setUsername, 35, () =>
       typeInto(creds.password, setPassword, 30, runLogin),
@@ -146,9 +148,15 @@ function LoginPage() {
               Sistem Informasi Koperasi Simpan Pinjam TNI AD
             </h1>
             <p className="mt-4 text-lg font-medium text-sidebar-primary">
-              Transparan, Akuntabel, dan Terintegrasi
+              Transparan, Akuntabel &amp; Terintegrasi
             </p>
+            <div className="mt-6 inline-flex flex-wrap items-center gap-2 rounded-xl border border-sidebar-border bg-sidebar-accent/60 px-4 py-2 text-xs font-semibold text-sidebar-accent-foreground">
+              <span>Kotama: {kotama}</span>
+              <span className="text-sidebar-foreground/40">|</span>
+              <span>Satminkal: {satminkal}</span>
+            </div>
           </div>
+
 
           <p className="relative text-xs text-sidebar-foreground/60">
             © 2026 Koperasi TNI AD · Disinfolahtad. Seluruh aktivitas dicatat
@@ -280,15 +288,15 @@ function LoginPage() {
               <div className="mt-5 flex gap-2.5 rounded-lg border border-gold/30 bg-gold-soft px-3 py-2.5 text-xs leading-relaxed text-accent-foreground">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" />
                 <p>
-                  Akses terbatas khusus Pengurus &amp; Pejabat Koperasi.
-                  Pendaftaran akun baru dilakukan oleh Admin Koperasi.
+                  Akses terbatas khusus Pengurus &amp; Pejabat Koperasi. Akun
+                  anggota dikelola terpusat oleh Admin.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 rounded-xl border border-dashed border-border bg-card/60 p-4">
-              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                Quick Login As:
+            <div className="mt-5 rounded-xl border border-dashed border-gold/50 bg-gold-soft/50 p-4">
+              <p className="text-xs font-semibold tracking-wide text-accent-foreground uppercase">
+                Quick Demo Login As:
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {ROLES.map((role) => (
