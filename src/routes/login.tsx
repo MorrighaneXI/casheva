@@ -25,6 +25,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { ROLES, type Role } from "@/lib/casheva-data";
+import { useSession } from "@/components/session-context";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/login")({
@@ -56,6 +57,7 @@ const DEMO_CREDENTIALS: Record<Role, { username: string; password: string }> = {
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { setRole, satminkal, kotama } = useSession();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
