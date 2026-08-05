@@ -110,9 +110,14 @@ export function AppSidebar() {
 
       <SidebarFooter className="border-t border-sidebar-border">
         {!collapsed && (
-          <p className="px-2 py-1 text-[10px] text-sidebar-foreground/60">
-            Casheva v1.0 · Sistem Koperasi TNI AD
-          </p>
+          <div className="px-2 py-1">
+            <p className="truncate text-xs font-semibold text-sidebar-accent-foreground">
+              {profile.pangkat} {profile.nama}
+            </p>
+            <p className="truncate text-[10px] text-sidebar-foreground/60">
+              {profile.jabatan} · Casheva v1.0
+            </p>
+          </div>
         )}
       </SidebarFooter>
     </Sidebar>
