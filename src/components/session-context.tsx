@@ -37,7 +37,7 @@ const Ctx = createContext<SessionCtx | null>(null);
 let invoiceSeq = 1;
 
 export function SessionProvider({ children }: { children: ReactNode }) {
-  const [role, setRole] = useState<Role>(ROLES[0]);
+  const [role, setRole] = useState<Role>("Juru Bayar");
   const [loans, setLoans] = useState<LoanApp[]>(loanApplications);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
