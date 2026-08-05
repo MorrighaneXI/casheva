@@ -13,7 +13,7 @@ export type RoleProfile = {
 
 export const ROLE_PROFILES: Record<Role, RoleProfile> = {
   "Juru Bayar": {
-    nama: "Serma Budi Santoso",
+    nama: "Budi Santoso",
     pangkat: "Serma Chb",
     nrp: "21980045",
     jabatan: "Juru Bayar Satminkal",
@@ -21,7 +21,7 @@ export const ROLE_PROFILES: Record<Role, RoleProfile> = {
     username: "jurbay.disinfolahtad",
   },
   "Dan/Ka": {
-    nama: "Letkol Cba Dedi Kurnia",
+    nama: "Dedi Kurnia",
     pangkat: "Letkol Cba",
     nrp: "11020033",
     jabatan: "Dan/Ka Satuan",
@@ -29,7 +29,7 @@ export const ROLE_PROFILES: Record<Role, RoleProfile> = {
     username: "danka.disinfolahtad",
   },
   Kaprim: {
-    nama: "Kolonel Cba Arif Setiawan",
+    nama: "Arif Setiawan",
     pangkat: "Kolonel Cba",
     nrp: "11110234",
     jabatan: "Ketua Primer Koperasi",
@@ -37,7 +37,7 @@ export const ROLE_PROFILES: Record<Role, RoleProfile> = {
     username: "kaprim.mabesad",
     },
   Bendahara: {
-    nama: "Kapten Cba Rina Marlina",
+    nama: "Rina Marlina",
     pangkat: "Kapten Cba",
     nrp: "11170455",
     jabatan: "Bendahara Koperasi",
