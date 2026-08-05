@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AnggotaRouteImport } from './routes/anggota'
 import { Route as KopstukRouteImport } from './routes/kopstuk'
 import { Route as LaporanRouteImport } from './routes/laporan'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as PinjamanRouteImport } from './routes/pinjaman'
 import { Route as SimpananRouteImport } from './routes/simpanan'
 import { Route as VerifikasiRouteImport } from './routes/verifikasi'
@@ -37,6 +38,11 @@ const LaporanRoute = LaporanRouteImport.update({
   path: '/laporan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PinjamanRoute = PinjamanRouteImport.update({
   id: '/pinjaman',
   path: '/pinjaman',
@@ -58,6 +64,7 @@ export interface FileRoutesByFullPath {
   '/anggota': typeof AnggotaRoute
   '/kopstuk': typeof KopstukRoute
   '/laporan': typeof LaporanRoute
+  '/login': typeof LoginRoute
   '/pinjaman': typeof PinjamanRoute
   '/simpanan': typeof SimpananRoute
   '/verifikasi': typeof VerifikasiRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/anggota': typeof AnggotaRoute
   '/kopstuk': typeof KopstukRoute
   '/laporan': typeof LaporanRoute
+  '/login': typeof LoginRoute
   '/pinjaman': typeof PinjamanRoute
   '/simpanan': typeof SimpananRoute
   '/verifikasi': typeof VerifikasiRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/anggota': typeof AnggotaRoute
   '/kopstuk': typeof KopstukRoute
   '/laporan': typeof LaporanRoute
+  '/login': typeof LoginRoute
   '/pinjaman': typeof PinjamanRoute
   '/simpanan': typeof SimpananRoute
   '/verifikasi': typeof VerifikasiRoute
@@ -88,6 +97,7 @@ export interface FileRouteTypes {
     | '/anggota'
     | '/kopstuk'
     | '/laporan'
+    | '/login'
     | '/pinjaman'
     | '/simpanan'
     | '/verifikasi'
@@ -97,6 +107,7 @@ export interface FileRouteTypes {
     | '/anggota'
     | '/kopstuk'
     | '/laporan'
+    | '/login'
     | '/pinjaman'
     | '/simpanan'
     | '/verifikasi'
@@ -106,6 +117,7 @@ export interface FileRouteTypes {
     | '/anggota'
     | '/kopstuk'
     | '/laporan'
+    | '/login'
     | '/pinjaman'
     | '/simpanan'
     | '/verifikasi'
@@ -116,6 +128,7 @@ export interface RootRouteChildren {
   AnggotaRoute: typeof AnggotaRoute
   KopstukRoute: typeof KopstukRoute
   LaporanRoute: typeof LaporanRoute
+  LoginRoute: typeof LoginRoute
   PinjamanRoute: typeof PinjamanRoute
   SimpananRoute: typeof SimpananRoute
   VerifikasiRoute: typeof VerifikasiRoute
@@ -151,6 +164,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LaporanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pinjaman': {
       id: '/pinjaman'
       path: '/pinjaman'
@@ -180,6 +200,7 @@ const rootRouteChildren: RootRouteChildren = {
   AnggotaRoute: AnggotaRoute,
   KopstukRoute: KopstukRoute,
   LaporanRoute: LaporanRoute,
+  LoginRoute: LoginRoute,
   PinjamanRoute: PinjamanRoute,
   SimpananRoute: SimpananRoute,
   VerifikasiRoute: VerifikasiRoute,
