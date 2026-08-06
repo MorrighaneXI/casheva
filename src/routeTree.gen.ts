@@ -10,12 +10,22 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccRouteImport } from './routes/acc'
 import { Route as AnggotaRouteImport } from './routes/anggota'
+import { Route as AngsuranRouteImport } from './routes/angsuran'
+import { Route as AuditRouteImport } from './routes/audit'
+import { Route as AuditFlowRouteImport } from './routes/audit-flow'
 import { Route as KopstukRouteImport } from './routes/kopstuk'
 import { Route as LaporanRouteImport } from './routes/laporan'
+import { Route as LikuiditasRouteImport } from './routes/likuiditas'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MasterDataRouteImport } from './routes/master-data'
+import { Route as PencairanRouteImport } from './routes/pencairan'
 import { Route as PinjamanRouteImport } from './routes/pinjaman'
+import { Route as RekomendasiRouteImport } from './routes/rekomendasi'
+import { Route as ShuRouteImport } from './routes/shu'
 import { Route as SimpananRouteImport } from './routes/simpanan'
+import { Route as UsersRouteImport } from './routes/users'
 import { Route as VerifikasiRouteImport } from './routes/verifikasi'
 
 const IndexRoute = IndexRouteImport.update({
@@ -23,9 +33,29 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccRoute = AccRouteImport.update({
+  id: '/acc',
+  path: '/acc',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnggotaRoute = AnggotaRouteImport.update({
   id: '/anggota',
   path: '/anggota',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AngsuranRoute = AngsuranRouteImport.update({
+  id: '/angsuran',
+  path: '/angsuran',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditFlowRoute = AuditFlowRouteImport.update({
+  id: '/audit-flow',
+  path: '/audit-flow',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KopstukRoute = KopstukRouteImport.update({
@@ -38,9 +68,24 @@ const LaporanRoute = LaporanRouteImport.update({
   path: '/laporan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LikuiditasRoute = LikuiditasRouteImport.update({
+  id: '/likuiditas',
+  path: '/likuiditas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MasterDataRoute = MasterDataRouteImport.update({
+  id: '/master-data',
+  path: '/master-data',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PencairanRoute = PencairanRouteImport.update({
+  id: '/pencairan',
+  path: '/pencairan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PinjamanRoute = PinjamanRouteImport.update({
@@ -48,9 +93,24 @@ const PinjamanRoute = PinjamanRouteImport.update({
   path: '/pinjaman',
   getParentRoute: () => rootRouteImport,
 } as any)
+const RekomendasiRoute = RekomendasiRouteImport.update({
+  id: '/rekomendasi',
+  path: '/rekomendasi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShuRoute = ShuRouteImport.update({
+  id: '/shu',
+  path: '/shu',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SimpananRoute = SimpananRouteImport.update({
   id: '/simpanan',
   path: '/simpanan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UsersRoute = UsersRouteImport.update({
+  id: '/users',
+  path: '/users',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VerifikasiRoute = VerifikasiRouteImport.update({
@@ -61,76 +121,146 @@ const VerifikasiRoute = VerifikasiRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acc': typeof AccRoute
   '/anggota': typeof AnggotaRoute
+  '/angsuran': typeof AngsuranRoute
+  '/audit': typeof AuditRoute
+  '/audit-flow': typeof AuditFlowRoute
   '/kopstuk': typeof KopstukRoute
   '/laporan': typeof LaporanRoute
+  '/likuiditas': typeof LikuiditasRoute
   '/login': typeof LoginRoute
+  '/master-data': typeof MasterDataRoute
+  '/pencairan': typeof PencairanRoute
   '/pinjaman': typeof PinjamanRoute
+  '/rekomendasi': typeof RekomendasiRoute
+  '/shu': typeof ShuRoute
   '/simpanan': typeof SimpananRoute
+  '/users': typeof UsersRoute
   '/verifikasi': typeof VerifikasiRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acc': typeof AccRoute
   '/anggota': typeof AnggotaRoute
+  '/angsuran': typeof AngsuranRoute
+  '/audit': typeof AuditRoute
+  '/audit-flow': typeof AuditFlowRoute
   '/kopstuk': typeof KopstukRoute
   '/laporan': typeof LaporanRoute
+  '/likuiditas': typeof LikuiditasRoute
   '/login': typeof LoginRoute
+  '/master-data': typeof MasterDataRoute
+  '/pencairan': typeof PencairanRoute
   '/pinjaman': typeof PinjamanRoute
+  '/rekomendasi': typeof RekomendasiRoute
+  '/shu': typeof ShuRoute
   '/simpanan': typeof SimpananRoute
+  '/users': typeof UsersRoute
   '/verifikasi': typeof VerifikasiRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acc': typeof AccRoute
   '/anggota': typeof AnggotaRoute
+  '/angsuran': typeof AngsuranRoute
+  '/audit': typeof AuditRoute
+  '/audit-flow': typeof AuditFlowRoute
   '/kopstuk': typeof KopstukRoute
   '/laporan': typeof LaporanRoute
+  '/likuiditas': typeof LikuiditasRoute
   '/login': typeof LoginRoute
+  '/master-data': typeof MasterDataRoute
+  '/pencairan': typeof PencairanRoute
   '/pinjaman': typeof PinjamanRoute
+  '/rekomendasi': typeof RekomendasiRoute
+  '/shu': typeof ShuRoute
   '/simpanan': typeof SimpananRoute
+  '/users': typeof UsersRoute
   '/verifikasi': typeof VerifikasiRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/acc'
     | '/anggota'
+    | '/angsuran'
+    | '/audit'
+    | '/audit-flow'
     | '/kopstuk'
     | '/laporan'
+    | '/likuiditas'
     | '/login'
+    | '/master-data'
+    | '/pencairan'
     | '/pinjaman'
+    | '/rekomendasi'
+    | '/shu'
     | '/simpanan'
+    | '/users'
     | '/verifikasi'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/acc'
     | '/anggota'
+    | '/angsuran'
+    | '/audit'
+    | '/audit-flow'
     | '/kopstuk'
     | '/laporan'
+    | '/likuiditas'
     | '/login'
+    | '/master-data'
+    | '/pencairan'
     | '/pinjaman'
+    | '/rekomendasi'
+    | '/shu'
     | '/simpanan'
+    | '/users'
     | '/verifikasi'
   id:
     | '__root__'
     | '/'
+    | '/acc'
     | '/anggota'
+    | '/angsuran'
+    | '/audit'
+    | '/audit-flow'
     | '/kopstuk'
     | '/laporan'
+    | '/likuiditas'
     | '/login'
+    | '/master-data'
+    | '/pencairan'
     | '/pinjaman'
+    | '/rekomendasi'
+    | '/shu'
     | '/simpanan'
+    | '/users'
     | '/verifikasi'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccRoute: typeof AccRoute
   AnggotaRoute: typeof AnggotaRoute
+  AngsuranRoute: typeof AngsuranRoute
+  AuditRoute: typeof AuditRoute
+  AuditFlowRoute: typeof AuditFlowRoute
   KopstukRoute: typeof KopstukRoute
   LaporanRoute: typeof LaporanRoute
+  LikuiditasRoute: typeof LikuiditasRoute
   LoginRoute: typeof LoginRoute
+  MasterDataRoute: typeof MasterDataRoute
+  PencairanRoute: typeof PencairanRoute
   PinjamanRoute: typeof PinjamanRoute
+  RekomendasiRoute: typeof RekomendasiRoute
+  ShuRoute: typeof ShuRoute
   SimpananRoute: typeof SimpananRoute
+  UsersRoute: typeof UsersRoute
   VerifikasiRoute: typeof VerifikasiRoute
 }
 
@@ -143,11 +273,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/acc': {
+      id: '/acc'
+      path: '/acc'
+      fullPath: '/acc'
+      preLoaderRoute: typeof AccRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/anggota': {
       id: '/anggota'
       path: '/anggota'
       fullPath: '/anggota'
       preLoaderRoute: typeof AnggotaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/angsuran': {
+      id: '/angsuran'
+      path: '/angsuran'
+      fullPath: '/angsuran'
+      preLoaderRoute: typeof AngsuranRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit-flow': {
+      id: '/audit-flow'
+      path: '/audit-flow'
+      fullPath: '/audit-flow'
+      preLoaderRoute: typeof AuditFlowRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kopstuk': {
@@ -164,11 +322,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LaporanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/likuiditas': {
+      id: '/likuiditas'
+      path: '/likuiditas'
+      fullPath: '/likuiditas'
+      preLoaderRoute: typeof LikuiditasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/master-data': {
+      id: '/master-data'
+      path: '/master-data'
+      fullPath: '/master-data'
+      preLoaderRoute: typeof MasterDataRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pencairan': {
+      id: '/pencairan'
+      path: '/pencairan'
+      fullPath: '/pencairan'
+      preLoaderRoute: typeof PencairanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pinjaman': {
@@ -178,11 +357,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PinjamanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/rekomendasi': {
+      id: '/rekomendasi'
+      path: '/rekomendasi'
+      fullPath: '/rekomendasi'
+      preLoaderRoute: typeof RekomendasiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shu': {
+      id: '/shu'
+      path: '/shu'
+      fullPath: '/shu'
+      preLoaderRoute: typeof ShuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/simpanan': {
       id: '/simpanan'
       path: '/simpanan'
       fullPath: '/simpanan'
       preLoaderRoute: typeof SimpananRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/users': {
+      id: '/users'
+      path: '/users'
+      fullPath: '/users'
+      preLoaderRoute: typeof UsersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/verifikasi': {
@@ -197,12 +397,22 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccRoute: AccRoute,
   AnggotaRoute: AnggotaRoute,
+  AngsuranRoute: AngsuranRoute,
+  AuditRoute: AuditRoute,
+  AuditFlowRoute: AuditFlowRoute,
   KopstukRoute: KopstukRoute,
   LaporanRoute: LaporanRoute,
+  LikuiditasRoute: LikuiditasRoute,
   LoginRoute: LoginRoute,
+  MasterDataRoute: MasterDataRoute,
+  PencairanRoute: PencairanRoute,
   PinjamanRoute: PinjamanRoute,
+  RekomendasiRoute: RekomendasiRoute,
+  ShuRoute: ShuRoute,
   SimpananRoute: SimpananRoute,
+  UsersRoute: UsersRoute,
   VerifikasiRoute: VerifikasiRoute,
 }
 export const routeTree = rootRouteImport
