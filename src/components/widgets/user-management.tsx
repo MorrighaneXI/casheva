@@ -177,7 +177,7 @@ export function UserManagementWidget() {
           <div className="space-y-4 px-4 pb-6">
             <div className="space-y-1.5">
               <Label>Role</Label>
-              <Select defaultValue={edit?.role}>
+              <Select defaultValue={edit?.role ?? "Pengurus Koperasi"}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ROLES.map((r) => (
