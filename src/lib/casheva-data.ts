@@ -1,17 +1,25 @@
 export type Role =
   | "Admin Koperasi"
-  | "Pimpinan/Dan/Ka"
+  | "Pimpinan / Dan / Ka"
   | "Kaprim"
-  | "Pengurus"
-  | "Pengawas";
+  | "Pengurus Koperasi"
+  | "Pengawas Koperasi";
 
 export const ROLES: Role[] = [
   "Admin Koperasi",
-  "Pimpinan/Dan/Ka",
+  "Pimpinan / Dan / Ka",
   "Kaprim",
-  "Pengurus",
-  "Pengawas",
+  "Pengurus Koperasi",
+  "Pengawas Koperasi",
 ];
+
+export const roleShort: Record<Role, string> = {
+  "Admin Koperasi": "Admin",
+  "Pimpinan / Dan / Ka": "Dan/Ka",
+  Kaprim: "Kaprim",
+  "Pengurus Koperasi": "Pengurus",
+  "Pengawas Koperasi": "Pengawas",
+};
 
 export const formatRp = (n: number) =>
   "Rp " + new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(n);
@@ -112,6 +120,26 @@ export const angsuranData = [
   { bulan: "Agu", target: 380, realisasi: 366 },
 ];
 
+/** Pengajuan pinjaman satuan per bulan (jumlah berkas) */
+export const pengajuanSatuanData = [
+  { bulan: "Mar", pengajuan: 12, disetujui: 9 },
+  { bulan: "Apr", pengajuan: 15, disetujui: 12 },
+  { bulan: "Mei", pengajuan: 11, disetujui: 10 },
+  { bulan: "Jun", pengajuan: 18, disetujui: 14 },
+  { bulan: "Jul", pengajuan: 21, disetujui: 17 },
+  { bulan: "Agu", pengajuan: 16, disetujui: 11 },
+];
+
+/** Likuiditas kas vs pencairan (juta rupiah) */
+export const likuiditasData = [
+  { bulan: "Mar", kas: 4200, pencairan: 980 },
+  { bulan: "Apr", kas: 4380, pencairan: 1120 },
+  { bulan: "Mei", kas: 4510, pencairan: 1040 },
+  { bulan: "Jun", kas: 4290, pencairan: 1380 },
+  { bulan: "Jul", kas: 4620, pencairan: 1210 },
+  { bulan: "Agu", kas: 4805, pencairan: 1150 },
+];
+
 export type Anggota = {
   nrp: string;
   nama: string;
@@ -151,4 +179,140 @@ export const workflowSteps = [
   "ACC Kaprim",
   "Upload Berkas",
   "Pencairan",
+];
+
+/* ───────────────────────── RBAC & master data ───────────────────────── */
+
+export type SystemUser = {
+  id: string;
+  nama: string;
+  nrp: string;
+  role: Role;
+  satminkal: string;
+  status: "Aktif" | "Nonaktif";
+  lastLogin: string;
+};
+
+export const systemUsers: SystemUser[] = [
+  { id: "USR-001", nama: "Mayor Cba Arif Setiawan", nrp: "11110234", role: "Admin Koperasi", satminkal: "Disinfolahtad", status: "Aktif", lastLogin: "06 Agu 2026 06:10" },
+  { id: "USR-002", nama: "Kolonel Inf Bagus Prayitno", nrp: "10980017", role: "Pimpinan / Dan / Ka", satminkal: "Disinfolahtad", status: "Aktif", lastLogin: "05 Agu 2026 16:42" },
+  { id: "USR-003", nama: "Letkol Cba Dedi Kurnia", nrp: "11020033", role: "Kaprim", satminkal: "Ditziad", status: "Aktif", lastLogin: "05 Agu 2026 14:20" },
+  { id: "USR-004", nama: "Serma Budi Santoso", nrp: "21980045", role: "Pengurus Koperasi", satminkal: "Disinfolahtad", status: "Aktif", lastLogin: "06 Agu 2026 05:55" },
+  { id: "USR-005", nama: "Kapten Inf Rahmat Hidayat", nrp: "11060078", role: "Pengawas Koperasi", satminkal: "Ditkuad", status: "Aktif", lastLogin: "04 Agu 2026 09:31" },
+  { id: "USR-006", nama: "Penata Muda Sri Wahyuni", nrp: "198504112009", role: "Pengurus Koperasi", satminkal: "Disinfolahtad", status: "Nonaktif", lastLogin: "21 Jul 2026 11:04" },
+  { id: "USR-007", nama: "Pelda Agus Wibowo", nrp: "21930112", role: "Pengurus Koperasi", satminkal: "Mabesad", status: "Aktif", lastLogin: "05 Agu 2026 08:12" },
+];
+
+export const kotamaList = [
+  { kotama: "Mabesad", satminkal: ["Disinfolahtad", "Ditkuad", "Ditziad"], anggota: 842 },
+  { kotama: "Kodam Jaya", satminkal: ["Denma Kodam", "Kesdam Jaya"], anggota: 361 },
+  { kotama: "Kostrad", satminkal: ["Divif 1", "Divif 2"], anggota: 279 },
+];
+
+export const pangkatKorps = [
+  { golongan: "Pamen", pangkat: "Kolonel, Letkol, Mayor", korps: "Inf, Kav, Cba, Chb, Czi", potongan: 300000 },
+  { golongan: "Pama", pangkat: "Kapten, Lettu, Letda", korps: "Inf, Kav, Cba, Chb, Czi", potongan: 250000 },
+  { golongan: "Ba/Ta", pangkat: "Pelda s.d. Prada", korps: "Inf, Chb, Czi, Cpm", potongan: 150000 },
+  { golongan: "ASN", pangkat: "Penata s.d. Pengatur", korps: "PNS TNI AD", potongan: 150000 },
+];
+
+export const tabelPinjaman = [
+  { plafon: 1000000, tenor: 12, bunga: 12, angsuran: 88849 },
+  { plafon: 5000000, tenor: 18, bunga: 12, angsuran: 305556 },
+  { plafon: 10000000, tenor: 24, bunga: 12, angsuran: 516667 },
+  { plafon: 15000000, tenor: 30, bunga: 12, angsuran: 650000 },
+  { plafon: 20000000, tenor: 36, bunga: 12, angsuran: 755556 },
+];
+
+export const auditLogs = [
+  { waktu: "06 Agu 2026 06:12", user: "Mayor Cba Arif Setiawan", aksi: "Update Kopstuk Satuan", modul: "Pengaturan", ip: "10.12.4.21" },
+  { waktu: "06 Agu 2026 05:58", user: "Serma Budi Santoso", aksi: "Verifikasi Jurbay PJM-2026-0184", modul: "Pinjaman", ip: "10.12.4.66" },
+  { waktu: "05 Agu 2026 16:44", user: "Kolonel Inf Bagus Prayitno", aksi: "Rekomendasi Dan/Ka PJM-2026-0183", modul: "Pinjaman", ip: "10.12.4.10" },
+  { waktu: "05 Agu 2026 14:22", user: "Letkol Cba Dedi Kurnia", aksi: "ACC Kaprim PJM-2026-0180", modul: "Pinjaman", ip: "10.12.4.02" },
+  { waktu: "05 Agu 2026 08:15", user: "Pelda Agus Wibowo", aksi: "Batch Simpanan Sukarela Juli", modul: "Simpanan", ip: "10.12.4.77" },
+];
+
+/** Antrean rekomendasi Dan/Ka */
+export const antreanRekomendasi = [
+  { id: "PJM-2026-0186", nama: "Serda Yoga Pratama", pangkat: "Serda Inf", nrp: "31800142", plafon: 10000000, tenor: 24, gaji: 6200000, tunkin: 3100000, potongan: 1850000, jurbay: "Lolos Verifikasi" },
+  { id: "PJM-2026-0185", nama: "Lettu Chb Wahyu Prasetyo", pangkat: "Lettu Chb", nrp: "11090154", plafon: 15000000, tenor: 30, gaji: 8100000, tunkin: 4400000, potongan: 2600000, jurbay: "Lolos Verifikasi" },
+  { id: "PJM-2026-0183", nama: "Kapten Inf Rahmat Hidayat", pangkat: "Kapten Inf", nrp: "11060078", plafon: 20000000, tenor: 36, gaji: 9400000, tunkin: 5200000, potongan: 3100000, jurbay: "Lolos Verifikasi" },
+  { id: "PJM-2026-0182", nama: "Pelda Agus Wibowo", pangkat: "Pelda Czi", nrp: "21930112", plafon: 8000000, tenor: 18, gaji: 5800000, tunkin: 2700000, potongan: 1600000, jurbay: "Catatan: sisa gaji tipis" },
+];
+
+/** Antrean ACC Kaprim (sudah direkomendasi Dan/Ka) */
+export const antreanAcc = [
+  {
+    id: "PJM-2026-0184",
+    nama: "Serma Budi Santoso",
+    nrp: "21980045",
+    satminkal: "Disinfolahtad",
+    plafon: 15000000,
+    tenor: 24,
+    bunga: 12,
+    dokumen: { KTP: true, "Slip Gaji": true, "Rekomendasi Dan/Ka": true, "Akad Kredit": true },
+  },
+  {
+    id: "PJM-2026-0183",
+    nama: "Kapten Inf Rahmat Hidayat",
+    nrp: "11060078",
+    satminkal: "Ditkuad",
+    plafon: 20000000,
+    tenor: 36,
+    bunga: 12,
+    dokumen: { KTP: true, "Slip Gaji": true, "Rekomendasi Dan/Ka": true, "Akad Kredit": false },
+  },
+  {
+    id: "PJM-2026-0181",
+    nama: "Penata Muda Sri Wahyuni",
+    nrp: "198504112009",
+    satminkal: "Disinfolahtad",
+    plafon: 5000000,
+    tenor: 12,
+    bunga: 12,
+    dokumen: { KTP: true, "Slip Gaji": true, "Rekomendasi Dan/Ka": true, "Akad Kredit": true },
+  },
+];
+
+export const potonganSukarela = {
+  Pamen: 300000,
+  Pama: 250000,
+  "Ba/Ta/ASN": 150000,
+} as const;
+
+export const shuDistribusi = [
+  { pos: "Cadangan Koperasi", persen: 40 },
+  { pos: "Jasa Modal (Simpanan)", persen: 20 },
+  { pos: "Jasa Usaha (Pinjaman)", persen: 30 },
+  { pos: "Pengurus / Pengawas", persen: 5 },
+  { pos: "Dana Sosial & Pendidikan", persen: 5 },
+];
+
+export const keuanganRingkas = {
+  pendapatan: 2_145_000_000,
+  biaya: 860_500_000,
+  shu: 1_284_500_000,
+  kas: 4_805_000_000,
+  pinjamanBerjalan: 11_950_000_000,
+};
+
+export const approvalTrail = [
+  { tahap: "Pengajuan Anggota", waktu: "28 Jul 2026 09:12", aktor: "Serma Budi Santoso", ket: "Plafon Rp 15.000.000 / tenor 24 bulan" },
+  { tahap: "Verifikasi Juru Bayar", waktu: "29 Jul 2026 10:40", aktor: "Pelda Agus Wibowo", ket: "Sisa gaji memenuhi syarat, dokumen lengkap" },
+  { tahap: "Rekomendasi Dan/Ka", waktu: "31 Jul 2026 14:05", aktor: "Kolonel Inf Bagus Prayitno", ket: "Direkomendasikan tanpa catatan" },
+  { tahap: "ACC Kaprim", waktu: "02 Agu 2026 08:30", aktor: "Letkol Cba Dedi Kurnia", ket: "Disetujui, diteruskan ke Bendahara" },
+  { tahap: "Pencairan", waktu: "03 Agu 2026 11:15", aktor: "Bendahara Koperasi", ket: "Kwitansi #INV2608030001 diterbitkan" },
+];
+
+export const pencairanQueue = [
+  { invoice: "#INV2608060001", id: "PJM-2026-0184", nama: "Serma Budi Santoso", jumlah: 15000000, biaya: 150000, tanggal: "06 Agu 2026" },
+  { invoice: "#INV2608060002", id: "PJM-2026-0181", nama: "Penata Muda Sri Wahyuni", jumlah: 5000000, biaya: 50000, tanggal: "06 Agu 2026" },
+  { invoice: "#INV2608050004", id: "PJM-2026-0180", nama: "Letkol Cba Dedi Kurnia", jumlah: 18000000, biaya: 180000, tanggal: "05 Agu 2026" },
+];
+
+export const rekapAngsuran = [
+  { nrp: "11020033", nama: "Letkol Cba Dedi Kurnia", pokok: 18000000, angsuranKe: 6, sisa: 14400000, status: "Lancar" },
+  { nrp: "21980045", nama: "Serma Budi Santoso", pokok: 15000000, angsuranKe: 2, sisa: 13750000, status: "Lancar" },
+  { nrp: "11060078", nama: "Kapten Inf Rahmat Hidayat", pokok: 20000000, angsuranKe: 9, sisa: 15000000, status: "Lancar" },
+  { nrp: "21930112", nama: "Pelda Agus Wibowo", pokok: 8000000, angsuranKe: 4, sisa: 5600000, status: "Terlambat" },
 ];
