@@ -1,14 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  LayoutDashboard,
-  Users,
-  PiggyBank,
-  HandCoins,
-  ShieldCheck,
-  FileBarChart,
-  Stamp,
-  Shield,
-} from "lucide-react";
+import { Shield } from "lucide-react";
 
 import {
   Sidebar,
@@ -25,22 +16,14 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { useSession } from "@/components/session-context";
-
-const items = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Data Anggota", url: "/anggota", icon: Users },
-  { title: "Transaksi Simpanan", url: "/simpanan", icon: PiggyBank },
-  { title: "Pengajuan Pinjaman", url: "/pinjaman", icon: HandCoins },
-  { title: "Verification Center", url: "/verifikasi", icon: ShieldCheck, badge: "7" },
-  { title: "Laporan & SHU", url: "/laporan", icon: FileBarChart },
-  { title: "Pengaturan Kopstuk", url: "/kopstuk", icon: Stamp },
-] as const;
+import { roleNav } from "@/lib/role-nav";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { satminkal, kotama } = useSession();
+  const { satminkal, kotama, role } = useSession();
+  const items = roleNav[role];
 
   return (
     <Sidebar collapsible="icon">
@@ -71,13 +54,16 @@ export function AppSidebar() {
             <p className="truncate text-xs text-sidebar-foreground/80">
               Kotama: {kotama}
             </p>
+            <p className="mt-1 truncate text-[11px] font-semibold text-sidebar-primary">
+              {role}
+            </p>
           </div>
         )}
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Menu Utama</SidebarGroupLabel>
+          <SidebarGroupLabel>Menu {role}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
@@ -91,7 +77,7 @@ export function AppSidebar() {
                         <span className="truncate">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
-                    {"badge" in item && item.badge && !collapsed ? (
+                    {item.badge && !collapsed ? (
                       <SidebarMenuBadge className="bg-gold text-gold-foreground">
                         {item.badge}
                       </SidebarMenuBadge>
