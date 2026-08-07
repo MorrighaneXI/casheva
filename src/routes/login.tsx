@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 import { ROLES, type Role } from "@/lib/casheva-data";
 import { cn } from "@/lib/utils";
+import { useSession } from "@/components/session-context";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -49,14 +50,17 @@ export const Route = createFileRoute("/login")({
 
 const DEMO_CREDENTIALS: Record<Role, { username: string; password: string }> = {
   "Admin Koperasi": { username: "admin.koperasi", password: "casheva2026" },
-  "Pimpinan / Dan / Ka": { username: "11020033", password: "casheva2026" },
+  "Pimpinan / Dan / Ka": { username: "10980017", password: "casheva2026" },
   Kaprim: { username: "kaprim.mabesad", password: "casheva2026" },
-  "Pengurus Koperasi": { username: "21980045", password: "casheva2026" },
+  Bendahara: { username: "21980045", password: "casheva2026" },
+  "Juru Bayar": { username: "21930112", password: "casheva2026" },
+  Anggota: { username: "31770091", password: "casheva2026" },
   "Pengawas Koperasi": { username: "pengawas.itjen", password: "casheva2026" },
 };
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { setRole, setAuthenticated } = useSession();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -80,6 +84,9 @@ function LoginPage() {
     track(() => {
       setLoading(false);
       setSuccess(true);
+      const guessedRole = ROLES.find((r) => DEMO_CREDENTIALS[r].username === username);
+      if (guessedRole) setRole(guessedRole);
+      setAuthenticated(true);
       track(() => setLeaving(true), 900);
       track(() => navigate({ to: "/" }), 1500);
     }, 1600);

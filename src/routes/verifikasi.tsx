@@ -8,6 +8,9 @@ import {
   CircleDot,
   Paperclip,
   Calculator,
+  ArrowLeft,
+  AlertTriangle,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,22 +38,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { formatRp, workflowSteps } from "@/lib/casheva-data";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { antreanJuyar, formatRp, workflowSteps } from "@/lib/casheva-data";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/verifikasi")({
   head: () => ({
     meta: [
-      { title: "Verification Center — Casheva Koperasi TNI AD" },
+      { title: "Antrean Verifikasi Juru Bayar — Casheva" },
       {
         name: "description",
         content:
-          "Alur verifikasi pengajuan pinjaman berjenjang: Jurbay, Dan/Ka, Kaprim, unggah berkas, hingga pencairan.",
+          "Verifikasi kelayakan gaji anggota sebelum pengajuan pinjaman diteruskan ke Dan/Ka.",
       },
-      { property: "og:title", content: "Verification Center — Casheva" },
+      { property: "og:title", content: "Antrean Verifikasi — Casheva" },
       {
         property: "og:description",
-        content: "Kelola persetujuan pinjaman koperasi TNI AD secara berjenjang.",
+        content: "Verifikasi berjenjang pengajuan pinjaman koperasi TNI AD.",
       },
     ],
   }),
@@ -60,19 +71,111 @@ export const Route = createFileRoute("/verifikasi")({
 const docs = [
   "Surat Permohonan",
   "Rekomendasi Jurbay",
-  "Rekomendasi Dan/Ka",
   "Slip Gaji 3 Bulan",
   "Fotokopi KTA / KTP",
   "Surat Pernyataan Potong Gaji",
 ];
 
+type JuyarItem = (typeof antreanJuyar)[number];
+
 function VerificationCenter() {
-  const [current, setCurrent] = useState(3);
-  const [amount, setAmount] = useState(15_000_000);
-  const [tenor, setTenor] = useState(24);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = antreanJuyar.find((r) => r.id === selectedId) ?? null;
+
+  if (!selected) {
+    return <JuyarPersonList onOpen={setSelectedId} />;
+  }
+
+  return (
+    <JuyarDetail
+      item={selected}
+      onBack={() => setSelectedId(null)}
+    />
+  );
+}
+
+function JuyarPersonList({ onOpen }: { onOpen: (id: string) => void }) {
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Antrean Verifikasi"
+        description="Daftar pemohon menunggu verifikasi kelayakan gaji oleh Juru Bayar"
+        actions={
+          <Badge variant="outline" className="border-gold/40 bg-gold-soft text-accent-foreground">
+            {antreanJuyar.length} antrean
+          </Badge>
+        }
+      />
+
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle>Pemohon per Orang</CardTitle>
+          <CardDescription>
+            Pilih anggota lalu buka detail untuk mengecek kelayakan dan berkas
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Pemohon</TableHead>
+                <TableHead>Satminkal</TableHead>
+                <TableHead className="text-right">Plafon</TableHead>
+                <TableHead className="text-center">Tenor</TableHead>
+                <TableHead>Kelayakan Sistem</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {antreanJuyar.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell>
+                    <p className="font-medium">
+                      {r.pangkat} {r.nama}
+                    </p>
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {r.id} · NRP {r.nrp}
+                    </p>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{r.satminkal}</TableCell>
+                  <TableCell className="text-right font-semibold">
+                    {formatRp(r.plafon)}
+                  </TableCell>
+                  <TableCell className="text-center">{r.tenor} bln</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={
+                        r.layak
+                          ? "border-success/30 bg-success/15 text-success"
+                          : "border-destructive/30 bg-destructive/10 text-destructive"
+                      }
+                    >
+                      {r.layak ? "Direkomendasikan" : "Tidak direkomendasikan"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button size="sm" variant="outline" onClick={() => onOpen(r.id)}>
+                      <Eye className="mr-1 size-3.5" /> Selengkapnya
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function JuyarDetail({ item, onBack }: { item: JuyarItem; onBack: () => void }) {
+  const [current, setCurrent] = useState(1);
+  const [amount, setAmount] = useState(item.plafon);
+  const [tenor, setTenor] = useState(item.tenor);
   const [uploaded, setUploaded] = useState<Record<string, string>>({
     "Surat Permohonan": "surat-permohonan.pdf",
-    "Rekomendasi Jurbay": "rekomendasi-jurbay.pdf",
+    "Slip Gaji 3 Bulan": "slip-gaji.pdf",
   });
   const [dialog, setDialog] = useState<null | "approve" | "reject">(null);
   const [note, setNote] = useState("");
@@ -84,18 +187,19 @@ function VerificationCenter() {
     const total = amount + bunga;
     const angsuran = total / tenor;
     const adminFee = amount * 0.01;
-    return { bunga, total, angsuran, adminFee, net: amount - adminFee };
-  }, [amount, tenor]);
+    const rasio = item.sisaGaji > 0 ? angsuran / item.sisaGaji : 1;
+    return { bunga, total, angsuran, adminFee, net: amount - adminFee, rasio };
+  }, [amount, tenor, item.sisaGaji]);
 
   const submit = () => {
     if (dialog === "approve") {
       setCurrent((c) => Math.min(c + 1, workflowSteps.length));
-      toast.success("Pengajuan disetujui", {
-        description: `Tahap lanjut: ${workflowSteps[Math.min(current, workflowSteps.length - 1)]}`,
+      toast.success("Lolos verifikasi Juru Bayar", {
+        description: `${item.id} diteruskan ke Dan/Ka untuk rekomendasi.`,
       });
     } else {
-      toast.error("Pengajuan ditolak", {
-        description: note ? `Catatan: ${note}` : "Tanpa catatan peninjau",
+      toast.error("Tidak direkomendasikan", {
+        description: note ? `Catatan: ${note}` : item.catatan,
       });
     }
     setDialog(null);
@@ -105,14 +209,68 @@ function VerificationCenter() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Verification Center"
-        description="PJM-2026-0184 · Serma Budi Santoso · Satminkal Disinfolahtad"
+        title="Detail Verifikasi"
+        description={`${item.id} · ${item.pangkat} ${item.nama} · ${item.satminkal}`}
         actions={
-          <Badge variant="outline" className="border-gold/40 bg-gold-soft text-accent-foreground">
-            Menunggu ACC Kaprim
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" size="sm" onClick={onBack}>
+              <ArrowLeft className="mr-1 size-4" /> Kembali ke antrean
+            </Button>
+            <Badge
+              variant="outline"
+              className={
+                item.layak
+                  ? "border-success/30 bg-success/15 text-success"
+                  : "border-destructive/30 bg-destructive/10 text-destructive"
+              }
+            >
+              {item.layak ? "Sistem: Layak" : "Sistem: Tidak layak"}
+            </Badge>
+          </div>
         }
       />
+
+      {!item.layak ? (
+        <Card className="border-destructive/30 bg-destructive/5 shadow-card">
+          <CardContent className="flex flex-wrap items-start justify-between gap-4 py-5">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-destructive/15 text-destructive">
+                <AlertTriangle className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="font-semibold text-destructive">Peringatan: tidak direkomendasikan</p>
+                <p className="mt-1 text-sm text-muted-foreground">{item.catatan}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Rasio angsuran terhadap sisa gaji: {(calc.rasio * 100).toFixed(1)}% (ambang 40%)
+                </p>
+              </div>
+            </div>
+            <Button variant="destructive" onClick={() => setDialog("reject")}>
+              <X className="mr-1 size-4" /> Tidak Direkomendasikan
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle>Evaluasi Gaji &amp; Potongan</CardTitle>
+          <CardDescription>Perhitungan kelayakan sebelum lanjut ke Dan/Ka</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+          {[
+            ["Gaji pokok", formatRp(item.gaji)],
+            ["Tunkin", formatRp(item.tunkin)],
+            ["Potongan berjalan", formatRp(item.potongan)],
+            ["Sisa gaji", formatRp(item.sisaGaji)],
+          ].map(([k, v]) => (
+            <div key={k} className="rounded-xl border border-border p-3">
+              <p className="text-xs text-muted-foreground">{k}</p>
+              <p className="mt-1 font-semibold">{v}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <Card className="shadow-card">
         <CardHeader>
@@ -202,12 +360,7 @@ function VerificationCenter() {
                     step={500_000}
                     onValueChange={([v]) => setAmount(v ?? amount)}
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{formatRp(1_000_000)}</span>
-                    <span>{formatRp(20_000_000)}</span>
-                  </div>
                 </div>
-
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <Label>Tenor</Label>
@@ -220,10 +373,6 @@ function VerificationCenter() {
                     step={1}
                     onValueChange={([v]) => setTenor(v ?? tenor)}
                   />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>1 bulan</span>
-                    <span>36 bulan</span>
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -265,7 +414,7 @@ function VerificationCenter() {
         <TabsContent value="berkas" className="mt-4">
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle>Unggah Dokumen</CardTitle>
+              <CardTitle>Unggah / Cek Dokumen</CardTitle>
               <CardDescription>Format PDF, JPG, atau PNG maksimal 5 MB per berkas</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-2">
@@ -343,15 +492,15 @@ function VerificationCenter() {
           <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
             <CircleDot className="size-4 shrink-0 text-gold" />
             <span className="truncate">
-              Menunggu keputusan tahap {current}: {workflowSteps[current - 1]}
+              Menunggu keputusan Juru Bayar — lanjut ke Dan/Ka jika lolos
             </span>
           </div>
           <div className="flex shrink-0 gap-2">
             <Button variant="destructive" onClick={() => setDialog("reject")}>
-              <X className="mr-1 size-4" /> Tolak
+              <X className="mr-1 size-4" /> Tidak Direkomendasikan
             </Button>
-            <Button onClick={() => setDialog("approve")}>
-              <Check className="mr-1 size-4" /> Setujui
+            <Button onClick={() => setDialog("approve")} disabled={!item.layak && calc.rasio > 0.4}>
+              <Check className="mr-1 size-4" /> Lolos Verifikasi
             </Button>
           </div>
         </CardContent>
@@ -361,10 +510,10 @@ function VerificationCenter() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {dialog === "approve" ? "Setujui Pengajuan" : "Tolak Pengajuan"}
+              {dialog === "approve" ? "Loloskan ke Dan/Ka" : "Tidak Direkomendasikan"}
             </DialogTitle>
             <DialogDescription>
-              Catatan peninjau akan tercatat pada riwayat persetujuan PJM-2026-0184.
+              Catatan peninjau akan tercatat pada riwayat persetujuan {item.id}.
             </DialogDescription>
           </DialogHeader>
           <Textarea

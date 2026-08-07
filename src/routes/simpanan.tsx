@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,7 +26,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatRp } from "@/lib/casheva-data";
+import { anggotaList, formatRp } from "@/lib/casheva-data";
+import { generateSukarelaBatch, type SimpananTrx } from "@/lib/savings";
 
 export const Route = createFileRoute("/simpanan")({
   head: () => ({
@@ -47,7 +48,7 @@ export const Route = createFileRoute("/simpanan")({
   component: SimpananPage,
 });
 
-const trx = [
+const initialTrx: SimpananTrx[] = [
   { id: "TRX-9021", nama: "Serma Budi Santoso", jenis: "Sukarela", tipe: "Setoran", jumlah: 500000, tgl: "03 Agu 2026" },
   { id: "TRX-9020", nama: "Kapten Inf Rahmat Hidayat", jenis: "Wajib", tipe: "Setoran", jumlah: 300000, tgl: "03 Agu 2026" },
   { id: "TRX-9019", nama: "Pelda Agus Wibowo", jenis: "Sukarela", tipe: "Penarikan", jumlah: 1200000, tgl: "02 Agu 2026" },
@@ -57,6 +58,20 @@ const trx = [
 
 function SimpananPage() {
   const [open, setOpen] = useState(false);
+  const [trx, setTrx] = useState(initialTrx);
+
+  const totals = useMemo(() => {
+    const data = {
+      Pokok: 742_000_000,
+      Wajib: 5_310_000_000,
+      Sukarela: 10_888_000_000,
+    };
+    for (const t of trx) {
+      const signed = t.tipe === "Setoran" ? t.jumlah : -t.jumlah;
+      data[t.jenis] += signed;
+    }
+    return data;
+  }, [trx]);
 
   return (
     <div className="space-y-6">
@@ -64,17 +79,29 @@ function SimpananPage() {
         title="Transaksi Simpanan"
         description="Mutasi simpanan pokok, wajib, dan sukarela anggota"
         actions={
-          <Button onClick={() => setOpen(true)}>
-            <Plus className="mr-2 size-4" /> Transaksi Baru
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                const batch = generateSukarelaBatch(anggotaList, new Date());
+                setTrx((prev) => [...batch, ...prev]);
+                toast.success(`Batch sukarela berhasil: ${batch.length} transaksi dibuat`);
+              }}
+            >
+              Jalankan Batch Tanggal 5
+            </Button>
+            <Button onClick={() => setOpen(true)}>
+              <Plus className="mr-2 size-4" /> Transaksi Baru
+            </Button>
+          </div>
         }
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          ["Simpanan Pokok", 742_000_000],
-          ["Simpanan Wajib", 5_310_000_000],
-          ["Simpanan Sukarela", 10_888_000_000],
+          ["Simpanan Pokok", totals.Pokok],
+          ["Simpanan Wajib", totals.Wajib],
+          ["Simpanan Sukarela", totals.Sukarela],
         ].map(([label, val]) => (
           <Card key={label as string} className="shadow-card">
             <CardHeader className="pb-2">
@@ -173,6 +200,21 @@ function SimpananPage() {
           <SheetFooter>
             <Button
               onClick={() => {
+                setTrx((prev) => [
+                  {
+                    id: `TRX-MANUAL-${Date.now()}`,
+                    nama: "Input Manual",
+                    jenis: "Sukarela",
+                    tipe: "Setoran",
+                    jumlah: 500_000,
+                    tgl: new Date().toLocaleDateString("id-ID", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    }),
+                  },
+                  ...prev,
+                ]);
                 setOpen(false);
                 toast.success("Transaksi simpanan tersimpan");
               }}

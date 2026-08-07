@@ -2,9 +2,14 @@
 // when h3 has already swallowed the throw into a generic 500 Response.
 
 let lastCapturedError: { error: unknown; at: number } | undefined;
+let lastCapturedAbort: { error: unknown; at: number } | undefined;
 const TTL_MS = 5_000;
 
 function record(error: unknown) {
+  if (isRequestAbortedError(error)) {
+    lastCapturedAbort = { error, at: Date.now() };
+    return;
+  }
   lastCapturedError = { error, at: Date.now() };
 }
 
@@ -49,16 +54,45 @@ function isErrorLike(value: unknown): value is Error {
   return value instanceof Error;
 }
 
+const ABORT_MESSAGES = new Set(["aborted", "request aborted", "the operation was aborted"]);
+
+/** Client disconnected mid-request — noisy but not an app failure. */
+export function isRequestAbortedError(error: unknown): boolean {
+  let current: unknown = error;
+  for (let depth = 0; depth < CAUSE_DEPTH_LIMIT && current != null; depth++) {
+    if (current instanceof Error) {
+      const code = (current as { code?: unknown }).code;
+      if (current.name === "AbortError") return true;
+      if (code === "ECONNRESET" || code === "ECONNABORTED") return true;
+      if (ABORT_MESSAGES.has(current.message.toLowerCase())) return true;
+      if (current.stack?.includes("abortIncoming")) return true;
+      current = current.cause;
+      continue;
+    }
+    break;
+  }
+  return false;
+}
+
 // Wrap console.error so errors logged by any layer — including h3's internal
 // unhandled-error logging, which this file cannot hook directly — are both
 // recorded for consumeLastCapturedError and expanded before serialization.
 const originalConsoleError = console.error.bind(console);
 console.error = (...args: unknown[]) => {
-  const expanded = args.map((arg) => {
-    if (!isErrorLike(arg)) return arg;
+  let hasAbort = false;
+  let hasRealError = false;
+
+  for (const arg of args) {
+    if (!isErrorLike(arg)) continue;
     record(arg);
-    return describeError(arg);
-  });
+    if (isRequestAbortedError(arg)) hasAbort = true;
+    else hasRealError = true;
+  }
+
+  // Client disconnects are expected during refresh/navigation — don't spam the terminal.
+  if (hasAbort && !hasRealError) return;
+
+  const expanded = args.map((arg) => (isErrorLike(arg) ? describeError(arg) : arg));
   originalConsoleError(...expanded);
 };
 
@@ -69,13 +103,27 @@ if (typeof globalThis.addEventListener === "function") {
   );
 }
 
-export function consumeLastCapturedError(): unknown {
-  if (!lastCapturedError) return undefined;
-  if (Date.now() - lastCapturedError.at > TTL_MS) {
-    lastCapturedError = undefined;
+function consumeCaptured(
+  slot: { error: unknown; at: number } | undefined,
+  clear: () => void,
+): unknown {
+  if (!slot) return undefined;
+  if (Date.now() - slot.at > TTL_MS) {
+    clear();
     return undefined;
   }
-  const { error } = lastCapturedError;
-  lastCapturedError = undefined;
-  return error;
+  clear();
+  return slot.error;
+}
+
+export function consumeLastCapturedError(): unknown {
+  return consumeCaptured(lastCapturedError, () => {
+    lastCapturedError = undefined;
+  });
+}
+
+export function consumeLastCapturedAbort(): unknown {
+  return consumeCaptured(lastCapturedAbort, () => {
+    lastCapturedAbort = undefined;
+  });
 }

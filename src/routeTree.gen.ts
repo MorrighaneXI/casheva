@@ -15,12 +15,14 @@ import { Route as AnggotaRouteImport } from './routes/anggota'
 import { Route as AngsuranRouteImport } from './routes/angsuran'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AuditFlowRouteImport } from './routes/audit-flow'
+import { Route as GajiRouteImport } from './routes/gaji'
 import { Route as KopstukRouteImport } from './routes/kopstuk'
 import { Route as LaporanRouteImport } from './routes/laporan'
 import { Route as LikuiditasRouteImport } from './routes/likuiditas'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MasterDataRouteImport } from './routes/master-data'
 import { Route as PencairanRouteImport } from './routes/pencairan'
+import { Route as PengajuanRouteImport } from './routes/pengajuan'
 import { Route as PinjamanRouteImport } from './routes/pinjaman'
 import { Route as RekomendasiRouteImport } from './routes/rekomendasi'
 import { Route as ShuRouteImport } from './routes/shu'
@@ -58,6 +60,11 @@ const AuditFlowRoute = AuditFlowRouteImport.update({
   path: '/audit-flow',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GajiRoute = GajiRouteImport.update({
+  id: '/gaji',
+  path: '/gaji',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const KopstukRoute = KopstukRouteImport.update({
   id: '/kopstuk',
   path: '/kopstuk',
@@ -86,6 +93,11 @@ const MasterDataRoute = MasterDataRouteImport.update({
 const PencairanRoute = PencairanRouteImport.update({
   id: '/pencairan',
   path: '/pencairan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PengajuanRoute = PengajuanRouteImport.update({
+  id: '/pengajuan',
+  path: '/pengajuan',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PinjamanRoute = PinjamanRouteImport.update({
@@ -126,12 +138,14 @@ export interface FileRoutesByFullPath {
   '/angsuran': typeof AngsuranRoute
   '/audit': typeof AuditRoute
   '/audit-flow': typeof AuditFlowRoute
+  '/gaji': typeof GajiRoute
   '/kopstuk': typeof KopstukRoute
   '/laporan': typeof LaporanRoute
   '/likuiditas': typeof LikuiditasRoute
   '/login': typeof LoginRoute
   '/master-data': typeof MasterDataRoute
   '/pencairan': typeof PencairanRoute
+  '/pengajuan': typeof PengajuanRoute
   '/pinjaman': typeof PinjamanRoute
   '/rekomendasi': typeof RekomendasiRoute
   '/shu': typeof ShuRoute
@@ -146,12 +160,14 @@ export interface FileRoutesByTo {
   '/angsuran': typeof AngsuranRoute
   '/audit': typeof AuditRoute
   '/audit-flow': typeof AuditFlowRoute
+  '/gaji': typeof GajiRoute
   '/kopstuk': typeof KopstukRoute
   '/laporan': typeof LaporanRoute
   '/likuiditas': typeof LikuiditasRoute
   '/login': typeof LoginRoute
   '/master-data': typeof MasterDataRoute
   '/pencairan': typeof PencairanRoute
+  '/pengajuan': typeof PengajuanRoute
   '/pinjaman': typeof PinjamanRoute
   '/rekomendasi': typeof RekomendasiRoute
   '/shu': typeof ShuRoute
@@ -167,12 +183,14 @@ export interface FileRoutesById {
   '/angsuran': typeof AngsuranRoute
   '/audit': typeof AuditRoute
   '/audit-flow': typeof AuditFlowRoute
+  '/gaji': typeof GajiRoute
   '/kopstuk': typeof KopstukRoute
   '/laporan': typeof LaporanRoute
   '/likuiditas': typeof LikuiditasRoute
   '/login': typeof LoginRoute
   '/master-data': typeof MasterDataRoute
   '/pencairan': typeof PencairanRoute
+  '/pengajuan': typeof PengajuanRoute
   '/pinjaman': typeof PinjamanRoute
   '/rekomendasi': typeof RekomendasiRoute
   '/shu': typeof ShuRoute
@@ -189,12 +207,14 @@ export interface FileRouteTypes {
     | '/angsuran'
     | '/audit'
     | '/audit-flow'
+    | '/gaji'
     | '/kopstuk'
     | '/laporan'
     | '/likuiditas'
     | '/login'
     | '/master-data'
     | '/pencairan'
+    | '/pengajuan'
     | '/pinjaman'
     | '/rekomendasi'
     | '/shu'
@@ -209,12 +229,14 @@ export interface FileRouteTypes {
     | '/angsuran'
     | '/audit'
     | '/audit-flow'
+    | '/gaji'
     | '/kopstuk'
     | '/laporan'
     | '/likuiditas'
     | '/login'
     | '/master-data'
     | '/pencairan'
+    | '/pengajuan'
     | '/pinjaman'
     | '/rekomendasi'
     | '/shu'
@@ -229,12 +251,14 @@ export interface FileRouteTypes {
     | '/angsuran'
     | '/audit'
     | '/audit-flow'
+    | '/gaji'
     | '/kopstuk'
     | '/laporan'
     | '/likuiditas'
     | '/login'
     | '/master-data'
     | '/pencairan'
+    | '/pengajuan'
     | '/pinjaman'
     | '/rekomendasi'
     | '/shu'
@@ -250,12 +274,14 @@ export interface RootRouteChildren {
   AngsuranRoute: typeof AngsuranRoute
   AuditRoute: typeof AuditRoute
   AuditFlowRoute: typeof AuditFlowRoute
+  GajiRoute: typeof GajiRoute
   KopstukRoute: typeof KopstukRoute
   LaporanRoute: typeof LaporanRoute
   LikuiditasRoute: typeof LikuiditasRoute
   LoginRoute: typeof LoginRoute
   MasterDataRoute: typeof MasterDataRoute
   PencairanRoute: typeof PencairanRoute
+  PengajuanRoute: typeof PengajuanRoute
   PinjamanRoute: typeof PinjamanRoute
   RekomendasiRoute: typeof RekomendasiRoute
   ShuRoute: typeof ShuRoute
@@ -308,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditFlowRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/gaji': {
+      id: '/gaji'
+      path: '/gaji'
+      fullPath: '/gaji'
+      preLoaderRoute: typeof GajiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/kopstuk': {
       id: '/kopstuk'
       path: '/kopstuk'
@@ -348,6 +381,13 @@ declare module '@tanstack/react-router' {
       path: '/pencairan'
       fullPath: '/pencairan'
       preLoaderRoute: typeof PencairanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pengajuan': {
+      id: '/pengajuan'
+      path: '/pengajuan'
+      fullPath: '/pengajuan'
+      preLoaderRoute: typeof PengajuanRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pinjaman': {
@@ -402,12 +442,14 @@ const rootRouteChildren: RootRouteChildren = {
   AngsuranRoute: AngsuranRoute,
   AuditRoute: AuditRoute,
   AuditFlowRoute: AuditFlowRoute,
+  GajiRoute: GajiRoute,
   KopstukRoute: KopstukRoute,
   LaporanRoute: LaporanRoute,
   LikuiditasRoute: LikuiditasRoute,
   LoginRoute: LoginRoute,
   MasterDataRoute: MasterDataRoute,
   PencairanRoute: PencairanRoute,
+  PengajuanRoute: PengajuanRoute,
   PinjamanRoute: PinjamanRoute,
   RekomendasiRoute: RekomendasiRoute,
   ShuRoute: ShuRoute,
