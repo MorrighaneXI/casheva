@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { Search, FilePlus2 } from "lucide-react";
-import { toast } from "sonner";
+import { Search } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
+import { useSession } from "@/components/session-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,17 +17,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatRp, loanStatusTone, recentLoans } from "@/lib/casheva-data";
+import { canAccessPath } from "@/lib/rbac";
 
 export const Route = createFileRoute("/pinjaman")({
   head: () => ({
     meta: [
-      { title: "Pengajuan Pinjaman — Casheva" },
+      { title: "Riwayat Pinjaman — Casheva" },
       {
         name: "description",
         content:
           "Daftar seluruh pengajuan pinjaman anggota koperasi TNI AD beserta status persetujuan berjenjang.",
       },
-      { property: "og:title", content: "Pengajuan Pinjaman — Casheva" },
+      { property: "og:title", content: "Riwayat Pinjaman — Casheva" },
       {
         property: "og:description",
         content: "Pantau seluruh pengajuan pinjaman anggota koperasi TNI AD.",
@@ -38,22 +39,35 @@ export const Route = createFileRoute("/pinjaman")({
 });
 
 function PinjamanPage() {
+  const { role } = useSession();
+  const monitorOnly = role === "Pimpinan / Dan / Ka" || role === "Kaprim";
   const [q, setQ] = useState("");
   const rows = recentLoans.filter(
     (l) =>
       l.nama.toLowerCase().includes(q.toLowerCase()) ||
       l.id.toLowerCase().includes(q.toLowerCase()),
   );
+  const detailTo = canAccessPath(role, "/rekomendasi")
+    ? "/rekomendasi"
+    : canAccessPath(role, "/verifikasi")
+      ? "/verifikasi"
+      : "/pinjaman";
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Pengajuan Pinjaman"
-        description="Seluruh pengajuan pinjaman anggota pada tahun buku berjalan"
+        title={monitorOnly ? "Riwayat Pinjaman Satuan" : "Pengajuan Pinjaman"}
+        description={
+          monitorOnly
+            ? "Monitoring seluruh pengajuan pinjaman anggota satuan (tanpa mengubah status)."
+            : "Seluruh pengajuan pinjaman anggota pada tahun buku berjalan"
+        }
         actions={
-          <Button onClick={() => toast("Formulir pengajuan baru dibuka")}>
-            <FilePlus2 className="mr-2 size-4" /> Pengajuan Baru
-          </Button>
+          monitorOnly ? (
+            <Badge variant="outline" className="border-primary/25 bg-primary-soft text-primary">
+              Mode monitoring
+            </Badge>
+          ) : null
         }
       />
 
@@ -105,7 +119,7 @@ function PinjamanPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <Button size="sm" variant="ghost" asChild>
-                      <Link to="/verifikasi">Tinjau</Link>
+                      <Link to={detailTo as "/"}>{monitorOnly ? "Lihat" : "Tinjau"}</Link>
                     </Button>
                   </TableCell>
                 </TableRow>

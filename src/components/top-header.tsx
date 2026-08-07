@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router";
 import { Bell, Search, Moon, Sun, UserRound, LogOut, Settings } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -37,13 +38,20 @@ const notifications = [
 ];
 
 export function TopHeader() {
-  const { role, setRole } = useSession();
+  const navigate = useNavigate();
+  const { role, setRole, setAuthenticated } = useSession();
   const [dark, setDark] = useState(false);
 
   const toggleTheme = () => {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
+  };
+
+  const logout = () => {
+    setAuthenticated(false);
+    toast.success("Sesi diakhiri");
+    navigate({ to: "/login" });
   };
 
   return (
@@ -139,7 +147,7 @@ export function TopHeader() {
               <DropdownMenuItem>
                 <Settings className="mr-2 size-4" /> Pengaturan Akun
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => toast("Sesi diakhiri")}>
+              <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 size-4" /> Keluar
               </DropdownMenuItem>
             </DropdownMenuContent>

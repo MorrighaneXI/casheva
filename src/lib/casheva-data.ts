@@ -2,14 +2,18 @@ export type Role =
   | "Admin Koperasi"
   | "Pimpinan / Dan / Ka"
   | "Kaprim"
-  | "Pengurus Koperasi"
+  | "Bendahara"
+  | "Juru Bayar"
+  | "Anggota"
   | "Pengawas Koperasi";
 
 export const ROLES: Role[] = [
   "Admin Koperasi",
   "Pimpinan / Dan / Ka",
   "Kaprim",
-  "Pengurus Koperasi",
+  "Bendahara",
+  "Juru Bayar",
+  "Anggota",
   "Pengawas Koperasi",
 ];
 
@@ -17,7 +21,9 @@ export const roleShort: Record<Role, string> = {
   "Admin Koperasi": "Admin",
   "Pimpinan / Dan / Ka": "Dan/Ka",
   Kaprim: "Kaprim",
-  "Pengurus Koperasi": "Pengurus",
+  Bendahara: "Bendahara",
+  "Juru Bayar": "Juyar",
+  Anggota: "Anggota",
   "Pengawas Koperasi": "Pengawas",
 };
 
@@ -92,7 +98,38 @@ export const recentLoans = [
     status: "Disbursed" as LoanStatus,
     tanggal: "31 Jul 2026",
   },
+  {
+    id: "PJM-2026-0179",
+    nama: "Sertu Hendra Gunawan",
+    nrp: "31770091",
+    satminkal: "Mabesad",
+    jumlah: 6000000,
+    tenor: 12,
+    status: "Rejected" as LoanStatus,
+    tanggal: "30 Jul 2026",
+  },
+  {
+    id: "PJM-2026-0178",
+    nama: "Mayor Kav Fajar Nugroho",
+    nrp: "11150221",
+    satminkal: "Ditkuad",
+    jumlah: 12000000,
+    tenor: 24,
+    status: "Pending" as LoanStatus,
+    tanggal: "29 Jul 2026",
+  },
 ];
+
+/** Ringkasan status pinjaman untuk dashboard eksekutif */
+export function getLoanStatusCounts(loans: typeof recentLoans = recentLoans) {
+  const prosesStatuses: LoanStatus[] = ["Pending", "Verified Jurbay", "Approved Dan"];
+  const accStatuses: LoanStatus[] = ["ACC Kaprim", "Disbursed"];
+  return {
+    proses: loans.filter((l) => prosesStatuses.includes(l.status)).length,
+    disetujui: loans.filter((l) => accStatuses.includes(l.status)).length,
+    ditolak: loans.filter((l) => l.status === "Rejected").length,
+  };
+}
 
 export const trenData = [
   { bulan: "Jan", simpanan: 820, pinjaman: 540 },
@@ -197,10 +234,90 @@ export const systemUsers: SystemUser[] = [
   { id: "USR-001", nama: "Mayor Cba Arif Setiawan", nrp: "11110234", role: "Admin Koperasi", satminkal: "Disinfolahtad", status: "Aktif", lastLogin: "06 Agu 2026 06:10" },
   { id: "USR-002", nama: "Kolonel Inf Bagus Prayitno", nrp: "10980017", role: "Pimpinan / Dan / Ka", satminkal: "Disinfolahtad", status: "Aktif", lastLogin: "05 Agu 2026 16:42" },
   { id: "USR-003", nama: "Letkol Cba Dedi Kurnia", nrp: "11020033", role: "Kaprim", satminkal: "Ditziad", status: "Aktif", lastLogin: "05 Agu 2026 14:20" },
-  { id: "USR-004", nama: "Serma Budi Santoso", nrp: "21980045", role: "Pengurus Koperasi", satminkal: "Disinfolahtad", status: "Aktif", lastLogin: "06 Agu 2026 05:55" },
+  { id: "USR-004", nama: "Serma Budi Santoso", nrp: "21980045", role: "Bendahara", satminkal: "Disinfolahtad", status: "Aktif", lastLogin: "06 Agu 2026 05:55" },
   { id: "USR-005", nama: "Kapten Inf Rahmat Hidayat", nrp: "11060078", role: "Pengawas Koperasi", satminkal: "Ditkuad", status: "Aktif", lastLogin: "04 Agu 2026 09:31" },
-  { id: "USR-006", nama: "Penata Muda Sri Wahyuni", nrp: "198504112009", role: "Pengurus Koperasi", satminkal: "Disinfolahtad", status: "Nonaktif", lastLogin: "21 Jul 2026 11:04" },
-  { id: "USR-007", nama: "Pelda Agus Wibowo", nrp: "21930112", role: "Pengurus Koperasi", satminkal: "Mabesad", status: "Aktif", lastLogin: "05 Agu 2026 08:12" },
+  { id: "USR-006", nama: "Penata Muda Sri Wahyuni", nrp: "198504112009", role: "Bendahara", satminkal: "Disinfolahtad", status: "Nonaktif", lastLogin: "21 Jul 2026 11:04" },
+  { id: "USR-007", nama: "Pelda Agus Wibowo", nrp: "21930112", role: "Juru Bayar", satminkal: "Mabesad", status: "Aktif", lastLogin: "05 Agu 2026 08:12" },
+  { id: "USR-008", nama: "Sertu Hendra Gunawan", nrp: "31770091", role: "Anggota", satminkal: "Mabesad", status: "Aktif", lastLogin: "06 Agu 2026 07:05" },
+];
+
+/** Antrean verifikasi Juru Bayar (sebelum lanjut ke Dan/Ka) */
+export const antreanJuyar = [
+  {
+    id: "PJM-2026-0187",
+    nama: "Sertu Hendra Gunawan",
+    pangkat: "Sertu Inf",
+    nrp: "31770091",
+    satminkal: "Mabesad",
+    plafon: 6000000,
+    tenor: 12,
+    gaji: 5400000,
+    tunkin: 2100000,
+    potongan: 1450000,
+    sisaGaji: 6050000,
+    layak: true,
+    catatan: "Sisa gaji memenuhi ketentuan minimal",
+  },
+  {
+    id: "PJM-2026-0181",
+    nama: "Penata Muda Sri Wahyuni",
+    pangkat: "Penata Muda",
+    nrp: "198504112009",
+    satminkal: "Disinfolahtad",
+    plafon: 5000000,
+    tenor: 12,
+    gaji: 4800000,
+    tunkin: 900000,
+    potongan: 2200000,
+    sisaGaji: 3500000,
+    layak: true,
+    catatan: "Dokumen lengkap, potongan masih dalam batas aman",
+  },
+  {
+    id: "PJM-2026-0178",
+    nama: "Mayor Kav Fajar Nugroho",
+    pangkat: "Mayor Kav",
+    nrp: "11150221",
+    satminkal: "Ditkuad",
+    plafon: 12000000,
+    tenor: 24,
+    gaji: 9100000,
+    tunkin: 4800000,
+    potongan: 5200000,
+    sisaGaji: 8700000,
+    layak: false,
+    catatan: "Rasio angsuran terhadap sisa gaji di atas ambang 40%",
+  },
+];
+
+/** Profil gaji anggota (demo role Anggota) */
+export const anggotaGajiProfile = {
+  nama: "Sertu Hendra Gunawan",
+  nrp: "31770091",
+  pangkat: "Sertu Inf",
+  satminkal: "Mabesad",
+  gajiPokok: 5400000,
+  tunkin: 2100000,
+  tunjanganLain: 350000,
+  potongan: [
+    { nama: "Simpanan Wajib", jumlah: 150000 },
+    { nama: "Simpanan Sukarela", jumlah: 150000 },
+    { nama: "Angsuran Pinjaman PJM-2026-0175", jumlah: 625000 },
+    { nama: "Iuran Koperasi", jumlah: 25000 },
+    { nama: "Asuransi", jumlah: 500000 },
+  ],
+};
+
+export const anggotaAngsuranSaya = [
+  {
+    id: "PJM-2026-0175",
+    pokok: 7500000,
+    angsuranKe: 5,
+    totalAngsuran: 18,
+    angsuranBulanan: 625000,
+    sisa: 8125000,
+    status: "Lancar" as const,
+  },
 ];
 
 export const kotamaList = [

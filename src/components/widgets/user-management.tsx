@@ -177,7 +177,7 @@ export function UserManagementWidget() {
           <div className="space-y-4 px-4 pb-6">
             <div className="space-y-1.5">
               <Label>Role</Label>
-              <Select defaultValue={edit?.role ?? "Pengurus Koperasi"}>
+              <Select defaultValue={edit?.role ?? "Bendahara"}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ROLES.map((r) => (
@@ -214,7 +214,7 @@ export function UserManagementWidget() {
             <div className="space-y-1.5"><Label>NRP / NIP</Label><Input placeholder="21980045" /></div>
             <div className="space-y-1.5">
               <Label>Role</Label>
-              <Select defaultValue="Pengurus Koperasi">
+              <Select defaultValue="Bendahara">
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {ROLES.map((r) => (<SelectItem key={r} value={r}>{r}</SelectItem>))}

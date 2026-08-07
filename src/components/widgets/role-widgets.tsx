@@ -43,6 +43,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  anggotaList,
   antreanAcc,
   antreanRekomendasi,
   approvalTrail,
@@ -57,6 +58,8 @@ import {
   shuDistribusi,
   shuRows,
 } from "@/lib/casheva-data";
+import { nextInvoiceFromList } from "@/lib/invoice";
+import { generateSukarelaBatch } from "@/lib/savings";
 
 const chartTooltip = {
   background: "var(--color-popover)",
@@ -67,15 +70,21 @@ const chartTooltip = {
 
 /* ── Pimpinan ── */
 
-export function RekomendasiQueue() {
+export function RekomendasiQueue({ monitorOnly = false }: { monitorOnly?: boolean }) {
   const [reject, setReject] = useState<string | null>(null);
 
   return (
     <Card className="shadow-card">
       <CardHeader>
-        <CardTitle>Antrean Rekomendasi Pinjaman Dan/Ka</CardTitle>
+        <CardTitle>
+          {monitorOnly
+            ? "Monitoring Antrean Rekomendasi"
+            : "Antrean Rekomendasi Pinjaman Dan/Ka"}
+        </CardTitle>
         <CardDescription>
-          Pengajuan yang telah diteruskan Juru Bayar dan menunggu rekomendasi komandan
+          {monitorOnly
+            ? "Pantau progres pengajuan yang menunggu / sudah direkomendasi Dan/Ka"
+            : "Pengajuan yang telah diteruskan Juru Bayar dan menunggu rekomendasi komandan"}
         </CardDescription>
       </CardHeader>
       <CardContent className="overflow-x-auto">
@@ -88,7 +97,7 @@ export function RekomendasiQueue() {
               <TableHead className="text-center">Tenor</TableHead>
               <TableHead>Evaluasi Gaji / Tunkin</TableHead>
               <TableHead>Status Jurbay</TableHead>
-              <TableHead className="text-right">Aksi</TableHead>
+              <TableHead className="text-right">{monitorOnly ? "Status" : "Aksi"}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -116,21 +125,33 @@ export function RekomendasiQueue() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right whitespace-nowrap">
-                  <Button
-                    size="sm"
-                    className="bg-success text-success-foreground hover:bg-success/90"
-                    onClick={() => toast.success(`Rekomendasi diberikan untuk ${r.id}`)}
-                  >
-                    <ThumbsUp className="mr-1 size-3.5" /> Beri Rekomendasi
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="ml-2"
-                    onClick={() => setReject(r.id)}
-                  >
-                    <ThumbsDown className="mr-1 size-3.5" /> Tidak
-                  </Button>
+                  {monitorOnly ? (
+                    <Badge variant="outline" className="border-primary/25 bg-primary-soft text-primary">
+                      Menunggu Dan/Ka
+                    </Badge>
+                  ) : (
+                    <>
+                      <Button
+                        size="sm"
+                        className="bg-success text-success-foreground hover:bg-success/90"
+                        onClick={() =>
+                          toast.success(`Rekomendasi diberikan untuk ${r.id}`, {
+                            description: "Diteruskan ke Kaprim untuk ACC akhir.",
+                          })
+                        }
+                      >
+                        <ThumbsUp className="mr-1 size-3.5" /> Beri Rekomendasi
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="ml-2"
+                        onClick={() => setReject(r.id)}
+                      >
+                        <ThumbsDown className="mr-1 size-3.5" /> Tidak
+                      </Button>
+                    </>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -138,28 +159,30 @@ export function RekomendasiQueue() {
         </Table>
       </CardContent>
 
-      <Dialog open={!!reject} onOpenChange={(o) => !o && setReject(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Tidak Direkomendasikan</DialogTitle>
-            <DialogDescription>
-              Catatan alasan untuk pengajuan {reject} akan tercatat pada audit trail.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea placeholder="Contoh: sisa gaji bersih di bawah ketentuan minimal." rows={4} />
-          <DialogFooter>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                toast.error(`${reject} ditolak dengan catatan`);
-                setReject(null);
-              }}
-            >
-              Kirim Penolakan
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {!monitorOnly ? (
+        <Dialog open={!!reject} onOpenChange={(o) => !o && setReject(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Tidak Direkomendasikan</DialogTitle>
+              <DialogDescription>
+                Catatan alasan untuk pengajuan {reject} akan tercatat pada audit trail.
+              </DialogDescription>
+            </DialogHeader>
+            <Textarea placeholder="Contoh: sisa gaji bersih di bawah ketentuan minimal." rows={4} />
+            <DialogFooter>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  toast.error(`${reject} ditolak dengan catatan`);
+                  setReject(null);
+                }}
+              >
+                Kirim Penolakan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : null}
     </Card>
   );
 }
@@ -299,7 +322,13 @@ export function BatchSimpananBanner() {
             Ba/Ta/ASN {formatRp(potonganSukarela["Ba/Ta/ASN"])}
           </p>
         </div>
-        <Button onClick={() => toast.success("Batch potongan simpanan sukarela dijalankan")}>
+        <Button
+          onClick={() => {
+            const batch = generateSukarelaBatch(anggotaList);
+            const total = batch.reduce((sum, row) => sum + row.jumlah, 0);
+            toast.success(`Batch berjalan: ${batch.length} transaksi (${formatRp(total)})`);
+          }}
+        >
           Jalankan Potongan Otomatis Tanggal 5
         </Button>
       </CardContent>
@@ -308,6 +337,8 @@ export function BatchSimpananBanner() {
 }
 
 export function InvoiceGenerator() {
+  const [rows, setRows] = useState(pencairanQueue);
+
   return (
     <Card className="shadow-card">
       <CardHeader>
@@ -315,6 +346,33 @@ export function InvoiceGenerator() {
         <CardDescription>Penomoran invoice otomatis berurutan (#INVYYMMDDNNNN)</CardDescription>
       </CardHeader>
       <CardContent className="overflow-x-auto">
+        <div className="mb-3 flex justify-end">
+          <Button
+            variant="outline"
+            onClick={() => {
+              if (!rows.length) return;
+              const newest = rows[0];
+              if (!newest) return;
+              const nextInvoice = nextInvoiceFromList(rows.map((r) => r.invoice));
+              setRows((prev) => [
+                {
+                  ...newest,
+                  id: `PJM-${new Date().getFullYear()}-AUTO`,
+                  invoice: nextInvoice,
+                  tanggal: new Date().toLocaleDateString("id-ID", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  }),
+                },
+                ...prev,
+              ]);
+              toast.success(`Invoice baru dibuat: ${nextInvoice}`);
+            }}
+          >
+            Generate Invoice Berikutnya
+          </Button>
+        </div>
         <Table>
           <TableHeader>
             <TableRow>
@@ -327,7 +385,7 @@ export function InvoiceGenerator() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {pencairanQueue.map((p) => (
+            {rows.map((p) => (
               <TableRow key={p.invoice}>
                 <TableCell className="font-mono text-xs">{p.invoice}</TableCell>
                 <TableCell className="font-mono text-xs">{p.id}</TableCell>

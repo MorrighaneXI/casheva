@@ -17,6 +17,8 @@ import {
   Calculator,
   GitBranch,
   Coins,
+  FilePlus2,
+  Banknote,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/casheva-data";
@@ -31,7 +33,7 @@ export type NavItem = {
 export const roleNav: Record<Role, NavItem[]> = {
   "Admin Koperasi": [
     { title: "Dashboard", url: "/", icon: LayoutDashboard },
-    { title: "Manajemen User", url: "/users", icon: Users, badge: "7" },
+    { title: "Manajemen User", url: "/users", icon: Users, badge: "8" },
     { title: "Master Data TNI AD", url: "/master-data", icon: Database },
     { title: "Kopstuk & TTD", url: "/kopstuk", icon: Stamp },
     { title: "Audit Logs", url: "/audit", icon: ScrollText },
@@ -44,16 +46,31 @@ export const roleNav: Record<Role, NavItem[]> = {
   ],
   Kaprim: [
     { title: "Dashboard", url: "/", icon: LayoutDashboard },
+    { title: "Antrean Rekomendasi", url: "/rekomendasi", icon: ClipboardCheck, badge: "4" },
     { title: "Persetujuan Akhir (ACC)", url: "/acc", icon: BadgeCheck, badge: "3" },
     { title: "Likuiditas Kas", url: "/likuiditas", icon: Wallet },
     { title: "Laporan Keuangan", url: "/laporan", icon: FileBarChart },
   ],
-  "Pengurus Koperasi": [
+  Bendahara: [
     { title: "Dashboard", url: "/", icon: LayoutDashboard },
-    { title: "Verifikasi Jurbay", url: "/verifikasi", icon: ShieldCheck, badge: "7" },
+    { title: "Pengajuan Pinjaman", url: "/pengajuan", icon: FilePlus2 },
+    { title: "Antrean Rekomendasi", url: "/rekomendasi", icon: ClipboardCheck, badge: "4" },
     { title: "Simpanan Anggota", url: "/simpanan", icon: PiggyBank },
     { title: "Pencairan & Invoice", url: "/pencairan", icon: Receipt },
     { title: "Rekap Angsuran", url: "/angsuran", icon: ListChecks },
+  ],
+  "Juru Bayar": [
+    { title: "Dashboard", url: "/", icon: LayoutDashboard },
+    { title: "Antrean Verifikasi", url: "/verifikasi", icon: ShieldCheck, badge: "3" },
+    { title: "Pencairan & Invoice", url: "/pencairan", icon: Receipt },
+    { title: "Rekap Angsuran", url: "/angsuran", icon: ListChecks },
+  ],
+  Anggota: [
+    { title: "Dashboard", url: "/", icon: LayoutDashboard },
+    { title: "Rincian Gaji", url: "/gaji", icon: Banknote },
+    { title: "Pengajuan", url: "/pengajuan", icon: FilePlus2 },
+    { title: "Simpanan Saya", url: "/simpanan", icon: PiggyBank },
+    { title: "Riwayat Angsuran", url: "/angsuran", icon: ListChecks },
   ],
   "Pengawas Koperasi": [
     { title: "Dashboard", url: "/", icon: LayoutDashboard },

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Printer, FileSpreadsheet, PenLine, Shield } from "lucide-react";
 import { toast } from "sonner";
 
@@ -17,6 +17,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { formatRp, shuRows } from "@/lib/casheva-data";
+import { exportBackupJson, parseBackupJson } from "@/lib/backup";
+import { hitungShuAkuntansi } from "@/lib/finance";
 
 export const Route = createFileRoute("/laporan")({
   head: () => ({
@@ -47,11 +49,24 @@ function LaporanPage() {
   const [jabatan, setJabatan] = useState("Ketua Primkop Kartika");
   const [pejabat, setPejabat] = useState("Letkol Cba Dedi Kurnia");
   const [nrp, setNrp] = useState("11020033");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const totalModal = shuRows.reduce((s, r) => s + r.modal, 0);
   const totalTransaksi = shuRows.reduce((s, r) => s + r.transaksi, 0);
   const poolModal = TOTAL_SHU * 0.2;
   const poolUsaha = TOTAL_SHU * 0.3;
+  const shuAkuntansi = hitungShuAkuntansi(
+    {
+      bungaPinjaman: 1_585_000_000,
+      biayaAdminRisiko: 240_000_000,
+      jasaLain: 320_000_000,
+    },
+    {
+      honorPengurus: 260_000_000,
+      operasionalKantor: 405_500_000,
+      rapatPendidikanSosial: 195_000_000,
+    },
+  );
 
   return (
     <div className="space-y-6">
@@ -65,6 +80,20 @@ function LaporanPage() {
             </Button>
             <Button variant="outline" onClick={() => toast.success("Berkas Excel disiapkan")}>
               <FileSpreadsheet className="mr-2 size-4" /> Export Excel
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() =>
+                exportBackupJson(
+                  { kop1, kop2, kop3, jabatan, pejabat, nrp, rows: shuRows },
+                  `casheva-backup-${new Date().toISOString().slice(0, 10)}.json`,
+                )
+              }
+            >
+              Backup JSON
+            </Button>
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+              Restore JSON
             </Button>
             <Button onClick={() => toast.success("Dokumen dikirim ke antrean cetak PDF")}>
               <Printer className="mr-2 size-4" /> Cetak PDF
@@ -98,6 +127,20 @@ function LaporanPage() {
         </Card>
 
         <Card className="overflow-x-auto p-6 print-sheet">
+          <div className="mb-4 grid gap-3 sm:grid-cols-3">
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Pendapatan</CardTitle></CardHeader>
+              <CardContent><p className="text-base font-bold">{formatRp(shuAkuntansi.totalPendapatan)}</p></CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">Biaya Operasional</CardTitle></CardHeader>
+              <CardContent><p className="text-base font-bold">{formatRp(shuAkuntansi.totalBiaya)}</p></CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2"><CardTitle className="text-sm">SHU Akuntansi</CardTitle></CardHeader>
+              <CardContent><p className="text-base font-bold">{formatRp(shuAkuntansi.shu)}</p></CardContent>
+            </Card>
+          </div>
           <div className="min-w-[720px]">
             <header className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 border-b-4 border-double border-neutral-800 pb-3">
               <div className="grid size-16 shrink-0 place-items-center rounded-full border-2 border-neutral-800">
@@ -175,6 +218,37 @@ function LaporanPage() {
           </div>
         </Card>
       </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept="application/json"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          try {
+            const parsed = await parseBackupJson<{
+              kop1: string;
+              kop2: string;
+              kop3: string;
+              jabatan: string;
+              pejabat: string;
+              nrp: string;
+            }>(file);
+            setKop1(parsed.data.kop1);
+            setKop2(parsed.data.kop2);
+            setKop3(parsed.data.kop3);
+            setJabatan(parsed.data.jabatan);
+            setPejabat(parsed.data.pejabat);
+            setNrp(parsed.data.nrp);
+            toast.success("Backup berhasil dipulihkan");
+          } catch {
+            toast.error("Gagal restore: format backup tidak valid");
+          } finally {
+            e.currentTarget.value = "";
+          }
+        }}
+      />
 
       <Sheet open={ttdOpen} onOpenChange={setTtdOpen}>
         <SheetContent className="w-full sm:max-w-md">

@@ -17,6 +17,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppSidebar } from "@/components/app-sidebar";
 import { TopHeader } from "@/components/top-header";
 import { SessionProvider } from "@/components/session-context";
+import { RoleGate } from "@/components/role-gate";
 
 function NotFoundComponent() {
   return (
@@ -142,7 +143,9 @@ function RootComponent() {
     return (
       <QueryClientProvider client={queryClient}>
         <SessionProvider>
-          <Outlet />
+          <RoleGate>
+            <Outlet />
+          </RoleGate>
           <Toaster position="top-right" richColors />
         </SessionProvider>
       </QueryClientProvider>
@@ -152,18 +155,20 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <SessionProvider>
-        <SidebarProvider>
-          <div className="flex min-h-screen w-full">
-            <AppSidebar />
-            <div className="flex min-w-0 flex-1 flex-col">
-              <TopHeader />
-              <main className="flex-1 p-4 sm:p-6">
-                {/* Required: nested routes render here. */}
-                <Outlet />
-              </main>
+        <RoleGate>
+          <SidebarProvider>
+            <div className="flex min-h-screen w-full">
+              <AppSidebar />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <TopHeader />
+                <main className="flex-1 p-4 sm:p-6">
+                  {/* Required: nested routes render here. */}
+                  <Outlet />
+                </main>
+              </div>
             </div>
-          </div>
-        </SidebarProvider>
+          </SidebarProvider>
+        </RoleGate>
         <Toaster position="top-right" richColors />
       </SessionProvider>
     </QueryClientProvider>
