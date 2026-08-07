@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Shield } from "lucide-react";
+
+import cashevaLogo from "@/assets/casheva-logo.png.asset.json";
 
 import {
   Sidebar,
@@ -29,8 +30,12 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="border-b border-sidebar-border px-3 py-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground">
-            <Shield className="size-5" />
+          <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-sidebar-accent/60 p-1.5">
+            <img
+              src={cashevaLogo.url}
+              alt="Logo Casheva Koperasi TNI AD"
+              className="size-full object-contain"
+            />
           </div>
           {!collapsed && (
             <div className="min-w-0">
