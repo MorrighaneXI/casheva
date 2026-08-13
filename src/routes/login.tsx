@@ -11,6 +11,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
+import { notify as toast } from "@/lib/notify";
 import emblem from "@/assets/casheva-emblem.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
