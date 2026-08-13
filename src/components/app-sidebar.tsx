@@ -1,4 +1,7 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { LogOut } from "lucide-react";
+
+import { notify as toast } from "@/lib/notify";
 
 import cashevaLogo from "@/assets/casheva-logo.png.asset.json";
 
@@ -23,8 +26,15 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { satminkal, kotama, role } = useSession();
+  const { satminkal, kotama, role, setAuthenticated } = useSession();
   const items = roleNav[role];
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    setAuthenticated(false);
+    toast.success("Sesi diakhiri", { description: `${role} keluar dari aplikasi` });
+    navigate({ to: "/login" });
+  };
 
   return (
     <Sidebar collapsible="icon">
