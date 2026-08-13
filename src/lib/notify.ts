@@ -3,7 +3,7 @@ import { toast as sonner } from "sonner";
 export type AppNotification = {
   id: string;
   title: string;
-  description?: string;
+  description?: string | undefined;
   tone: "success" | "error" | "info" | "warning";
   at: number;
   read: boolean;
@@ -15,7 +15,6 @@ let items: AppNotification[] = [];
 const listeners = new Set<Listener>();
 
 function emit() {
-  listeners.add;
   for (const l of listeners) l();
 }
 
