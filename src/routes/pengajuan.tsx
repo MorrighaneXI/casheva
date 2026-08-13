@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { FilePlus2, UploadCloud, FileText, Send } from "lucide-react";
-import { toast } from "sonner";
+import { notify as toast } from "@/lib/notify";
 
 import { PageHeader } from "@/components/page-header";
 import { useSession } from "@/components/session-context";
