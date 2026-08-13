@@ -30,22 +30,25 @@ import {
 } from "@/components/ui/popover";
 import { useSession } from "@/components/session-context";
 import { ROLES, type Role } from "@/lib/casheva-data";
-
-const notifications = [
-  { title: "3 pengajuan menunggu Verifikasi Jurbay", time: "5 menit lalu" },
-  { title: "2 berkas rekomendasi Dan/Ka belum diunggah", time: "1 jam lalu" },
-  { title: "Auto-generate simpanan sukarela dijadwalkan 5 Agu", time: "Kemarin" },
-];
+import { notificationStore, timeAgo } from "@/lib/notify";
+import { useSyncExternalStore } from "react";
 
 export function TopHeader() {
   const navigate = useNavigate();
-  const { role, setRole, setAuthenticated } = useSession();
+  const { role, setRole, setAuthenticated, canSwitchRole } = useSession();
   const [dark, setDark] = useState(false);
+  const notifications = useSyncExternalStore(
+    notificationStore.subscribe,
+    notificationStore.getSnapshot,
+    notificationStore.getServerSnapshot,
+  );
+  const unread = notifications.filter((n) => !n.read).length;
 
   const toggleTheme = () => {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
+    toast.success(`Mode ${next ? "gelap" : "terang"} diaktifkan`);
   };
 
   const logout = () => {
@@ -53,6 +56,7 @@ export function TopHeader() {
     toast.success("Sesi diakhiri");
     navigate({ to: "/login" });
   };
+
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/85 backdrop-blur">
