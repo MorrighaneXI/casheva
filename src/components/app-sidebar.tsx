@@ -96,6 +96,14 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-2 rounded-lg bg-destructive px-3 py-2 text-sm font-semibold text-destructive-foreground transition-all hover:bg-destructive/90 active:scale-95"
+          aria-label="Keluar aplikasi"
+        >
+          <LogOut className="size-4 shrink-0" />
+          {!collapsed && <span className="truncate">Log Out</span>}
+        </button>
         {!collapsed && (
           <p className="px-2 py-1 text-[10px] text-sidebar-foreground/60">
             Casheva v1.0 · Sistem Koperasi TNI AD
@@ -105,3 +113,4 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
+
