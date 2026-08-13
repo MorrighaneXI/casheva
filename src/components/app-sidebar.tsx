@@ -1,7 +1,4 @@
-import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LogOut } from "lucide-react";
-
-import { notify as toast } from "@/lib/notify";
+import { Link, useRouterState } from "@tanstack/react-router";
 
 import cashevaLogo from "@/assets/casheva-logo.png.asset.json";
 
@@ -26,15 +23,8 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { satminkal, kotama, role, setAuthenticated } = useSession();
+  const { satminkal, kotama, role } = useSession();
   const items = roleNav[role];
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    setAuthenticated(false);
-    toast.success("Sesi diakhiri", { description: `${role} keluar dari aplikasi` });
-    navigate({ to: "/login" });
-  };
 
   return (
     <Sidebar collapsible="icon">
@@ -106,14 +96,6 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-2 rounded-lg bg-destructive px-3 py-2 text-sm font-semibold text-destructive-foreground transition-all hover:bg-destructive/90 active:scale-95"
-          aria-label="Keluar aplikasi"
-        >
-          <LogOut className="size-4 shrink-0" />
-          {!collapsed && <span className="truncate">Log Out</span>}
-        </button>
         {!collapsed && (
           <p className="px-2 py-1 text-[10px] text-sidebar-foreground/60">
             Casheva v1.0 · Sistem Koperasi TNI AD
@@ -123,4 +105,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-

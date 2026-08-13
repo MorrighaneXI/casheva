@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Bell, Search, Moon, Sun, UserRound, LogOut, Settings } from "lucide-react";
 import { useState } from "react";
-import { notify as toast } from "@/lib/notify";
+import { toast } from "sonner";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
@@ -30,25 +30,22 @@ import {
 } from "@/components/ui/popover";
 import { useSession } from "@/components/session-context";
 import { ROLES, type Role } from "@/lib/casheva-data";
-import { notificationStore, timeAgo } from "@/lib/notify";
-import { useSyncExternalStore } from "react";
+
+const notifications = [
+  { title: "3 pengajuan menunggu Verifikasi Jurbay", time: "5 menit lalu" },
+  { title: "2 berkas rekomendasi Dan/Ka belum diunggah", time: "1 jam lalu" },
+  { title: "Auto-generate simpanan sukarela dijadwalkan 5 Agu", time: "Kemarin" },
+];
 
 export function TopHeader() {
   const navigate = useNavigate();
-  const { role, setRole, setAuthenticated, canSwitchRole } = useSession();
+  const { role, setRole, setAuthenticated } = useSession();
   const [dark, setDark] = useState(false);
-  const notifications = useSyncExternalStore(
-    notificationStore.subscribe,
-    notificationStore.getSnapshot,
-    notificationStore.getServerSnapshot,
-  );
-  const unread = notifications.filter((n) => !n.read).length;
 
   const toggleTheme = () => {
     const next = !dark;
     setDark(next);
     document.documentElement.classList.toggle("dark", next);
-    toast.success(`Mode ${next ? "gelap" : "terang"} diaktifkan`);
   };
 
   const logout = () => {
@@ -56,7 +53,6 @@ export function TopHeader() {
     toast.success("Sesi diakhiri");
     navigate({ to: "/login" });
   };
-
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/85 backdrop-blur">
@@ -74,30 +70,18 @@ export function TopHeader() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
-          {canSwitchRole ? (
-            <Select
-              value={role}
-              onValueChange={(v) => {
-                setRole(v as Role);
-                toast.success(`Tampilan peran diubah ke ${v}`);
-              }}
-            >
-              <SelectTrigger className="hidden h-9 w-[190px] md:flex">
-                <SelectValue placeholder="Pilih peran" />
-              </SelectTrigger>
-              <SelectContent>
-                {ROLES.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <Badge variant="outline" className="hidden h-9 items-center px-3 md:flex">
-              {role}
-            </Badge>
-          )}
+          <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+            <SelectTrigger className="hidden h-9 w-[190px] md:flex">
+              <SelectValue placeholder="Pilih peran" />
+            </SelectTrigger>
+            <SelectContent>
+              {ROLES.map((r) => (
+                <SelectItem key={r} value={r}>
+                  {r}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Ganti tema">
             {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
@@ -107,44 +91,20 @@ export function TopHeader() {
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="relative" aria-label="Notifikasi">
                 <Bell className="size-4" />
-                {unread > 0 && (
-                  <span className="absolute right-1 top-1 grid size-4 place-items-center rounded-full bg-gold text-[9px] font-bold text-gold-foreground">
-                    {unread > 9 ? "9+" : unread}
-                  </span>
-                )}
+                <span className="absolute right-1 top-1 grid size-4 place-items-center rounded-full bg-gold text-[9px] font-bold text-gold-foreground">
+                  3
+                </span>
               </Button>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-80 p-0">
               <div className="border-b border-border px-4 py-3">
-                <p className="text-sm font-semibold">Notifikasi Aktivitas</p>
-                <p className="text-xs text-muted-foreground">
-                  Semua aksi peran tercatat otomatis
-                </p>
+                <p className="text-sm font-semibold">Notifikasi Persetujuan</p>
               </div>
-              <ul className="max-h-80 divide-y divide-border overflow-y-auto">
-                {notifications.length === 0 && (
-                  <li className="px-4 py-6 text-center text-xs text-muted-foreground">
-                    Belum ada aktivitas pada sesi ini
-                  </li>
-                )}
+              <ul className="divide-y divide-border">
                 {notifications.map((n) => (
-                  <li key={n.id} className="px-4 py-3 hover:bg-muted/60">
-                    <p className="text-sm leading-snug">
-                      <span
-                        className={
-                          n.tone === "error"
-                            ? "mr-2 inline-block size-2 rounded-full bg-destructive align-middle"
-                            : n.tone === "success"
-                              ? "mr-2 inline-block size-2 rounded-full bg-success align-middle"
-                              : "mr-2 inline-block size-2 rounded-full bg-gold align-middle"
-                        }
-                      />
-                      {n.title}
-                    </p>
-                    {n.description && (
-                      <p className="mt-1 text-xs text-muted-foreground">{n.description}</p>
-                    )}
-                    <p className="mt-1 text-[11px] text-muted-foreground">{timeAgo(n.at)}</p>
+                  <li key={n.title} className="px-4 py-3 hover:bg-muted/60">
+                    <p className="text-sm leading-snug">{n.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{n.time}</p>
                   </li>
                 ))}
               </ul>
@@ -152,14 +112,13 @@ export function TopHeader() {
                 <Button
                   variant="ghost"
                   className="w-full"
-                  onClick={() => notificationStore.markAllRead()}
+                  onClick={() => toast.success("Semua notifikasi ditandai dibaca")}
                 >
                   Tandai semua dibaca
                 </Button>
               </div>
             </PopoverContent>
           </Popover>
-
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

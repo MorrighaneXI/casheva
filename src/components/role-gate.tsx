@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
-import { notify as toast } from "@/lib/notify";
+import { toast } from "sonner";
 
 import { useSession } from "@/components/session-context";
 import { canAccessPath, homePathFor } from "@/lib/rbac";

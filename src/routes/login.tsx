@@ -11,7 +11,6 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import { notify as toast } from "@/lib/notify";
 import emblem from "@/assets/casheva-emblem.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,7 +60,7 @@ const DEMO_CREDENTIALS: Record<Role, { username: string; password: string }> = {
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { login, setAuthenticated } = useSession();
+  const { setRole, setAuthenticated } = useSession();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -86,11 +85,8 @@ function LoginPage() {
       setLoading(false);
       setSuccess(true);
       const guessedRole = ROLES.find((r) => DEMO_CREDENTIALS[r].username === username);
-      if (guessedRole) login(guessedRole);
+      if (guessedRole) setRole(guessedRole);
       setAuthenticated(true);
-      toast.success("Autentikasi berhasil", {
-        description: `Masuk sebagai ${guessedRole ?? "Pengguna"} · Disinfolahtad`,
-      });
       track(() => setLeaving(true), 900);
       track(() => navigate({ to: "/" }), 1500);
     }, 1600);

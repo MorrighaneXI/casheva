@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { RefreshCw, Search, SlidersHorizontal, Pencil, UserPlus } from "lucide-react";
-import { notify as toast } from "@/lib/notify";
+import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";

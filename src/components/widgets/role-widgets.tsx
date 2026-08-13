@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { notify as toast } from "@/lib/notify";
+import { toast } from "sonner";
 import {
   Area,
   AreaChart,

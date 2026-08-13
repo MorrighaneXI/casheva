@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { KeyRound, Pencil, Plus, Search } from "lucide-react";
-import { notify as toast } from "@/lib/notify";
+import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
