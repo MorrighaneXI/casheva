@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Bell, Search, Moon, Sun, UserRound, LogOut, Settings } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { notify as toast } from "@/lib/notify";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";

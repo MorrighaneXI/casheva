@@ -1,4 +1,4 @@
-import { toast } from "sonner";
+import { notify as toast } from "@/lib/notify";
 import { Building2, FolderKanban, Medal, Percent, UsersRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";

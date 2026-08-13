@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { Printer, FileSpreadsheet, PenLine, Shield } from "lucide-react";
-import { toast } from "sonner";
+import { notify as toast } from "@/lib/notify";
 
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
