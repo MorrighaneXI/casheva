@@ -1,3 +1,5 @@
+import type { BackendRole, StatusPinjaman } from './api/types';
+
 export type Role =
   | "Admin Koperasi"
   | "Pimpinan / Dan / Ka"
@@ -27,24 +29,97 @@ export const roleShort: Record<Role, string> = {
   "Pengawas Koperasi": "Pengawas",
 };
 
+export function backendRoleToFrontend(role: BackendRole | string): Role {
+  switch (role) {
+    case 'ADMIN_KOPERASI':
+      return 'Admin Koperasi';
+    case 'PIMPINAN':
+      return 'Pimpinan / Dan / Ka';
+    case 'KAPRIM':
+      return 'Kaprim';
+    case 'BENDAHARA':
+      return 'Bendahara';
+    case 'PENGAWAS':
+      return 'Pengawas Koperasi';
+    case 'JURU_BAYAR':
+      return 'Juru Bayar';
+    case 'ANGGOTA':
+      return 'Anggota';
+    default:
+      return 'Admin Koperasi';
+  }
+}
+
+export function frontendRoleToBackend(role: Role | string): BackendRole {
+  switch (role) {
+    case 'Admin Koperasi':
+      return 'ADMIN_KOPERASI';
+    case 'Pimpinan / Dan / Ka':
+      return 'PIMPINAN';
+    case 'Kaprim':
+      return 'KAPRIM';
+    case 'Bendahara':
+      return 'BENDAHARA';
+    case 'Pengawas Koperasi':
+      return 'PENGAWAS';
+    case 'Juru Bayar':
+      return 'JURU_BAYAR';
+    case 'Anggota':
+      return 'ANGGOTA';
+    default:
+      return 'ADMIN_KOPERASI';
+  }
+}
+
 export const formatRp = (n: number) =>
   "Rp " + new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(n);
 
 export type LoanStatus =
   | "Pending"
+  | "Verified Primkop"
   | "Verified Jurbay"
   | "Approved Dan"
   | "ACC Kaprim"
+  | "Upload Berkas"
   | "Disbursed"
-  | "Rejected";
+  | "Rejected"
+  | "Lunas";
+
+export function backendStatusToFrontend(status: StatusPinjaman | string): LoanStatus {
+  switch (status) {
+    case 'DIAJUKAN':
+      return 'Pending';
+    case 'VERIFIKASI_PRIMKOP':
+      return 'Verified Primkop';
+    case 'VERIFIKASI_JURU_BAYAR':
+      return 'Verified Jurbay';
+    case 'REKOMENDASI_PIMPINAN':
+      return 'Approved Dan';
+    case 'SETUJU_KAPRIM':
+      return 'ACC Kaprim';
+    case 'MENUNGGU_DOKUMEN':
+      return 'Upload Berkas';
+    case 'DICAIRKAN':
+      return 'Disbursed';
+    case 'LUNAS':
+      return 'Lunas';
+    case 'DITOLAK':
+      return 'Rejected';
+    default:
+      return 'Pending';
+  }
+}
 
 export const loanStatusTone: Record<LoanStatus, string> = {
   Pending: "bg-muted text-muted-foreground border-border",
+  "Verified Primkop": "bg-primary-soft text-primary border-primary/20",
   "Verified Jurbay": "bg-accent text-accent-foreground border-gold/30",
   "Approved Dan": "bg-gold-soft text-accent-foreground border-gold/40",
   "ACC Kaprim": "bg-primary-soft text-primary border-primary/25",
+  "Upload Berkas": "bg-accent/40 text-foreground border-accent",
   Disbursed: "bg-success/15 text-success border-success/30",
   Rejected: "bg-destructive/12 text-destructive border-destructive/30",
+  Lunas: "bg-success/20 text-success border-success/40",
 };
 
 export const recentLoans = [

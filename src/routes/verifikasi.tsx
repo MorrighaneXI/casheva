@@ -1,16 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Check,
   FileText,
   UploadCloud,
   X,
   CircleDot,
-  Paperclip,
   Calculator,
   ArrowLeft,
   AlertTriangle,
   Eye,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,8 +47,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { antreanJuyar, formatRp, workflowSteps } from "@/lib/casheva-data";
+import { formatRp, workflowSteps, backendStatusToFrontend, loanStatusTone } from "@/lib/casheva-data";
 import { cn } from "@/lib/utils";
+import { apiPinjaman, type Pinjaman } from "@/lib/api";
 
 export const Route = createFileRoute("/verifikasi")({
   head: () => ({
@@ -69,21 +71,35 @@ export const Route = createFileRoute("/verifikasi")({
 });
 
 const docs = [
-  "Surat Permohonan",
-  "Rekomendasi Jurbay",
-  "Slip Gaji 3 Bulan",
+  "Surat Permohonan Usipa",
+  "Rekomendasi Juru Bayar",
+  "Slip Gaji 3 Bulan Terakhir",
   "Fotokopi KTA / KTP",
   "Surat Pernyataan Potong Gaji",
 ];
 
-type JuyarItem = (typeof antreanJuyar)[number];
-
 function VerificationCenter() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const selected = antreanJuyar.find((r) => r.id === selectedId) ?? null;
+
+  const { data: loans = [], isLoading } = useQuery({
+    queryKey: ["pinjaman-list"],
+    queryFn: () => apiPinjaman.findAll(),
+  });
+
+  const antreanVerifikasi = loans.filter((l) =>
+    ["DIAJUKAN", "VERIFIKASI_PRIMKOP", "VERIFIKASI_JURU_BAYAR"].includes(l.status),
+  );
+
+  const selected = loans.find((r) => r.id === selectedId) ?? null;
 
   if (!selected) {
-    return <JuyarPersonList onOpen={setSelectedId} />;
+    return (
+      <JuyarPersonList
+        antrean={antreanVerifikasi}
+        isLoading={isLoading}
+        onOpen={setSelectedId}
+      />
+    );
   }
 
   return (
@@ -94,24 +110,32 @@ function VerificationCenter() {
   );
 }
 
-function JuyarPersonList({ onOpen }: { onOpen: (id: string) => void }) {
+function JuyarPersonList({
+  antrean,
+  isLoading,
+  onOpen,
+}: {
+  antrean: Pinjaman[];
+  isLoading: boolean;
+  onOpen: (id: string) => void;
+}) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Antrean Verifikasi"
-        description="Daftar pemohon menunggu verifikasi kelayakan gaji oleh Juru Bayar"
+        title="Antrean Verifikasi Juru Bayar"
+        description="Daftar pemohon menunggu verifikasi kelayakan gaji oleh Juru Bayar Satuan"
         actions={
           <Badge variant="outline" className="border-gold/40 bg-gold-soft text-accent-foreground">
-            {antreanJuyar.length} antrean
+            {antrean.length} berkas antrean
           </Badge>
         }
       />
 
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Pemohon per Orang</CardTitle>
+          <CardTitle>Daftar Pengajuan Masuk</CardTitle>
           <CardDescription>
-            Pilih anggota lalu buka detail untuk mengecek kelayakan dan berkas
+            Pilih berkas anggota lalu buka detail untuk mengecek kelayakan gaji dan dokumen
           </CardDescription>
         </CardHeader>
         <CardContent className="overflow-x-auto">
@@ -119,48 +143,64 @@ function JuyarPersonList({ onOpen }: { onOpen: (id: string) => void }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Pemohon</TableHead>
+                <TableHead>Pangkat / Korps</TableHead>
                 <TableHead>Satminkal</TableHead>
                 <TableHead className="text-right">Plafon</TableHead>
                 <TableHead className="text-center">Tenor</TableHead>
-                <TableHead>Kelayakan Sistem</TableHead>
+                <TableHead>Status Alur</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {antreanJuyar.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    <p className="font-medium">
-                      {r.pangkat} {r.nama}
-                    </p>
-                    <p className="font-mono text-xs text-muted-foreground">
-                      {r.id} · NRP {r.nrp}
-                    </p>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{r.satminkal}</TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {formatRp(r.plafon)}
-                  </TableCell>
-                  <TableCell className="text-center">{r.tenor} bln</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={
-                        r.layak
-                          ? "border-success/30 bg-success/15 text-success"
-                          : "border-destructive/30 bg-destructive/10 text-destructive"
-                      }
-                    >
-                      {r.layak ? "Direkomendasikan" : "Tidak direkomendasikan"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" variant="outline" onClick={() => onOpen(r.id)}>
-                      <Eye className="mr-1 size-3.5" /> Selengkapnya
-                    </Button>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                    <Loader2 className="mx-auto size-6 animate-spin mb-2" />
+                    Memuat antrean verifikasi...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                antrean.map((r) => {
+                  const uiStatus = backendStatusToFrontend(r.status);
+                  return (
+                    <TableRow key={r.id}>
+                      <TableCell>
+                        <p className="font-medium">{r.anggota?.nama || "Anggota"}</p>
+                        <p className="font-mono text-xs text-muted-foreground">
+                          {r.id.slice(0, 8).toUpperCase()} · NRP {r.anggota?.nrpNip || "-"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        {r.anggota?.pangkat?.nama || "-"} {r.anggota?.korps?.nama ? `(${r.anggota.korps.nama})` : ""}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {r.anggota?.satminkal?.nama || "Disinfolahtad"}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {formatRp(Number(r.nominal))}
+                      </TableCell>
+                      <TableCell className="text-center">{r.tenorBulan} bln</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={loanStatusTone[uiStatus] || ""}>
+                          {uiStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="outline" onClick={() => onOpen(r.id)}>
+                          <Eye className="mr-1 size-3.5" /> Verifikasi Berkas
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+              {!isLoading && antrean.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                    Tidak ada antrean verifikasi Juru Bayar saat ini. Semua pengajuan telah diproses.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -169,48 +209,65 @@ function JuyarPersonList({ onOpen }: { onOpen: (id: string) => void }) {
   );
 }
 
-function JuyarDetail({ item, onBack }: { item: JuyarItem; onBack: () => void }) {
-  const [current, setCurrent] = useState(1);
-  const [amount, setAmount] = useState(item.plafon);
-  const [tenor, setTenor] = useState(item.tenor);
-  const [uploaded, setUploaded] = useState<Record<string, string>>({
-    "Surat Permohonan": "surat-permohonan.pdf",
-    "Slip Gaji 3 Bulan": "slip-gaji.pdf",
-  });
+function JuyarDetail({ item, onBack }: { item: Pinjaman; onBack: () => void }) {
+  const queryClient = useQueryClient();
   const [dialog, setDialog] = useState<null | "approve" | "reject">(null);
   const [note, setNote] = useState("");
-  const [dragOver, setDragOver] = useState<string | null>(null);
 
-  const calc = useMemo(() => {
-    const rate = 0.12;
-    const bunga = amount * rate * (tenor / 12);
-    const total = amount + bunga;
-    const angsuran = total / tenor;
-    const adminFee = amount * 0.01;
-    const rasio = item.sisaGaji > 0 ? angsuran / item.sisaGaji : 1;
-    return { bunga, total, angsuran, adminFee, net: amount - adminFee, rasio };
-  }, [amount, tenor, item.sisaGaji]);
+  const nominal = Number(item.nominal);
+  const tenor = item.tenorBulan;
 
-  const submit = () => {
+  // Estimasi simulasi gaji standar TNI AD
+  const estimasiGajiPokok = 5_800_000;
+  const estimasiTunkin = 2_900_000;
+  const estimasiPotonganLain = 1_450_000;
+  const angsuran = Math.floor(nominal / tenor) + Math.floor(nominal * 0.01);
+  const sisaGaji = estimasiGajiPokok + estimasiTunkin - estimasiPotonganLain - angsuran;
+  const rasio = (angsuran / (estimasiGajiPokok + estimasiTunkin)) * 100;
+  const isLayak = rasio <= 40;
+
+  const updateStatusMutation = useMutation({
+    mutationFn: (dto: { status: any; catatan?: string; alasanPenolakan?: string }) =>
+      apiPinjaman.updateStatus(item.id, dto),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["pinjaman-list"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      if (dialog === "approve") {
+        toast.success("Lolos Verifikasi Juru Bayar", {
+          description: `Pengajuan ${item.id.slice(0, 8).toUpperCase()} diteruskan ke Dan/Ka untuk rekomendasi pimpinan.`,
+        });
+      } else {
+        toast.error("Pengajuan Ditolak", {
+          description: `Pengajuan ${item.id.slice(0, 8).toUpperCase()} dikembalikan kepada pemohon.`,
+        });
+      }
+      setDialog(null);
+      onBack();
+    },
+    onError: (err: any) => {
+      toast.error("Gagal Memperbarui Status", { description: err.message });
+    },
+  });
+
+  const handleAction = () => {
     if (dialog === "approve") {
-      setCurrent((c) => Math.min(c + 1, workflowSteps.length));
-      toast.success("Lolos verifikasi Juru Bayar", {
-        description: `${item.id} diteruskan ke Dan/Ka untuk rekomendasi.`,
+      updateStatusMutation.mutate({
+        status: "REKOMENDASI_PIMPINAN",
+        catatan: note || "Lolos verifikasi administrasi & kemampuan bayar Juru Bayar",
       });
-    } else {
-      toast.error("Tidak direkomendasikan", {
-        description: note ? `Catatan: ${note}` : item.catatan,
+    } else if (dialog === "reject") {
+      updateStatusMutation.mutate({
+        status: "DITOLAK",
+        alasanPenolakan: note || "Sisa gaji tidak mencukupi atau berkas tidak memenuhi syarat",
       });
     }
-    setDialog(null);
-    setNote("");
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Detail Verifikasi"
-        description={`${item.id} · ${item.pangkat} ${item.nama} · ${item.satminkal}`}
+        title="Detail Verifikasi Berkas Pinjaman"
+        description={`${item.id.slice(0, 8).toUpperCase()} · ${item.anggota?.pangkat?.nama || ""} ${item.anggota?.nama || ""} · ${item.anggota?.satminkal?.nama || "Disinfolahtad"}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={onBack}>
@@ -219,318 +276,131 @@ function JuyarDetail({ item, onBack }: { item: JuyarItem; onBack: () => void }) 
             <Badge
               variant="outline"
               className={
-                item.layak
+                isLayak
                   ? "border-success/30 bg-success/15 text-success"
                   : "border-destructive/30 bg-destructive/10 text-destructive"
               }
             >
-              {item.layak ? "Sistem: Layak" : "Sistem: Tidak layak"}
+              {isLayak ? "Evaluasi: Layak (Rasio < 40%)" : "Evaluasi: Melebihi Batas Aman"}
             </Badge>
           </div>
         }
       />
 
-      {!item.layak ? (
-        <Card className="border-destructive/30 bg-destructive/5 shadow-card">
-          <CardContent className="flex flex-wrap items-start justify-between gap-4 py-5">
-            <div className="flex min-w-0 items-start gap-3">
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-destructive/15 text-destructive">
-                <AlertTriangle className="size-4" />
-              </span>
-              <div className="min-w-0">
-                <p className="font-semibold text-destructive">Peringatan: tidak direkomendasikan</p>
-                <p className="mt-1 text-sm text-muted-foreground">{item.catatan}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Rasio angsuran terhadap sisa gaji: {(calc.rasio * 100).toFixed(1)}% (ambang 40%)
-                </p>
-              </div>
-            </div>
-            <Button variant="destructive" onClick={() => setDialog("reject")}>
-              <X className="mr-1 size-4" /> Tidak Direkomendasikan
-            </Button>
-          </CardContent>
-        </Card>
-      ) : null}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
+        <div className="rounded-xl border border-border p-4 bg-card shadow-card">
+          <p className="text-xs text-muted-foreground">Plafon Pinjaman</p>
+          <p className="mt-1 text-lg font-bold text-primary">{formatRp(nominal)}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Tenor {tenor} Bulan</p>
+        </div>
+        <div className="rounded-xl border border-border p-4 bg-card shadow-card">
+          <p className="text-xs text-muted-foreground">Angsuran per Bulan</p>
+          <p className="mt-1 text-lg font-bold text-foreground">{formatRp(angsuran)}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Pokok + Bunga 1% / bln</p>
+        </div>
+        <div className="rounded-xl border border-border p-4 bg-card shadow-card">
+          <p className="text-xs text-muted-foreground">Sisa Gaji Setelah Angsuran</p>
+          <p className="mt-1 text-lg font-bold text-success">{formatRp(sisaGaji)}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Penghasilan Bersih</p>
+        </div>
+        <div className="rounded-xl border border-border p-4 bg-card shadow-card">
+          <p className="text-xs text-muted-foreground">Rasio Angsuran / Gaji</p>
+          <p className="mt-1 text-lg font-bold text-foreground">{rasio.toFixed(1)}%</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Batas maksimal: 40%</p>
+        </div>
+      </div>
 
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Evaluasi Gaji &amp; Potongan</CardTitle>
-          <CardDescription>Perhitungan kelayakan sebelum lanjut ke Dan/Ka</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm">
-          {[
-            ["Gaji pokok", formatRp(item.gaji)],
-            ["Tunkin", formatRp(item.tunkin)],
-            ["Potongan berjalan", formatRp(item.potongan)],
-            ["Sisa gaji", formatRp(item.sisaGaji)],
-          ].map(([k, v]) => (
-            <div key={k} className="rounded-xl border border-border p-3">
-              <p className="text-xs text-muted-foreground">{k}</p>
-              <p className="mt-1 font-semibold">{v}</p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle>Alur Persetujuan</CardTitle>
-          <CardDescription>Progres pengajuan pinjaman berjenjang</CardDescription>
+          <CardTitle>Pemeriksaan Dokumen Persyaratan (Lampiran Juknis)</CardTitle>
+          <CardDescription>Periksa kelengkapan berkas fisik & tanda tangan hierarki</CardDescription>
         </CardHeader>
         <CardContent>
-          <ol className="flex gap-2 overflow-x-auto pb-2">
-            {workflowSteps.map((step, i) => {
-              const idx = i + 1;
-              const done = idx < current;
-              const active = idx === current;
-              return (
-                <li key={step} className="flex min-w-[150px] flex-1 items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div
-                      className={cn(
-                        "h-1.5 rounded-full transition-colors",
-                        done ? "bg-primary" : active ? "bg-gold" : "bg-muted",
-                      )}
-                    />
-                    <div className="mt-2 flex items-center gap-2">
-                      <span
-                        className={cn(
-                          "grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-bold",
-                          done
-                            ? "bg-primary text-primary-foreground"
-                            : active
-                              ? "bg-gold text-gold-foreground"
-                              : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {done ? <Check className="size-3.5" /> : idx}
-                      </span>
-                      <span
-                        className={cn(
-                          "truncate text-xs font-medium",
-                          active ? "text-foreground" : "text-muted-foreground",
-                        )}
-                      >
-                        {step}
-                      </span>
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {docs.map((d) => (
+              <div
+                key={d}
+                className="flex items-center justify-between gap-3 rounded-xl border border-border p-3.5 bg-muted/30"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <FileText className="size-4 text-primary shrink-0" />
+                  <span className="text-sm font-medium truncate">{d}</span>
+                </div>
+                <Badge variant="outline" className="border-success/30 bg-success/10 text-success text-xs">
+                  Terverifikasi
+                </Badge>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="kalkulator">
-        <TabsList>
-          <TabsTrigger value="kalkulator">
-            <Calculator className="mr-2 size-4" /> Kalkulator Pinjaman
-          </TabsTrigger>
-          <TabsTrigger value="berkas">
-            <Paperclip className="mr-2 size-4" /> Berkas Persyaratan
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="kalkulator" className="mt-4">
-          <div className="grid gap-4 lg:grid-cols-5">
-            <Card className="shadow-card lg:col-span-3">
-              <CardHeader>
-                <CardTitle>Simulasi Pinjaman</CardTitle>
-                <CardDescription>Bunga menurun tetap 12% per tahun</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <Label>Jumlah Pinjaman</Label>
-                    <Input
-                      value={amount}
-                      onChange={(e) =>
-                        setAmount(
-                          Math.min(20_000_000, Math.max(1_000_000, Number(e.target.value) || 0)),
-                        )
-                      }
-                      className="h-9 w-44 text-right font-semibold"
-                    />
-                  </div>
-                  <Slider
-                    value={[amount]}
-                    min={1_000_000}
-                    max={20_000_000}
-                    step={500_000}
-                    onValueChange={([v]) => setAmount(v ?? amount)}
-                  />
-                </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <Label>Tenor</Label>
-                    <span className="text-sm font-semibold">{tenor} bulan</span>
-                  </div>
-                  <Slider
-                    value={[tenor]}
-                    min={1}
-                    max={36}
-                    step={1}
-                    onValueChange={([v]) => setTenor(v ?? tenor)}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-card lg:col-span-2">
-              <CardHeader>
-                <CardTitle>Rincian Perhitungan</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm">
-                {[
-                  ["Pokok pinjaman", formatRp(amount)],
-                  ["Bunga 12% p.a.", formatRp(calc.bunga)],
-                  ["Total kewajiban", formatRp(calc.total)],
-                  ["Biaya administrasi 1%", formatRp(calc.adminFee)],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">{k}</span>
-                    <span className="font-medium">{v}</span>
-                  </div>
-                ))}
-                <Separator />
-                <div className="rounded-xl bg-primary-soft p-3">
-                  <p className="text-xs text-primary">Angsuran per bulan</p>
-                  <p className="text-xl font-extrabold text-primary">
-                    {formatRp(calc.angsuran)}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-gold-soft p-3">
-                  <p className="text-xs text-accent-foreground">Dana diterima bersih</p>
-                  <p className="text-xl font-extrabold text-accent-foreground">
-                    {formatRp(calc.net)}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+      <Card className="shadow-card border-primary/30">
+        <CardHeader>
+          <CardTitle>Keputusan Juru Bayar Satuan</CardTitle>
+          <CardDescription>
+            Tentukan apakah permohonan pinjaman memenuhi syarat administrasi dan kemampuan bayar
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Teruskan rekomendasi kepada Komandan / Ka Bagian</p>
+            <p className="text-xs text-muted-foreground">
+              Pengajuan yang disetujui akan langsung masuk ke antrean Rekomendasi Dan/Ka
+            </p>
           </div>
-        </TabsContent>
-
-        <TabsContent value="berkas" className="mt-4">
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle>Unggah / Cek Dokumen</CardTitle>
-              <CardDescription>Format PDF, JPG, atau PNG maksimal 5 MB per berkas</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 md:grid-cols-2">
-              {docs.map((d) => {
-                const file = uploaded[d];
-                return (
-                  <div
-                    key={d}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setDragOver(d);
-                    }}
-                    onDragLeave={() => setDragOver(null)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setDragOver(null);
-                      const f = e.dataTransfer.files?.[0];
-                      setUploaded((u) => ({ ...u, [d]: f ? f.name : "berkas-terunggah.pdf" }));
-                      toast.success(`${d} berhasil diunggah`);
-                    }}
-                    className={cn(
-                      "rounded-xl border-2 border-dashed p-4 transition-colors",
-                      dragOver === d
-                        ? "border-gold bg-gold-soft"
-                        : file
-                          ? "border-success/40 bg-success/10"
-                          : "border-border bg-muted/40",
-                    )}
-                  >
-                    <div className="flex min-w-0 items-start gap-3">
-                      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-card text-muted-foreground">
-                        {file ? (
-                          <FileText className="size-4 text-success" />
-                        ) : (
-                          <UploadCloud className="size-4" />
-                        )}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">{d}</p>
-                        <p className="truncate text-xs text-muted-foreground">
-                          {file ?? "Tarik & lepas berkas ke sini, atau pilih manual"}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant={file ? "ghost" : "outline"}
-                        className="shrink-0"
-                        onClick={() => {
-                          if (file) {
-                            setUploaded((u) => {
-                              const n = { ...u };
-                              delete n[d];
-                              return n;
-                            });
-                            toast("Berkas dihapus");
-                          } else {
-                            setUploaded((u) => ({ ...u, [d]: "berkas-terunggah.pdf" }));
-                            toast.success(`${d} berhasil diunggah`);
-                          }
-                        }}
-                      >
-                        {file ? "Hapus" : "Pilih"}
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      <Card className="shadow-card">
-        <CardContent className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-5 sm:flex sm:justify-between">
-          <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-            <CircleDot className="size-4 shrink-0 text-gold" />
-            <span className="truncate">
-              Menunggu keputusan Juru Bayar — lanjut ke Dan/Ka jika lolos
-            </span>
-          </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="flex gap-2">
             <Button variant="destructive" onClick={() => setDialog("reject")}>
-              <X className="mr-1 size-4" /> Tidak Direkomendasikan
+              <X className="mr-1.5 size-4" /> Tolak Pengajuan
             </Button>
-            <Button onClick={() => setDialog("approve")} disabled={!item.layak && calc.rasio > 0.4}>
-              <Check className="mr-1 size-4" /> Lolos Verifikasi
+            <Button onClick={() => setDialog("approve")}>
+              <Check className="mr-1.5 size-4" /> Setujui &amp; Rekomendasikan
             </Button>
           </div>
         </CardContent>
       </Card>
 
+      {/* Dialog Konfirmasi */}
       <Dialog open={dialog !== null} onOpenChange={(o) => !o && setDialog(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {dialog === "approve" ? "Loloskan ke Dan/Ka" : "Tidak Direkomendasikan"}
+              {dialog === "approve"
+                ? "Konfirmasi Rekomendasi Juru Bayar"
+                : "Tolak Pengajuan Pinjaman"}
             </DialogTitle>
             <DialogDescription>
-              Catatan peninjau akan tercatat pada riwayat persetujuan {item.id}.
+              {dialog === "approve"
+                ? `Teruskan berkas pinjaman ${item.anggota?.nama || ""} senilai ${formatRp(nominal)} ke Dan/Ka?`
+                : `Pengajuan ${item.anggota?.nama || ""} akan ditolak dan dikembalikan.`}
             </DialogDescription>
           </DialogHeader>
-          <Textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Tulis catatan peninjau…"
-            rows={4}
-          />
+          <div className="space-y-3 py-2">
+            <Label>Catatan Evaluasi Juru Bayar</Label>
+            <Textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={
+                dialog === "approve"
+                  ? "Sisa gaji memenuhi syarat dan potongan dalam batas aman..."
+                  : "Rasio angsuran melebihi 40% dari sisa gaji..."
+              }
+              rows={3}
+            />
+          </div>
           <DialogFooter>
+            <Button
+              variant={dialog === "approve" ? "default" : "destructive"}
+              disabled={updateStatusMutation.isPending}
+              onClick={handleAction}
+            >
+              {updateStatusMutation.isPending ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : null}
+              {dialog === "approve" ? "Ya, Rekomendasikan" : "Tolak Pengajuan"}
+            </Button>
             <Button variant="outline" onClick={() => setDialog(null)}>
               Batal
-            </Button>
-            <Button
-              variant={dialog === "reject" ? "destructive" : "default"}
-              onClick={submit}
-            >
-              Kirim Keputusan
             </Button>
           </DialogFooter>
         </DialogContent>

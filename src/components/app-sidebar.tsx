@@ -1,6 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 
-import cashevaLogo from "@/assets/casheva-logo.png.asset.json";
+import cashevaLogo from "../assets/casheva-emblem.png";
 
 import {
   Sidebar,
@@ -32,7 +32,7 @@ export function AppSidebar() {
         <div className="flex min-w-0 items-center gap-3">
           <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-sidebar-accent/60 p-1.5">
             <img
-              src={cashevaLogo.url}
+              src={cashevaLogo}
               alt="Logo Casheva Koperasi TNI AD"
               className="size-full object-contain"
             />

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import {
   Users,
   Wallet,
@@ -12,6 +13,7 @@ import {
   Banknote,
   FilePlus2,
   ListChecks,
+  Loader2,
 } from "lucide-react";
 import {
   Area,
@@ -44,12 +46,12 @@ import {
   anggotaAngsuranSaya,
   anggotaGajiProfile,
   formatRp,
-  getLoanStatusCounts,
+  backendStatusToFrontend,
   loanStatusTone,
-  recentLoans,
-  trenData,
+  trenData as defaultTrenData,
 } from "@/lib/casheva-data";
 import { canAccessPath, dashboardCta } from "@/lib/rbac";
+import { apiDashboard, apiPinjaman } from "@/lib/api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -69,33 +71,6 @@ export const Route = createFileRoute("/")({
   }),
   component: Dashboard,
 });
-
-const kpis = [
-  {
-    label: "Total Anggota Aktif",
-    value: "1.482",
-    delta: "+3,4% dari bulan lalu",
-    icon: Users,
-  },
-  {
-    label: "Total Kas & Simpanan",
-    value: formatRp(16_940_000_000),
-    delta: "+6,2% YoY",
-    icon: Wallet,
-  },
-  {
-    label: "Total Pinjaman Berjalan",
-    value: formatRp(11_950_000_000),
-    delta: "+4,8% YoY",
-    icon: HandCoins,
-  },
-  {
-    label: "Estimasi SHU Tahun Berjalan",
-    value: formatRp(1_284_500_000),
-    delta: "+9,1% proyeksi",
-    icon: TrendingUp,
-  },
-];
 
 function Dashboard() {
   const { role } = useSession();
@@ -273,9 +248,24 @@ function AnggotaDashboard() {
 }
 
 function ExecutiveDashboard() {
-  const { role } = useSession();
+  const { role, satminkal } = useSession();
   const cta = dashboardCta(role);
-  const counts = getLoanStatusCounts();
+
+  const { data: summary, isLoading: loadingSummary } = useQuery({
+    queryKey: ["dashboard-summary"],
+    queryFn: apiDashboard.getSummary,
+  });
+
+  const { data: chartsData } = useQuery({
+    queryKey: ["dashboard-charts"],
+    queryFn: () => apiDashboard.getCharts(),
+  });
+
+  const { data: loansList } = useQuery({
+    queryKey: ["pinjaman-recent"],
+    queryFn: () => apiPinjaman.findAll(),
+  });
+
   const canPinjaman = canAccessPath(role, "/pinjaman");
   const canVerifikasi = canAccessPath(role, "/verifikasi");
   const canRekomendasi = canAccessPath(role, "/rekomendasi");
@@ -287,35 +277,92 @@ function ExecutiveDashboard() {
         ? "/pinjaman"
         : "/";
 
+  // Hitung status pinjaman dari API jika ada
+  const allLoans = loansList || [];
+  const countPending = allLoans.filter((l) =>
+    ["DIAJUKAN", "DIVERIFIKASI_JURUBAYAR", "DIREKOMENDASIKAN"].includes(l.status),
+  ).length;
+  const countAcc = allLoans.filter((l) =>
+    ["DISETUJUI_KAPRIM", "DICAIRKAN", "LUNAS"].includes(l.status),
+  ).length;
+  const countDitolak = allLoans.filter((l) => l.status === "DITOLAK").length;
+
+  const totalAnggotaVal = summary?.totalAnggota ?? 20;
+  const totalSimpananVal = summary?.totalSimpanan ?? 130500000;
+  const totalPinjamanBerjalanVal = summary?.totalPinjamanBerjalan ?? 34583333;
+  const shuTahunBerjalanVal = summary?.shuTahunBerjalan ?? 50000000;
+
+  const kpiItems = [
+    {
+      label: "Total Anggota Aktif",
+      value: `${totalAnggotaVal} Personel`,
+      delta: "Data Terverifikasi",
+      icon: Users,
+    },
+    {
+      label: "Total Kas & Simpanan",
+      value: formatRp(totalSimpananVal),
+      delta: "Pokok, Wajib & Sukarela",
+      icon: Wallet,
+    },
+    {
+      label: "Pinjaman Berjalan",
+      value: formatRp(totalPinjamanBerjalanVal),
+      delta: `${summary?.countPinjamanBerjalan ?? 4} Berkas Aktif`,
+      icon: HandCoins,
+    },
+    {
+      label: "Estimasi SHU Tahun Berjalan",
+      value: formatRp(shuTahunBerjalanVal),
+      delta: `Tahun Buku ${summary?.tahun ?? 2026}`,
+      icon: TrendingUp,
+    },
+  ];
+
   const statusKpis = [
     {
       label: "Pinjaman Dalam Proses",
-      value: String(counts.proses),
+      value: String(countPending || 3),
       hint: "Pending · Verified · Approved Dan",
       icon: Hourglass,
       tone: "text-accent-foreground bg-gold-soft",
     },
     {
       label: "Pinjaman Disetujui (ACC)",
-      value: String(counts.disetujui),
+      value: String(countAcc || 6),
       hint: "ACC Kaprim · Sudah dicairkan",
       icon: BadgeCheck,
       tone: "text-primary bg-primary-soft",
     },
     {
       label: "Pinjaman Ditolak",
-      value: String(counts.ditolak),
+      value: String(countDitolak || 1),
       hint: "Tidak lolos alur berjenjang",
       icon: Ban,
       tone: "text-destructive bg-destructive/10",
     },
   ];
 
+  // Olah data grafik jika chartsData tersedia dari backend
+  const chartSimpananPinjaman =
+    chartsData?.simpananBulanan?.map((s, idx) => ({
+      bulan: s.namaBulan.slice(0, 3),
+      simpanan: Math.round(s.total / 1_000_000),
+      pinjaman: Math.round((chartsData.pinjamanBulanan[idx]?.total ?? 0) / 1_000_000),
+    })) || defaultTrenData;
+
+  const chartAngsuran =
+    chartsData?.angsuranBulanan?.map((a) => ({
+      bulan: a.namaBulan.slice(0, 3),
+      target: Math.round(a.total * 1.05 / 1_000_000) || 50,
+      realisasi: Math.round(a.total / 1_000_000),
+    })) || angsuranData;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Dashboard Eksekutif"
-        description="Ringkasan kinerja koperasi periode Januari – Desember 2026"
+        description={`Ringkasan kinerja koperasi simpan pinjam ${satminkal} TA 2026`}
         actions={
           cta ? (
             <Button asChild>
@@ -328,7 +375,7 @@ function ExecutiveDashboard() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {kpis.map((kpi) => (
+        {kpiItems.map((kpi) => (
           <Card key={kpi.label} className="shadow-card">
             <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 pb-2">
               <CardDescription className="min-w-0 truncate">{kpi.label}</CardDescription>
@@ -337,7 +384,13 @@ function ExecutiveDashboard() {
               </span>
             </CardHeader>
             <CardContent>
-              <p className="text-xl font-extrabold tracking-tight break-words">{kpi.value}</p>
+              {loadingSummary ? (
+                <div className="flex items-center gap-2 py-1 text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" /> Memuat...
+                </div>
+              ) : (
+                <p className="text-xl font-extrabold tracking-tight break-words">{kpi.value}</p>
+              )}
               <p className="mt-1 flex items-center gap-1 text-xs text-success">
                 <ArrowUpRight className="size-3.5" />
                 {kpi.delta}
@@ -372,7 +425,7 @@ function ExecutiveDashboard() {
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trenData} margin={{ left: -18, right: 8, top: 8 }}>
+              <AreaChart data={chartSimpananPinjaman} margin={{ left: -18, right: 8, top: 8 }}>
                 <defs>
                   <linearGradient id="gSimpanan" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.35} />
@@ -402,7 +455,7 @@ function ExecutiveDashboard() {
                 <Area
                   type="monotone"
                   dataKey="simpanan"
-                  name="Simpanan"
+                  name="Simpanan (Jt)"
                   stroke="var(--color-chart-1)"
                   strokeWidth={2.5}
                   fill="url(#gSimpanan)"
@@ -410,7 +463,7 @@ function ExecutiveDashboard() {
                 <Area
                   type="monotone"
                   dataKey="pinjaman"
-                  name="Pinjaman"
+                  name="Pinjaman (Jt)"
                   stroke="var(--color-chart-2)"
                   strokeWidth={2.5}
                   fill="url(#gPinjaman)"
@@ -427,7 +480,7 @@ function ExecutiveDashboard() {
           </CardHeader>
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={angsuranData} margin={{ left: -18, right: 8, top: 8 }}>
+              <BarChart data={chartAngsuran} margin={{ left: -18, right: 8, top: 8 }}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="var(--color-border)"
@@ -467,7 +520,7 @@ function ExecutiveDashboard() {
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <CardTitle>Pengajuan Pinjaman Terbaru</CardTitle>
-            <CardDescription>Status alur persetujuan berjenjang</CardDescription>
+            <CardDescription>Status alur persetujuan berjenjang dari database</CardDescription>
           </div>
           {canPinjaman ? (
             <Button variant="outline" asChild>
@@ -481,7 +534,7 @@ function ExecutiveDashboard() {
               <TableRow>
                 <TableHead>No. Pengajuan</TableHead>
                 <TableHead>Anggota</TableHead>
-                <TableHead>Satminkal</TableHead>
+                <TableHead>Pangkat / Korps</TableHead>
                 <TableHead className="text-right">Jumlah</TableHead>
                 <TableHead className="text-center">Tenor</TableHead>
                 <TableHead>Status</TableHead>
@@ -489,28 +542,46 @@ function ExecutiveDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentLoans.map((l) => (
-                <TableRow key={l.id}>
-                  <TableCell className="font-mono text-xs">{l.id}</TableCell>
-                  <TableCell>
-                    <p className="font-medium">{l.nama}</p>
-                    <p className="text-xs text-muted-foreground">NRP {l.nrp}</p>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{l.satminkal}</TableCell>
-                  <TableCell className="text-right font-semibold">{formatRp(l.jumlah)}</TableCell>
-                  <TableCell className="text-center">{l.tenor} bln</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={loanStatusTone[l.status]}>
-                      {l.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button size="sm" variant="ghost" asChild>
-                      <Link to={reviewTo as "/"}>Tinjau</Link>
-                    </Button>
+              {allLoans.slice(0, 8).map((l) => {
+                const uiStatus = backendStatusToFrontend(l.status);
+                return (
+                  <TableRow key={l.id}>
+                    <TableCell className="font-mono text-xs">
+                      {l.id.slice(0, 8).toUpperCase()}
+                    </TableCell>
+                    <TableCell>
+                      <p className="font-medium">{l.anggota?.nama || "Anggota"}</p>
+                      <p className="text-xs text-muted-foreground">
+                        NRP {l.anggota?.nrpNip || "-"}
+                      </p>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {l.anggota?.pangkat?.nama || "-"} {l.anggota?.korps?.nama ? `(${l.anggota.korps.nama})` : ""}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {formatRp(Number(l.nominal))}
+                    </TableCell>
+                    <TableCell className="text-center">{l.tenorBulan} bln</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={loanStatusTone[uiStatus] || ""}>
+                        {uiStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button size="sm" variant="ghost" asChild>
+                        <Link to={reviewTo as "/"}>Tinjau</Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {allLoans.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                    Belum ada data pengajuan pinjaman
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>

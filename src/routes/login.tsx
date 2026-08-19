@@ -10,6 +10,7 @@ import {
   Info,
   ShieldCheck,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import emblem from "@/assets/casheva-emblem.png";
 import { Button } from "@/components/ui/button";
@@ -48,21 +49,21 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-const DEMO_CREDENTIALS: Record<Role, { username: string; password: string }> = {
-  "Admin Koperasi": { username: "admin.koperasi", password: "casheva2026" },
-  "Pimpinan / Dan / Ka": { username: "10980017", password: "casheva2026" },
-  Kaprim: { username: "kaprim.mabesad", password: "casheva2026" },
-  Bendahara: { username: "21980045", password: "casheva2026" },
-  "Juru Bayar": { username: "21930112", password: "casheva2026" },
-  Anggota: { username: "31770091", password: "casheva2026" },
-  "Pengawas Koperasi": { username: "pengawas.itjen", password: "casheva2026" },
+const DEMO_CREDENTIALS: Record<Role, { username: string; password: string; deskripsi: string }> = {
+  "Admin Koperasi": { username: "admin", password: "Admin123!", deskripsi: "Administrator Koperasi" },
+  "Pimpinan / Dan / Ka": { username: "pimpinan", password: "Admin123!", deskripsi: "Kolonel Inf Heru (Dan/Ka)" },
+  Kaprim: { username: "kaprim", password: "Admin123!", deskripsi: "Letkol Inf Sigit (Kaprim)" },
+  Bendahara: { username: "bendahara", password: "Admin123!", deskripsi: "Lettu Cku Budi (Bendahara)" },
+  "Juru Bayar": { username: "jurubayar", password: "Admin123!", deskripsi: "Serma Agus (Juru Bayar)" },
+  "Pengawas Koperasi": { username: "pengawas", password: "Admin123!", deskripsi: "Mayor Inf Tri (Pengawas)" },
+  Anggota: { username: "admin", password: "Admin123!", deskripsi: "Akses Anggota (Demo Admin)" },
 };
 
 function LoginPage() {
   const navigate = useNavigate();
-  const { setRole, setAuthenticated } = useSession();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const { login, satminkal, kotama } = useSession();
+  const [username, setUsername] = useState("admin");
+  const [password, setPassword] = useState("Admin123!");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -78,18 +79,35 @@ function LoginPage() {
     timers.current.push(setTimeout(fn, ms));
   };
 
-  const runLogin = () => {
+  const handleLogin = async (customUsername?: string, customPassword?: string) => {
+    const u = customUsername ?? username;
+    const p = customPassword ?? password;
+
+    if (!u.trim() || !p.trim()) {
+      toast.error("Data tidak lengkap", {
+        description: "Masukkan username/NRP dan password Anda.",
+      });
+      return;
+    }
+
     if (loading) return;
     setLoading(true);
-    track(() => {
+
+    try {
+      const res = await login({ username: u, password: p });
       setLoading(false);
       setSuccess(true);
-      const guessedRole = ROLES.find((r) => DEMO_CREDENTIALS[r].username === username);
-      if (guessedRole) setRole(guessedRole);
-      setAuthenticated(true);
-      track(() => setLeaving(true), 900);
-      track(() => navigate({ to: "/" }), 1500);
-    }, 1600);
+      toast.success("Login Berhasil", {
+        description: `Selamat datang, ${res.user.namaLengkap} (${res.user.role})`,
+      });
+      track(() => setLeaving(true), 600);
+      track(() => navigate({ to: "/" }), 1000);
+    } catch (err: any) {
+      setLoading(false);
+      toast.error("Gagal Masuk", {
+        description: err.message || "Username atau password salah. Pastikan server backend aktif.",
+      });
+    }
   };
 
   const typeInto = (
@@ -102,14 +120,14 @@ function LoginPage() {
     value.split("").forEach((_, i) => {
       track(() => setter(value.slice(0, i + 1)), stepMs * (i + 1));
     });
-    if (onDone) track(onDone, stepMs * value.length + 120);
+    if (onDone) track(onDone, stepMs * value.length + 80);
   };
 
   const quickLogin = (role: Role) => {
     if (loading) return;
     const creds = DEMO_CREDENTIALS[role];
-    typeInto(creds.username, setUsername, 35, () =>
-      typeInto(creds.password, setPassword, 30, runLogin),
+    typeInto(creds.username, setUsername, 25, () =>
+      typeInto(creds.password, setPassword, 20, () => handleLogin(creds.username, creds.password)),
     );
   };
 
@@ -153,13 +171,12 @@ function LoginPage() {
               Sistem Informasi Koperasi Simpan Pinjam TNI AD
             </h1>
             <p className="mt-4 text-lg font-medium text-sidebar-primary">
-              Transparan, Akuntabel, dan Terintegrasi
+              Transparan, Akuntabel, dan Terintegrasi (Lomba RTI 2026)
             </p>
           </div>
 
           <p className="relative text-xs text-sidebar-foreground/60">
-            © 2026 Koperasi TNI AD · Disinfolahtad. Seluruh aktivitas dicatat
-            dan diaudit.
+            © 2026 Koperasi TNI AD · Disinfolahtad. Terhubung ke Database Neon PostgreSQL.
           </p>
         </aside>
 
@@ -194,7 +211,7 @@ function LoginPage() {
                 className="mt-6 space-y-4"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  runLogin();
+                  handleLogin();
                 }}
               >
                 <div className="space-y-2">
@@ -205,7 +222,7 @@ function LoginPage() {
                       id="username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Contoh: 21980045"
+                      placeholder="Contoh: admin, pimpinan, kaprim"
                       autoComplete="username"
                       className="h-11 pl-9 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary"
                     />
@@ -257,14 +274,14 @@ function LoginPage() {
                     variant="outline"
                     className="border-primary/30 bg-primary-soft text-primary"
                   >
-                    Sesi Aktif
+                    Session Multi-Tenant
                   </Badge>
                   <span className="font-medium text-foreground">
-                    Satminkal: Disinfolahtad
+                    Satminkal: {satminkal}
                   </span>
                   <span className="opacity-40">|</span>
                   <span className="font-medium text-foreground">
-                    Kotama: Mabesad
+                    Kotama: {kotama}
                   </span>
                 </div>
 
@@ -287,15 +304,15 @@ function LoginPage() {
               <div className="mt-5 flex gap-2.5 rounded-lg border border-gold/30 bg-gold-soft px-3 py-2.5 text-xs leading-relaxed text-accent-foreground">
                 <Info className="mt-0.5 h-4 w-4 shrink-0" />
                 <p>
-                  Akses terbatas khusus Pengurus &amp; Pejabat Koperasi.
-                  Pendaftaran akun baru dilakukan oleh Admin Koperasi.
+                  Akses sesuai kewenangan role Juknis TNI AD 2026. Password default demo:{" "}
+                  <code className="font-bold">Admin123!</code>
                 </p>
               </div>
             </div>
 
             <div className="mt-5 rounded-xl border border-dashed border-border bg-card/60 p-4">
               <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                Quick Login As:
+                Pilih Akun Cepat (Quick Login As):
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {ROLES.map((role) => (
@@ -306,7 +323,8 @@ function LoginPage() {
                     variant="outline"
                     disabled={loading}
                     onClick={() => quickLogin(role)}
-                    className="transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary-soft active:scale-95"
+                    title={DEMO_CREDENTIALS[role]?.deskripsi}
+                    className="transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary-soft active:scale-95 text-xs"
                   >
                     {role}
                   </Button>

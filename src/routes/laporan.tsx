@@ -1,13 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState } from "react";
-import { Printer, FileSpreadsheet, PenLine, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Printer,
+  FileSpreadsheet,
+  PenLine,
+  Shield,
+  Loader2,
+  FileText,
+  Users,
+  CreditCard,
+  PieChart,
+  Receipt,
+  BookOpen,
+  Calculator,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sheet,
   SheetContent,
@@ -16,272 +32,613 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { formatRp, shuRows } from "@/lib/casheva-data";
-import { exportBackupJson, parseBackupJson } from "@/lib/backup";
-import { hitungShuAkuntansi } from "@/lib/finance";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { formatRp } from "@/lib/casheva-data";
+import {
+  apiReports,
+  apiKopstuk,
+  apiTajukTtd,
+  apiKeuangan,
+} from "@/lib/api";
 
 export const Route = createFileRoute("/laporan")({
   head: () => ({
     meta: [
-      { title: "Laporan & Cetakan SHU — Casheva" },
+      { title: "Laporan & Cetakan Resmi Lampiran — Casheva" },
       {
         name: "description",
         content:
-          "Pratinjau cetak dinamis rekapitulasi SHU anggota dengan jasa modal 20% dan jasa usaha 30%.",
+          "Pusat cetak laporan resmi Lampiran I s.d IX sesuai Petunjuk Teknis Koperasi TNI AD 2026.",
       },
-      { property: "og:title", content: "Laporan & Cetakan SHU — Casheva" },
+      { property: "og:title", content: "Laporan & Cetakan Resmi — Casheva" },
       {
         property: "og:description",
-        content: "Cetak rekapitulasi SHU koperasi TNI AD dengan kopstuk dan tajuk tanda tangan.",
+        content: "Cetak dokumen resmi koperasi TNI AD dengan kopstuk dan tajuk tanda tangan dinamis.",
       },
     ],
   }),
   component: LaporanPage,
 });
 
-const TOTAL_SHU = 1_284_500_000;
-
 function LaporanPage() {
+  const queryClient = useQueryClient();
+  const currentYear = 2026;
+  const [activeTab, setActiveTab] = useState("shu");
+
+  // Kopstuk state
   const [kop1, setKop1] = useState("MARKAS BESAR ANGKATAN DARAT");
   const [kop2, setKop2] = useState("PRIMER KOPERASI KARTIKA DISINFOLAHTAD");
   const [kop3, setKop3] = useState("Jl. Veteran No. 5, Jakarta Pusat");
+
+  // Tajuk TTD state
   const [ttdOpen, setTtdOpen] = useState(false);
   const [jabatan, setJabatan] = useState("Ketua Primkop Kartika");
   const [pejabat, setPejabat] = useState("Letkol Cba Dedi Kurnia");
   const [nrp, setNrp] = useState("11020033");
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [tempatTgl, setTempatTgl] = useState("Jakarta, 4 Agustus 2026");
 
-  const totalModal = shuRows.reduce((s, r) => s + r.modal, 0);
-  const totalTransaksi = shuRows.reduce((s, r) => s + r.transaksi, 0);
-  const poolModal = TOTAL_SHU * 0.2;
-  const poolUsaha = TOTAL_SHU * 0.3;
-  const shuAkuntansi = hitungShuAkuntansi(
-    {
-      bungaPinjaman: 1_585_000_000,
-      biayaAdminRisiko: 240_000_000,
-      jasaLain: 320_000_000,
+  // Queries
+  const { data: kopstukData } = useQuery({
+    queryKey: ["kopstuk-active"],
+    queryFn: () => apiKopstuk.get(),
+  });
+
+  const { data: tajukData } = useQuery({
+    queryKey: ["tajuk-ttd-active"],
+    queryFn: () => apiTajukTtd.get(),
+  });
+
+  const { data: reportAnggota = [], isLoading: loadingAnggota } = useQuery({
+    queryKey: ["reports-anggota"],
+    queryFn: () => apiReports.getAnggota(),
+    enabled: activeTab === "anggota",
+  });
+
+  const { data: reportSimpanan = [], isLoading: loadingSimpanan } = useQuery({
+    queryKey: ["reports-simpanan"],
+    queryFn: () => apiReports.getRekapSimpanan(),
+    enabled: activeTab === "simpanan",
+  });
+
+  const { data: reportPinjaman = [], isLoading: loadingPinjaman } = useQuery({
+    queryKey: ["reports-pinjaman"],
+    queryFn: () => apiReports.getPinjamanAnggota(),
+    enabled: activeTab === "pinjaman",
+  });
+
+  const {
+    data: reportShu,
+    isLoading: loadingShu,
+    isError: errorShu,
+    refetch: refetchShu,
+  } = useQuery({
+    queryKey: ["reports-shu-anggota", currentYear],
+    queryFn: () => apiReports.getShuAnggota(currentYear),
+    enabled: activeTab === "shu",
+    retry: 1,
+  });
+
+  const { data: reportBrosur = [] } = useQuery({
+    queryKey: ["reports-brosur"],
+    queryFn: () => apiReports.getBrosurPinjaman(),
+    enabled: activeTab === "brosur",
+  });
+
+  const { data: reportKwitansi = [] } = useQuery({
+    queryKey: ["reports-kwitansi-bulanan"],
+    queryFn: () => apiReports.getRekapKwitansiBulanan(),
+    enabled: activeTab === "kwitansi",
+  });
+
+  // Hitung SHU Mutation
+  const hitungShuMutation = useMutation({
+    mutationFn: () => apiKeuangan.hitungShu({ tahun: currentYear }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["reports-shu-anggota", currentYear] });
+      queryClient.invalidateQueries({ queryKey: ["keuangan-ringkasan", currentYear] });
+      toast.success("Perhitungan SHU Tahun 2026 Berhasil Diterbitkan!");
+      refetchShu();
     },
-    {
-      honorPengurus: 260_000_000,
-      operasionalKantor: 405_500_000,
-      rapatPendidikanSosial: 195_000_000,
+    onError: (err: any) => {
+      toast.error("Gagal Menghitung SHU", { description: err.message });
     },
-  );
+  });
+
+  useEffect(() => {
+    if (kopstukData) {
+      if (kopstukData.baris1) setKop1(kopstukData.baris1);
+      if (kopstukData.baris2) setKop2(kopstukData.baris2);
+      if (kopstukData.baris3) setKop3(kopstukData.baris3);
+    }
+  }, [kopstukData]);
+
+  useEffect(() => {
+    if (tajukData) {
+      if (tajukData.jabatan) setJabatan(tajukData.jabatan);
+      if (tajukData.namaPejabat) setPejabat(tajukData.namaPejabat);
+      if (tajukData.pangkatNrp) setNrp(tajukData.pangkatNrp);
+      if (tajukData.tempatTanggal) setTempatTgl(tajukData.tempatTanggal);
+    }
+  }, [tajukData]);
+
+  const saveTajukMutation = useMutation({
+    mutationFn: () =>
+      apiTajukTtd.upsert({
+        jabatan,
+        namaPejabat: pejabat,
+        pangkatNrp: nrp,
+        tempatTanggal: tempatTgl,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tajuk-ttd-active"] });
+      toast.success("Tajuk Tanda Tangan Berhasil Disimpan");
+      setTtdOpen(false);
+    },
+    onError: (err: any) => toast.error("Gagal", { description: err.message }),
+  });
+
+  const shuList = reportShu?.data || [];
+  const ringkasan = reportShu?.ringkasanShu;
+
+  const totalJasaModal = shuList.reduce((s, r) => s + Number(r.jasaModal || 0), 0);
+  const totalJasaUsaha = shuList.reduce((s, r) => s + Number(r.jasaUsaha || 0), 0);
+  const totalShuKeseluruhan = shuList.reduce((s, r) => s + Number(r.totalShu || 0), 0);
+
+  const handlePrint = () => {
+    window.print();
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Laporan & Cetakan"
-        description="Rekapitulasi SHU Anggota Tahun Buku 2026"
+        title="Laporan &amp; Cetakan Resmi Koperasi"
+        description="Format cetak dokumen resmi Lampiran Petunjuk Teknis Lomba RTI Koperasi TNI AD 2026"
         actions={
-          <>
+          <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" onClick={() => setTtdOpen(true)}>
               <PenLine className="mr-2 size-4" /> Sesuaikan Pejabat TTD
             </Button>
-            <Button variant="outline" onClick={() => toast.success("Berkas Excel disiapkan")}>
-              <FileSpreadsheet className="mr-2 size-4" /> Export Excel
+            <Button variant="outline" onClick={() => toast.success("Format data Excel disiapkan")}>
+              <FileSpreadsheet className="mr-2 size-4" /> Export Data
             </Button>
-            <Button
-              variant="outline"
-              onClick={() =>
-                exportBackupJson(
-                  { kop1, kop2, kop3, jabatan, pejabat, nrp, rows: shuRows },
-                  `casheva-backup-${new Date().toISOString().slice(0, 10)}.json`,
-                )
-              }
-            >
-              Backup JSON
+            <Button onClick={handlePrint}>
+              <Printer className="mr-2 size-4" /> Cetak / Unduh PDF
             </Button>
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-              Restore JSON
-            </Button>
-            <Button onClick={() => toast.success("Dokumen dikirim ke antrean cetak PDF")}>
-              <Printer className="mr-2 size-4" /> Cetak PDF
-            </Button>
-          </>
+          </div>
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-        <Card className="shadow-card lg:sticky lg:top-24 lg:self-start">
-          <CardHeader>
-            <CardTitle className="text-base">Editor Kopstuk Satuan</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>Baris 1 — Komando Atas</Label>
-              <Input value={kop1} onChange={(e) => setKop1(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Baris 2 — Nama Koperasi</Label>
-              <Input value={kop2} onChange={(e) => setKop2(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Baris 3 — Alamat</Label>
-              <Input value={kop3} onChange={(e) => setKop3(e.target.value)} />
-            </div>
-            <div className="rounded-xl border border-dashed border-border p-3 text-center text-xs text-muted-foreground">
-              Logo satuan (placeholder) — unggah PNG transparan
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="flex flex-wrap w-full">
+          <TabsTrigger value="shu">
+            <PieChart className="mr-1 size-4" /> Lampiran IX (Rekap SHU Anggota)
+          </TabsTrigger>
+          <TabsTrigger value="anggota">
+            <Users className="mr-1 size-4" /> Lampiran II (Daftar Anggota)
+          </TabsTrigger>
+          <TabsTrigger value="simpanan">
+            <BookOpen className="mr-1 size-4" /> Lampiran IV (Rekap Simpanan)
+          </TabsTrigger>
+          <TabsTrigger value="pinjaman">
+            <CreditCard className="mr-1 size-4" /> Lampiran V (Pinjaman Anggota)
+          </TabsTrigger>
+          <TabsTrigger value="brosur">
+            <FileText className="mr-1 size-4" /> Lampiran III (Brosur Pinjaman)
+          </TabsTrigger>
+          <TabsTrigger value="kwitansi">
+            <Receipt className="mr-1 size-4" /> Lampiran VIII (Rekap Kwitansi)
+          </TabsTrigger>
+        </TabsList>
 
-        <Card className="overflow-x-auto p-6 print-sheet">
-          <div className="mb-4 grid gap-3 sm:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Pendapatan</CardTitle></CardHeader>
-              <CardContent><p className="text-base font-bold">{formatRp(shuAkuntansi.totalPendapatan)}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Biaya Operasional</CardTitle></CardHeader>
-              <CardContent><p className="text-base font-bold">{formatRp(shuAkuntansi.totalBiaya)}</p></CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">SHU Akuntansi</CardTitle></CardHeader>
-              <CardContent><p className="text-base font-bold">{formatRp(shuAkuntansi.shu)}</p></CardContent>
-            </Card>
-          </div>
-          <div className="min-w-[720px]">
-            <header className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 border-b-4 border-double border-neutral-800 pb-3">
-              <div className="grid size-16 shrink-0 place-items-center rounded-full border-2 border-neutral-800">
-                <Shield className="size-8" />
+        <Card className="mt-4 p-6 print-sheet shadow-card">
+          {/* Official Military Header / Kopstuk */}
+          <header className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 border-b-4 border-double border-foreground pb-4">
+            <div className="grid size-16 shrink-0 place-items-center rounded-full border-2 border-foreground">
+              <Shield className="size-8 text-primary" />
+            </div>
+            <div className="min-w-0 text-center">
+              <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{kop1}</p>
+              <p className="text-base font-extrabold uppercase text-foreground">{kop2}</p>
+              <p className="text-[11px] text-muted-foreground">{kop3}</p>
+            </div>
+          </header>
+
+          {/* TAB 1: Lampiran IX - SHU */}
+          <TabsContent value="shu" className="mt-6 space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+              <div>
+                <p className="text-base font-bold uppercase underline">
+                  REKAPITULASI PEMBAGIAN SISA HASIL USAHA (SHU) ANGGOTA
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Tahun Buku {currentYear} · Jasa Modal (Simpanan) 20% · Jasa Usaha (Pinjaman) 30%
+                </p>
               </div>
-              <div className="min-w-0 text-center">
-                <p className="text-sm font-bold uppercase tracking-wide">{kop1}</p>
-                <p className="text-lg font-extrabold uppercase">{kop2}</p>
-                <p className="text-xs">{kop3}</p>
-              </div>
-            </header>
-
-            <div className="mt-6 text-center">
-              <p className="text-base font-bold uppercase underline">
-                Rekapitulasi Pembagian SHU Anggota
-              </p>
-              <p className="text-xs">Tahun Buku 2026 · Jasa Modal 20% · Jasa Usaha 30%</p>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={hitungShuMutation.isPending}
+                onClick={() => hitungShuMutation.mutate()}
+              >
+                {hitungShuMutation.isPending ? (
+                  <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="mr-1.5 size-3.5" />
+                )}
+                Hitung Ulang SHU {currentYear}
+              </Button>
             </div>
 
-            <table className="mt-5 w-full border-collapse text-xs">
-              <thead>
-                <tr className="bg-neutral-100 text-left">
-                  {["No", "NRP/NIP", "Nama Anggota", "Simpanan", "Transaksi", "Jasa Modal (20%)", "Jasa Usaha (30%)", "Total SHU"].map(
-                    (h) => (
-                      <th key={h} className="border border-neutral-400 px-2 py-1.5 font-semibold">
-                        {h}
-                      </th>
-                    ),
+            {/* Ringkasan Finansial SHU */}
+            {ringkasan && (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-xs">
+                <div className="rounded-xl border border-border p-3 bg-muted/30">
+                  <p className="text-muted-foreground">Total Pendapatan</p>
+                  <p className="mt-1 text-sm font-bold text-primary">
+                    {formatRp(Number(ringkasan.totalPendapatan))}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border p-3 bg-muted/30">
+                  <p className="text-muted-foreground">Total Beban Operasional</p>
+                  <p className="mt-1 text-sm font-bold text-destructive">
+                    {formatRp(Number(ringkasan.totalBeban))}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border p-3 bg-primary-soft">
+                  <p className="text-muted-foreground font-medium">SHU Bersih Tahun Berjalan</p>
+                  <p className="mt-1 text-base font-extrabold text-primary">
+                    {formatRp(Number(ringkasan.shuBersih))}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-border p-3 bg-success/10">
+                  <p className="text-muted-foreground font-medium">Jasa Anggota (50%)</p>
+                  <p className="mt-1 text-sm font-bold text-success">
+                    {formatRp(Number(ringkasan.jasaModal) + Number(ringkasan.jasaUsaha))}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Error or Empty State with Auto-Generate Action */}
+            {(errorShu || shuList.length === 0) && !loadingShu ? (
+              <div className="rounded-xl border border-dashed border-primary/40 bg-primary-soft/40 p-8 text-center space-y-3">
+                <p className="text-sm font-semibold text-foreground">
+                  Data SHU Anggota Tahun {currentYear} Belum Diterbitkan
+                </p>
+                <p className="text-xs text-muted-foreground max-w-md mx-auto">
+                  Sistem akan mengkalkulasi simpanan dan transaksi pinjaman seluruh anggota secara otomatis sesuai ketentuan Juknis TNI AD TA 2026.
+                </p>
+                <Button
+                  disabled={hitungShuMutation.isPending}
+                  onClick={() => hitungShuMutation.mutate()}
+                >
+                  {hitungShuMutation.isPending ? (
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  ) : (
+                    <Calculator className="mr-2 size-4" />
                   )}
+                  Hitung &amp; Terbitkan SHU Tahun {currentYear}
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-muted/60 text-left font-semibold">
+                      <th className="border border-border p-2 text-center w-12">No</th>
+                      <th className="border border-border p-2">Nama Anggota</th>
+                      <th className="border border-border p-2">Pangkat / Korps / NRP</th>
+                      <th className="border border-border p-2 text-right">Jasa Modal (20%)</th>
+                      <th className="border border-border p-2 text-right">Jasa Usaha (30%)</th>
+                      <th className="border border-border p-2 text-right font-bold">Total SHU Diterima</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadingShu ? (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                          <Loader2 className="mx-auto size-5 animate-spin mb-1" />
+                          Memuat data SHU...
+                        </td>
+                      </tr>
+                    ) : (
+                      shuList.map((r, i) => (
+                        <tr key={r.no || i} className="hover:bg-muted/20">
+                          <td className="border border-border p-2 text-center font-medium">
+                            {r.no || i + 1}
+                          </td>
+                          <td className="border border-border p-2 font-medium">{r.nama}</td>
+                          <td className="border border-border p-2 text-muted-foreground">
+                            {r.pktCrpNrp}
+                          </td>
+                          <td className="border border-border p-2 text-right text-primary font-medium">
+                            {formatRp(Number(r.jasaModal))}
+                          </td>
+                          <td className="border border-border p-2 text-right text-success font-medium">
+                            {formatRp(Number(r.jasaUsaha))}
+                          </td>
+                          <td className="border border-border p-2 text-right font-extrabold text-foreground">
+                            {formatRp(Number(r.totalShu))}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                    <tr className="bg-muted/80 font-bold">
+                      <td className="border border-border p-2 text-center" colSpan={3}>
+                        JUMLAH TOTAL PEMBAGIAN SHU ANGGOTA
+                      </td>
+                      <td className="border border-border p-2 text-right text-primary">
+                        {formatRp(totalJasaModal)}
+                      </td>
+                      <td className="border border-border p-2 text-right text-success">
+                        {formatRp(totalJasaUsaha)}
+                      </td>
+                      <td className="border border-border p-2 text-right text-primary font-extrabold text-sm">
+                        {formatRp(totalShuKeseluruhan)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* TAB 2: Lampiran II - Anggota */}
+          <TabsContent value="anggota" className="mt-6 space-y-4">
+            <div className="text-center">
+              <p className="text-base font-bold uppercase underline">DAFTAR ANGGOTA KOPERASI</p>
+              <p className="text-xs text-muted-foreground">Status Keanggotaan Aktif</p>
+            </div>
+
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="bg-muted/60 text-left font-semibold">
+                  <th className="border border-border p-2 text-center">No</th>
+                  <th className="border border-border p-2">NRP / NIP</th>
+                  <th className="border border-border p-2">Nama Lengkap</th>
+                  <th className="border border-border p-2">Pangkat / Korps</th>
+                  <th className="border border-border p-2">Satminkal / Kotama</th>
+                  <th className="border border-border p-2 text-center">Tgl Masuk</th>
+                  <th className="border border-border p-2 text-center">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {shuRows.map((r, i) => {
-                  const jm = (r.modal / totalModal) * poolModal;
-                  const ju = (r.transaksi / totalTransaksi) * poolUsaha;
-                  return (
-                    <tr key={r.nrp}>
-                      <td className="border border-neutral-400 px-2 py-1.5 text-center">{i + 1}</td>
-                      <td className="border border-neutral-400 px-2 py-1.5 font-mono">{r.nrp}</td>
-                      <td className="border border-neutral-400 px-2 py-1.5">{r.nama}</td>
-                      <td className="border border-neutral-400 px-2 py-1.5 text-right">{formatRp(r.modal)}</td>
-                      <td className="border border-neutral-400 px-2 py-1.5 text-right">{formatRp(r.transaksi)}</td>
-                      <td className="border border-neutral-400 px-2 py-1.5 text-right">{formatRp(jm)}</td>
-                      <td className="border border-neutral-400 px-2 py-1.5 text-right">{formatRp(ju)}</td>
-                      <td className="border border-neutral-400 px-2 py-1.5 text-right font-semibold">
-                        {formatRp(jm + ju)}
-                      </td>
-                    </tr>
-                  );
-                })}
-                <tr className="bg-neutral-100 font-bold">
-                  <td className="border border-neutral-400 px-2 py-1.5 text-center" colSpan={3}>
-                    JUMLAH
-                  </td>
-                  <td className="border border-neutral-400 px-2 py-1.5 text-right">{formatRp(totalModal)}</td>
-                  <td className="border border-neutral-400 px-2 py-1.5 text-right">{formatRp(totalTransaksi)}</td>
-                  <td className="border border-neutral-400 px-2 py-1.5 text-right">{formatRp(poolModal)}</td>
-                  <td className="border border-neutral-400 px-2 py-1.5 text-right">{formatRp(poolUsaha)}</td>
-                  <td className="border border-neutral-400 px-2 py-1.5 text-right">
-                    {formatRp(poolModal + poolUsaha)}
-                  </td>
-                </tr>
+                {reportAnggota.map((a: any, i: number) => (
+                  <tr key={a.id}>
+                    <td className="border border-border p-2 text-center">{i + 1}</td>
+                    <td className="border border-border p-2 font-mono">{a.nrpNip}</td>
+                    <td className="border border-border p-2 font-medium">{a.nama}</td>
+                    <td className="border border-border p-2">
+                      {a.pangkat?.nama} {a.korps?.nama ? `(${a.korps.nama})` : ""}
+                    </td>
+                    <td className="border border-border p-2">{a.satminkal?.nama || "Disinfolahtad"}</td>
+                    <td className="border border-border p-2 text-center">
+                      {a.tmtAnggota || (a.tanggalMasuk ? new Date(a.tanggalMasuk).toLocaleDateString("id-ID") : "-")}
+                    </td>
+                    <td className="border border-border p-2 text-center">
+                      {a.isAktif ? "Aktif" : "Nonaktif"}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
+          </TabsContent>
 
-            <div className="mt-10 flex justify-end">
-              <div className="w-72 text-center text-xs">
-                <p>Jakarta, 4 Agustus 2026</p>
-                <p className="font-semibold">{jabatan}</p>
-                <div className="h-20" />
-                <p className="font-bold uppercase underline">{pejabat}</p>
-                <p>NRP {nrp}</p>
-              </div>
+          {/* TAB 3: Lampiran IV - Simpanan */}
+          <TabsContent value="simpanan" className="mt-6 space-y-4">
+            <div className="text-center">
+              <p className="text-base font-bold uppercase underline">
+                REKAPITULASI SIMPANAN ANGGOTA (POKOK, WAJIB &amp; SUKARELA)
+              </p>
+              <p className="text-xs text-muted-foreground">Tahun Buku {currentYear}</p>
+            </div>
+
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="bg-muted/60 text-left font-semibold">
+                  <th className="border border-border p-2 text-center">No</th>
+                  <th className="border border-border p-2">NRP / NIP</th>
+                  <th className="border border-border p-2">Nama Anggota</th>
+                  <th className="border border-border p-2 text-right">Simpanan Pokok</th>
+                  <th className="border border-border p-2 text-right">Simpanan Wajib</th>
+                  <th className="border border-border p-2 text-right">Simpanan Sukarela</th>
+                  <th className="border border-border p-2 text-right font-bold">Total Saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportSimpanan.map((s: any, i: number) => (
+                  <tr key={s.anggotaId || i}>
+                    <td className="border border-border p-2 text-center">{i + 1}</td>
+                    <td className="border border-border p-2 font-mono">{s.nrpNip}</td>
+                    <td className="border border-border p-2 font-medium">{s.nama}</td>
+                    <td className="border border-border p-2 text-right">{formatRp(Number(s.pokok || 0))}</td>
+                    <td className="border border-border p-2 text-right">{formatRp(Number(s.wajib || 0))}</td>
+                    <td className="border border-border p-2 text-right">{formatRp(Number(s.sukarela || 0))}</td>
+                    <td className="border border-border p-2 text-right font-bold text-foreground">
+                      {formatRp(Number(s.total || 0))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TabsContent>
+
+          {/* TAB 4: Lampiran V - Pinjaman */}
+          <TabsContent value="pinjaman" className="mt-6 space-y-4">
+            <div className="text-center">
+              <p className="text-base font-bold uppercase underline">
+                DAFTAR ANGGOTA MEMINJAM &amp; STATUS ANGSURAN
+              </p>
+              <p className="text-xs text-muted-foreground">Tahun Buku {currentYear}</p>
+            </div>
+
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="bg-muted/60 text-left font-semibold">
+                  <th className="border border-border p-2 text-center">No</th>
+                  <th className="border border-border p-2">No. Pinjaman</th>
+                  <th className="border border-border p-2">Nama Pemohon</th>
+                  <th className="border border-border p-2 text-right">Nominal Pinjaman</th>
+                  <th className="border border-border p-2 text-center">Tenor</th>
+                  <th className="border border-border p-2 text-right">Sisa Pokok</th>
+                  <th className="border border-border p-2 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportPinjaman.map((p: any, i: number) => (
+                  <tr key={p.id || i}>
+                    <td className="border border-border p-2 text-center">{i + 1}</td>
+                    <td className="border border-border p-2 font-mono">{p.id?.slice(0, 8).toUpperCase()}</td>
+                    <td className="border border-border p-2 font-medium">{p.anggota?.nama}</td>
+                    <td className="border border-border p-2 text-right">{formatRp(Number(p.nominal))}</td>
+                    <td className="border border-border p-2 text-center">{p.tenorBulan} Bulan</td>
+                    <td className="border border-border p-2 text-right font-semibold">
+                      {formatRp(Number(p.sisaPokok || p.nominal))}
+                    </td>
+                    <td className="border border-border p-2 text-center">{p.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TabsContent>
+
+          {/* TAB 5: Lampiran III - Brosur Pinjaman */}
+          <TabsContent value="brosur" className="mt-6 space-y-4">
+            <div className="text-center">
+              <p className="text-base font-bold uppercase underline">
+                TABEL ANGSURAN PINJAMAN KOPERASI (BROSUR RESMI)
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Suku Bunga 12% per Tahun (Flat 1% per Bulan) · Plafon Rp 1.000.000 s.d Rp 20.000.000
+              </p>
+            </div>
+
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="bg-muted/60 text-left font-semibold">
+                  <th className="border border-border p-2">Plafon Pinjaman</th>
+                  <th className="border border-border p-2 text-center">12 Bulan</th>
+                  <th className="border border-border p-2 text-center">24 Bulan</th>
+                  <th className="border border-border p-2 text-center">36 Bulan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[1_000_000, 2_000_000, 3_000_000, 5_000_000, 10_000_000, 15_000_000, 20_000_000].map(
+                  (nom) => (
+                    <tr key={nom}>
+                      <td className="border border-border p-2 font-bold">{formatRp(nom)}</td>
+                      <td className="border border-border p-2 text-center">
+                        {formatRp(Math.floor(nom / 12) + Math.floor(nom * 0.01))} / bln
+                      </td>
+                      <td className="border border-border p-2 text-center">
+                        {formatRp(Math.floor(nom / 24) + Math.floor(nom * 0.01))} / bln
+                      </td>
+                      <td className="border border-border p-2 text-center">
+                        {formatRp(Math.floor(nom / 36) + Math.floor(nom * 0.01))} / bln
+                      </td>
+                    </tr>
+                  ),
+                )}
+              </tbody>
+            </table>
+          </TabsContent>
+
+          {/* TAB 6: Lampiran VIII - Rekap Kwitansi */}
+          <TabsContent value="kwitansi" className="mt-6 space-y-4">
+            <div className="text-center">
+              <p className="text-base font-bold uppercase underline">
+                REKAPITULASI PENERIMAAN KWITANSI &amp; INVOICE ANGSURAN
+              </p>
+              <p className="text-xs text-muted-foreground">Tahun Buku {currentYear}</p>
+            </div>
+
+            <table className="w-full border-collapse text-xs">
+              <thead>
+                <tr className="bg-muted/60 text-left font-semibold">
+                  <th className="border border-border p-2 text-center">No</th>
+                  <th className="border border-border p-2">No. Invoice</th>
+                  <th className="border border-border p-2">Tgl Bayar</th>
+                  <th className="border border-border p-2 text-right">Pokok</th>
+                  <th className="border border-border p-2 text-right">Bunga (Jasa Usaha)</th>
+                  <th className="border border-border p-2 text-right font-bold">Total Diterima</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportKwitansi.map((k: any, i: number) => (
+                  <tr key={k.id || i}>
+                    <td className="border border-border p-2 text-center">{i + 1}</td>
+                    <td className="border border-border p-2 font-mono">{k.noInvoice || "-"}</td>
+                    <td className="border border-border p-2">
+                      {k.tanggalBayar ? new Date(k.tanggalBayar).toLocaleDateString("id-ID") : "-"}
+                    </td>
+                    <td className="border border-border p-2 text-right">{formatRp(Number(k.pokok || 0))}</td>
+                    <td className="border border-border p-2 text-right">{formatRp(Number(k.bunga || 0))}</td>
+                    <td className="border border-border p-2 text-right font-bold">
+                      {formatRp(Number(k.total || 0))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TabsContent>
+
+          {/* Signature / Tajuk Tanda Tangan */}
+          <div className="mt-12 flex justify-end">
+            <div className="w-80 text-center text-xs space-y-1">
+              <p>{tempatTgl}</p>
+              <p className="font-semibold uppercase">{jabatan}</p>
+              <div className="h-20" />
+              <p className="font-bold uppercase underline">{pejabat}</p>
+              <p>NRP {nrp}</p>
             </div>
           </div>
         </Card>
-      </div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        className="hidden"
-        accept="application/json"
-        onChange={async (e) => {
-          const file = e.target.files?.[0];
-          if (!file) return;
-          try {
-            const parsed = await parseBackupJson<{
-              kop1: string;
-              kop2: string;
-              kop3: string;
-              jabatan: string;
-              pejabat: string;
-              nrp: string;
-            }>(file);
-            setKop1(parsed.data.kop1);
-            setKop2(parsed.data.kop2);
-            setKop3(parsed.data.kop3);
-            setJabatan(parsed.data.jabatan);
-            setPejabat(parsed.data.pejabat);
-            setNrp(parsed.data.nrp);
-            toast.success("Backup berhasil dipulihkan");
-          } catch {
-            toast.error("Gagal restore: format backup tidak valid");
-          } finally {
-            e.currentTarget.value = "";
-          }
-        }}
-      />
+      </Tabs>
 
+      {/* Sheet Sesuaikan Pejabat TTD */}
       <Sheet open={ttdOpen} onOpenChange={setTtdOpen}>
         <SheetContent className="w-full sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>Tajuk Tanda Tangan</SheetTitle>
+            <SheetTitle>Tajuk Tanda Tangan Dokumen Cetak</SheetTitle>
             <SheetDescription>
-              Sesuaikan pejabat penandatangan laporan cetak.
+              Sesuaikan data pejabat penandatangan laporan dinas koperasi TNI AD
             </SheetDescription>
           </SheetHeader>
-          <div className="space-y-4 px-4">
+          <div className="space-y-4 px-4 py-4">
             <div className="space-y-2">
-              <Label>Jabatan</Label>
+              <Label>Tempat &amp; Tanggal Dokumen</Label>
+              <Input value={tempatTgl} onChange={(e) => setTempatTgl(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Jabatan Penandatangan</Label>
               <Input value={jabatan} onChange={(e) => setJabatan(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>Nama & Pangkat</Label>
+              <Label>Nama Lengkap &amp; Gelar</Label>
               <Input value={pejabat} onChange={(e) => setPejabat(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label>NRP</Label>
+              <Label>Pangkat &amp; NRP</Label>
               <Input value={nrp} onChange={(e) => setNrp(e.target.value)} />
             </div>
-          </div>
-          <SheetFooter>
             <Button
-              onClick={() => {
-                setTtdOpen(false);
-                toast.success("Tajuk tanda tangan diperbarui");
-              }}
+              className="w-full mt-4"
+              disabled={saveTajukMutation.isPending}
+              onClick={() => saveTajukMutation.mutate()}
             >
-              Terapkan
+              {saveTajukMutation.isPending ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : null}
+              Terapkan &amp; Simpan Tajuk TTD
             </Button>
-          </SheetFooter>
+          </div>
         </SheetContent>
       </Sheet>
     </div>

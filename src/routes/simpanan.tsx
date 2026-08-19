@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Plus, ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus, ArrowDownLeft, ArrowUpRight, Loader2, RefreshCw, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
@@ -11,13 +12,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -26,8 +34,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { anggotaList, formatRp } from "@/lib/casheva-data";
-import { generateSukarelaBatch, type SimpananTrx } from "@/lib/savings";
+import { formatRp } from "@/lib/casheva-data";
+import { apiAnggota, apiSimpanan, type SimpananRekapItem } from "@/lib/api";
 
 export const Route = createFileRoute("/simpanan")({
   head: () => ({
@@ -48,182 +56,234 @@ export const Route = createFileRoute("/simpanan")({
   component: SimpananPage,
 });
 
-const initialTrx: SimpananTrx[] = [
-  { id: "TRX-9021", nama: "Serma Budi Santoso", jenis: "Sukarela", tipe: "Setoran", jumlah: 500000, tgl: "03 Agu 2026" },
-  { id: "TRX-9020", nama: "Kapten Inf Rahmat Hidayat", jenis: "Wajib", tipe: "Setoran", jumlah: 300000, tgl: "03 Agu 2026" },
-  { id: "TRX-9019", nama: "Pelda Agus Wibowo", jenis: "Sukarela", tipe: "Penarikan", jumlah: 1200000, tgl: "02 Agu 2026" },
-  { id: "TRX-9018", nama: "Mayor Kav Fajar Nugroho", jenis: "Pokok", tipe: "Setoran", jumlah: 1000000, tgl: "02 Agu 2026" },
-  { id: "TRX-9017", nama: "Penata Muda Sri Wahyuni", jenis: "Wajib", tipe: "Setoran", jumlah: 250000, tgl: "01 Agu 2026" },
-];
-
 function SimpananPage() {
-  const [open, setOpen] = useState(false);
-  const [trx, setTrx] = useState(initialTrx);
+  const queryClient = useQueryClient();
+  const [openPokokWajib, setOpenPokokWajib] = useState(false);
+  const [selectedAnggotaId, setSelectedAnggotaId] = useState("");
+  const [search, setSearch] = useState("");
 
-  const totals = useMemo(() => {
-    const data = {
-      Pokok: 742_000_000,
-      Wajib: 5_310_000_000,
-      Sukarela: 10_888_000_000,
-    };
-    for (const t of trx) {
-      const signed = t.tipe === "Setoran" ? t.jumlah : -t.jumlah;
-      data[t.jenis] += signed;
-    }
-    return data;
-  }, [trx]);
+  const { data: rekapList = [], isLoading } = useQuery({
+    queryKey: ["simpanan-rekap"],
+    queryFn: () => apiSimpanan.getRekap(),
+  });
+
+  const { data: anggotaList = [] } = useQuery({
+    queryKey: ["anggota-list"],
+    queryFn: () => apiAnggota.findAll(true),
+  });
+
+  const massalMutation = useMutation({
+    mutationFn: () => apiSimpanan.sukarelaMassal(),
+    onSuccess: (res) => {
+      toast.success("Simpanan Sukarela Massal Berhasil", {
+        description: `${res.message} - Total: ${formatRp(res.totalNominal)}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["simpanan-rekap"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+    },
+    onError: (err: any) => {
+      toast.error("Gagal menjalankan potongan massal", { description: err.message });
+    },
+  });
+
+  const pokokWajibMutation = useMutation({
+    mutationFn: (anggotaId: string) => apiSimpanan.setPokokWajib(anggotaId),
+    onSuccess: (res) => {
+      toast.success("Simpanan Awal Berhasil Dicatat", {
+        description: res.message || "Simpanan Pokok (Rp 50.000) & Wajib (Rp 100.000) tersimpan.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["simpanan-rekap"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      setOpenPokokWajib(false);
+      setSelectedAnggotaId("");
+    },
+    onError: (err: any) => {
+      toast.error("Gagal mencatat simpanan awal", { description: err.message });
+    },
+  });
+
+  const totalPokok = rekapList.reduce((acc, row) => acc + Number(row.simpananPokok || 0), 0);
+  const totalWajib = rekapList.reduce((acc, row) => acc + Number(row.simpananWajib || 0), 0);
+  const totalSukarela = rekapList.reduce((acc, row) => acc + Number(row.simpananSukarela || 0), 0);
+
+  const filteredRekap = rekapList.filter(
+    (r) =>
+      r.nama.toLowerCase().includes(search.toLowerCase()) ||
+      r.nrpNip.toLowerCase().includes(search.toLowerCase()),
+  );
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Transaksi Simpanan"
-        description="Mutasi simpanan pokok, wajib, dan sukarela anggota"
+        title="Transaksi & Rekap Simpanan"
+        description="Pengelolaan simpanan pokok, wajib, dan simpanan sukarela bulanan anggota"
         actions={
           <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
-              onClick={() => {
-                const batch = generateSukarelaBatch(anggotaList, new Date());
-                setTrx((prev) => [...batch, ...prev]);
-                toast.success(`Batch sukarela berhasil: ${batch.length} transaksi dibuat`);
-              }}
+              disabled={massalMutation.isPending}
+              onClick={() => massalMutation.mutate()}
             >
-              Jalankan Batch Tanggal 5
+              {massalMutation.isPending ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <RefreshCw className="mr-2 size-4" />
+              )}
+              Jalankan Batch Tgl 5 (Sukarela)
             </Button>
-            <Button onClick={() => setOpen(true)}>
-              <Plus className="mr-2 size-4" /> Transaksi Baru
+            <Button onClick={() => setOpenPokokWajib(true)}>
+              <Plus className="mr-2 size-4" /> Setor Pokok & Wajib Awal
             </Button>
           </div>
         }
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        {[
-          ["Simpanan Pokok", totals.Pokok],
-          ["Simpanan Wajib", totals.Wajib],
-          ["Simpanan Sukarela", totals.Sukarela],
-        ].map(([label, val]) => (
-          <Card key={label as string} className="shadow-card">
-            <CardHeader className="pb-2">
-              <CardDescription>{label as string}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl font-extrabold">{formatRp(val as number)}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Total Simpanan Pokok (Rp 50.000/org)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xl font-extrabold text-primary">{formatRp(totalPokok)}</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Total Simpanan Wajib (Rp 100.000/org)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xl font-extrabold text-foreground">{formatRp(totalWajib)}</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Total Simpanan Sukarela (Potongan Juru Bayar)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xl font-extrabold text-success">{formatRp(totalSukarela)}</p>
+          </CardContent>
+        </Card>
       </div>
 
-      <Tabs defaultValue="semua">
-        <TabsList>
-          <TabsTrigger value="semua">Semua</TabsTrigger>
-          <TabsTrigger value="setoran">Setoran</TabsTrigger>
-          <TabsTrigger value="penarikan">Penarikan</TabsTrigger>
-        </TabsList>
-        {["semua", "setoran", "penarikan"].map((tab) => (
-          <TabsContent key={tab} value={tab} className="mt-4">
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="text-base">Riwayat Transaksi</CardTitle>
-              </CardHeader>
-              <CardContent className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Anggota</TableHead>
-                      <TableHead>Jenis</TableHead>
-                      <TableHead>Tipe</TableHead>
-                      <TableHead className="text-right">Jumlah</TableHead>
-                      <TableHead>Tanggal</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {trx
-                      .filter((t) => tab === "semua" || t.tipe.toLowerCase() === tab)
-                      .map((t) => (
-                        <TableRow key={t.id}>
-                          <TableCell className="font-mono text-xs">{t.id}</TableCell>
-                          <TableCell className="font-medium">{t.nama}</TableCell>
-                          <TableCell>{t.jenis}</TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={
-                                t.tipe === "Setoran"
-                                  ? "border-success/30 bg-success/15 text-success"
-                                  : "border-destructive/30 bg-destructive/12 text-destructive"
-                              }
-                            >
-                              {t.tipe === "Setoran" ? (
-                                <ArrowDownLeft className="mr-1 size-3" />
-                              ) : (
-                                <ArrowUpRight className="mr-1 size-3" />
-                              )}
-                              {t.tipe}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right font-semibold">
-                            {formatRp(t.jumlah)}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">{t.tgl}</TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
+      <Card className="shadow-card">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 pb-3">
+          <div>
+            <CardTitle>Rekap Saldo Simpanan Per Anggota</CardTitle>
+            <CardDescription>
+              Tercatat otomatis berdasarkan grade: Pamen Rp 300rb, Pama Rp 250rb, Ba/Ta/ASN Rp 150rb
+            </CardDescription>
+          </div>
+          <div className="w-full sm:w-64">
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari anggota / NRP..."
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>No.</TableHead>
+                <TableHead>Nama Anggota</TableHead>
+                <TableHead>Pangkat / Korps / NRP</TableHead>
+                <TableHead>Satminkal</TableHead>
+                <TableHead className="text-right">Pokok</TableHead>
+                <TableHead className="text-right">Wajib</TableHead>
+                <TableHead className="text-right">Sukarela</TableHead>
+                <TableHead className="text-right font-bold">Total Simpanan</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                    <Loader2 className="mx-auto size-6 animate-spin mb-2" />
+                    Memuat data simpanan anggota...
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredRekap.map((r, idx) => (
+                  <TableRow key={r.anggotaId}>
+                    <TableCell>{idx + 1}</TableCell>
+                    <TableCell className="font-medium">{r.nama}</TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {r.pangkat} {r.korps ? `(${r.korps})` : ""} / {r.nrpNip}
+                    </TableCell>
+                    <TableCell>{r.satminkal}</TableCell>
+                    <TableCell className="text-right">{formatRp(Number(r.simpananPokok))}</TableCell>
+                    <TableCell className="text-right">{formatRp(Number(r.simpananWajib))}</TableCell>
+                    <TableCell className="text-right text-success font-medium">
+                      {formatRp(Number(r.simpananSukarela))}
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-foreground">
+                      {formatRp(Number(r.totalSimpanan))}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+              {!isLoading && filteredRekap.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                    Tidak ada data simpanan ditemukan.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full sm:max-w-md">
-          <SheetHeader>
-            <SheetTitle>Transaksi Simpanan Baru</SheetTitle>
-            <SheetDescription>Catat setoran atau penarikan simpanan anggota.</SheetDescription>
-          </SheetHeader>
-          <div className="space-y-4 px-4">
+      {/* Dialog Setor Pokok & Wajib Awal */}
+      <Dialog open={openPokokWajib} onOpenChange={setOpenPokokWajib}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Setor Simpanan Pokok & Wajib Awal</DialogTitle>
+            <DialogDescription>
+              Mencatat setoran pertama kali saat personel terdaftar (Pokok: Rp 50.000, Wajib: Rp 100.000).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>NRP / Nama Anggota</Label>
-              <Input placeholder="21980045 — Serma Budi Santoso" />
+              <Label>Pilih Anggota</Label>
+              <Select value={selectedAnggotaId} onValueChange={setSelectedAnggotaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih anggota yang baru bergabung" />
+                </SelectTrigger>
+                <SelectContent className="max-h-56">
+                  {anggotaList.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.nama} ({a.pangkat?.nama || ""} - {a.nrpNip})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Jenis Simpanan</Label>
-              <Input placeholder="Sukarela" />
-            </div>
-            <div className="space-y-2">
-              <Label>Jumlah</Label>
-              <Input placeholder="500000" />
+            <div className="rounded-lg bg-muted/60 p-3 text-xs space-y-1">
+              <p className="font-semibold text-foreground">Ketentuan Juknis TNI AD 2026:</p>
+              <p>• Simpanan Pokok: Rp 50.000,- (Sekali saat masuk)</p>
+              <p>• Simpanan Wajib: Rp 100.000,- (Pertama kali masuk)</p>
             </div>
           </div>
-          <SheetFooter>
+          <DialogFooter>
             <Button
+              disabled={!selectedAnggotaId || pokokWajibMutation.isPending}
               onClick={() => {
-                setTrx((prev) => [
-                  {
-                    id: `TRX-MANUAL-${Date.now()}`,
-                    nama: "Input Manual",
-                    jenis: "Sukarela",
-                    tipe: "Setoran",
-                    jumlah: 500_000,
-                    tgl: new Date().toLocaleDateString("id-ID", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    }),
-                  },
-                  ...prev,
-                ]);
-                setOpen(false);
-                toast.success("Transaksi simpanan tersimpan");
+                if (selectedAnggotaId) pokokWajibMutation.mutate(selectedAnggotaId);
               }}
             >
-              Simpan Transaksi
+              {pokokWajibMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin mr-2" />
+              ) : null}
+              Proses Setoran
             </Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+            <Button variant="outline" onClick={() => setOpenPokokWajib(false)}>
+              Batal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

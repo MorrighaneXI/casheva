@@ -39,7 +39,7 @@ const notifications = [
 
 export function TopHeader() {
   const navigate = useNavigate();
-  const { role, setRole, setAuthenticated } = useSession();
+  const { role, setRole, user, satminkal, kotama, logout: sessionLogout } = useSession();
   const [dark, setDark] = useState(false);
 
   const toggleTheme = () => {
@@ -49,7 +49,7 @@ export function TopHeader() {
   };
 
   const logout = () => {
-    setAuthenticated(false);
+    sessionLogout();
     toast.success("Sesi diakhiri");
     navigate({ to: "/login" });
   };
@@ -70,6 +70,12 @@ export function TopHeader() {
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
+          <div className="hidden lg:flex items-center gap-1.5 rounded-lg border border-border/80 bg-muted/40 px-2.5 py-1 text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">{satminkal}</span>
+            <span className="opacity-40">/</span>
+            <span>{kotama}</span>
+          </div>
+
           <Select value={role} onValueChange={(v) => setRole(v as Role)}>
             <SelectTrigger className="hidden h-9 w-[190px] md:flex">
               <SelectValue placeholder="Pilih peran" />
@@ -128,24 +134,24 @@ export function TopHeader() {
                 </span>
                 <span className="hidden min-w-0 sm:block">
                   <span className="block truncate text-xs font-semibold">
-                    Mayor Cba Arif Setiawan
+                    {user?.namaLengkap || "Administrator"}
                   </span>
                   <span className="block truncate text-[11px] text-muted-foreground">
-                    NRP 11110234
+                    {user?.username ? `@${user.username}` : "NRP 11110234"}
                   </span>
                 </span>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>
-                <p className="text-sm">Mayor Cba Arif Setiawan</p>
+                <p className="text-sm">{user?.namaLengkap || "Administrator"}</p>
                 <Badge variant="outline" className="mt-1 font-normal">
                   {role}
                 </Badge>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Settings className="mr-2 size-4" /> Pengaturan Akun
+              <DropdownMenuItem onClick={() => navigate({ to: "/users" })}>
+                <Settings className="mr-2 size-4" /> Manajemen Pengguna
               </DropdownMenuItem>
               <DropdownMenuItem onClick={logout}>
                 <LogOut className="mr-2 size-4" /> Keluar
