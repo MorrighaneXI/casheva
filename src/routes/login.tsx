@@ -52,11 +52,11 @@ export const Route = createFileRoute("/login")({
 const DEMO_CREDENTIALS: Record<Role, { username: string; password: string; deskripsi: string }> = {
   "Admin Koperasi": { username: "admin", password: "Admin123!", deskripsi: "Administrator Koperasi" },
   "Pimpinan / Dan / Ka": { username: "pimpinan", password: "Admin123!", deskripsi: "Kolonel Inf Heru (Dan/Ka)" },
-  Kaprim: { username: "kaprim", password: "Admin123!", deskripsi: "Letkol Inf Sigit (Kaprim)" },
+  Keprim: { username: "keprim", password: "Admin123!", deskripsi: "Letkol Cba Dedi Kurnia (Keprim)" },
   Bendahara: { username: "bendahara", password: "Admin123!", deskripsi: "Lettu Cku Budi (Bendahara)" },
   "Juru Bayar": { username: "jurubayar", password: "Admin123!", deskripsi: "Serma Agus (Juru Bayar)" },
   "Pengawas Koperasi": { username: "pengawas", password: "Admin123!", deskripsi: "Mayor Inf Tri (Pengawas)" },
-  Anggota: { username: "admin", password: "Admin123!", deskripsi: "Akses Anggota (Demo Admin)" },
+  Anggota: { username: "1102123401", password: "Admin123!", deskripsi: "Kolonel Inf Sigit (NRP: 1102123401)" },
 };
 
 function LoginPage() {
@@ -85,7 +85,7 @@ function LoginPage() {
 
     if (!u.trim() || !p.trim()) {
       toast.error("Data tidak lengkap", {
-        description: "Masukkan username/NRP dan password Anda.",
+        description: "Masukkan NRP/NIP dan password Anda.",
       });
       return;
     }
@@ -105,7 +105,7 @@ function LoginPage() {
     } catch (err: any) {
       setLoading(false);
       toast.error("Gagal Masuk", {
-        description: err.message || "Username atau password salah. Pastikan server backend aktif.",
+        description: err.message || "NRP/NIP atau password salah. Pastikan server backend aktif.",
       });
     }
   };
@@ -151,7 +151,9 @@ function LoginPage() {
           />
 
           <div className="relative flex items-center gap-3 text-sidebar-foreground">
-            <ShieldCheck className="h-5 w-5 text-sidebar-primary" />
+            <div className="grid size-8 place-items-center rounded-lg bg-sidebar-accent/60 p-1">
+              <img src={emblem} alt="Logo Casheva Koperasi Kartika" className="size-full object-contain" />
+            </div>
             <span className="text-sm font-semibold tracking-[0.2em] uppercase">
               Casheva
             </span>
@@ -215,16 +217,16 @@ function LoginPage() {
                 }}
               >
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username / NRP / NIP</Label>
+                  <Label htmlFor="username">NRP / NIP (Kredensial Login)</Label>
                   <div className="relative">
                     <User className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Contoh: admin, pimpinan, kaprim"
+                      placeholder="Masukkan NRP/NIP (misal: 1102123401 atau admin)"
                       autoComplete="username"
-                      className="h-11 pl-9 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary"
+                      className="h-11 pl-9 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary font-mono text-sm"
                     />
                   </div>
                 </div>

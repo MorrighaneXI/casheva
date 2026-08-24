@@ -26,7 +26,7 @@ const EXTRA_ACCESS: Partial<Record<Role, string[]>> = {
     "/shu",
     "/audit-flow",
   ],
-  Kaprim: ["/rekomendasi", "/acc", "/likuiditas", "/laporan", "/pinjaman", "/anggota"],
+  Keprim: ["/rekomendasi", "/acc", "/likuiditas", "/laporan", "/pinjaman", "/anggota"],
   Bendahara: ["/pengajuan", "/simpanan", "/pencairan", "/angsuran", "/rekomendasi"],
   "Juru Bayar": ["/verifikasi", "/pencairan", "/angsuran"],
   Anggota: ["/gaji", "/pengajuan", "/angsuran", "/simpanan"],
@@ -47,12 +47,12 @@ export function allowedPathsFor(role: Role): Set<string> {
   return paths;
 }
 
-export function canAccessPath(role: Role, pathname: string): boolean {
+export function canAccessPath(role: Role, pathname: string, originalRole?: Role): boolean {
   if (SHARED_PATHS.has(pathname)) return true;
+  // Admin has full access to all paths
+  if (role === "Admin Koperasi" || originalRole === "Admin Koperasi") return true;
   const allowed = allowedPathsFor(role);
   if (allowed.has(pathname)) return true;
-  // Admin has full access
-  if (role === "Admin Koperasi") return true;
   return false;
 }
 
@@ -67,7 +67,7 @@ export function dashboardCta(role: Role): { to: string; label: string } | null {
       return { to: "/verifikasi", label: "Buka Antrean Verifikasi" };
     case "Pimpinan / Dan / Ka":
       return { to: "/rekomendasi", label: "Buka Antrean Rekomendasi" };
-    case "Kaprim":
+    case "Keprim":
       return { to: "/acc", label: "Buka Persetujuan ACC" };
     case "Bendahara":
       return { to: "/pengajuan", label: "Ajukan Pinjaman" };

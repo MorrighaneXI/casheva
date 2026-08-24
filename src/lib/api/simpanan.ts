@@ -33,4 +33,34 @@ export const apiSimpanan = {
   sukarelaMassal: async (dto?: SimpananMassalDto): Promise<SimpananMassalResponse> => {
     return api.post<SimpananMassalResponse>('/simpanan/sukarela/massal', dto || {});
   },
+
+  getPengaturan: async (): Promise<{
+    nominalSimpananPokok: number;
+    nominalSimpananWajib: number;
+    nominalSimpananKhusus: number;
+    updatedAt: string | null;
+  }> => {
+    return api.get('/simpanan/pengaturan');
+  },
+
+  updatePengaturan: async (dto: {
+    nominalPokok?: number;
+    nominalWajib?: number;
+    nominalKhusus?: number;
+  }): Promise<any> => {
+    return api.patch('/simpanan/pengaturan', dto);
+  },
+
+  getRekapBulanan: async (bulan: number, tahun: number): Promise<any[]> => {
+    return api.get<any[]>(`/simpanan/rekap-bulanan?bulan=${bulan}&tahun=${tahun}`);
+  },
+
+  setor: async (dto: {
+    anggotaId: string;
+    jenis: 'POKOK' | 'WAJIB' | 'SUKARELA' | 'KHUSUS';
+    nominal: number;
+    keterangan?: string;
+  }): Promise<any> => {
+    return api.post('/simpanan/setor', dto);
+  },
 };

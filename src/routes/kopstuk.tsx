@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { apiKopstuk } from "@/lib/api";
+import logoKoperasi from "@/assets/logo-koperasi.png";
 
 export const Route = createFileRoute("/kopstuk")({
   head: () => ({
@@ -134,8 +135,8 @@ function KopstukPage() {
             <div className="print-sheet rounded-xl p-6 bg-card border border-border shadow-inner">
               <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4">
                 {showLogo && (
-                  <div className="grid size-14 shrink-0 place-items-center rounded-full border-2 border-foreground">
-                    <Shield className="size-7 text-primary" />
+                  <div className="grid size-14 shrink-0 place-items-center rounded-lg bg-card p-1">
+                    <img src={logoKoperasi} alt="Logo Koperasi Kartika" className="size-full object-contain" />
                   </div>
                 )}
                 <div className="min-w-0 text-center">

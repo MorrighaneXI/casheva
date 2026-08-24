@@ -46,6 +46,8 @@ import {
   anggotaAngsuranSaya,
   anggotaGajiProfile,
   formatRp,
+  formatNamaLengkapDinas,
+  formatPangkatKorps,
   backendStatusToFrontend,
   loanStatusTone,
   trenData as defaultTrenData,
@@ -94,7 +96,7 @@ function AnggotaDashboard() {
     <div className="space-y-6">
       <PageHeader
         title="Dashboard Anggota"
-        description={`${p.pangkat} ${p.nama} · NRP ${p.nrp} · ${p.satminkal}`}
+        description={`${formatNamaLengkapDinas(p.nama, p.pangkat, p.korps, p.kategori)} · NRP ${p.nrp} · ${p.satminkal}`}
         actions={
           cta ? (
             <Button asChild>
@@ -248,7 +250,7 @@ function AnggotaDashboard() {
 }
 
 function ExecutiveDashboard() {
-  const { role, satminkal } = useSession();
+  const { role, originalRole, satminkal } = useSession();
   const cta = dashboardCta(role);
 
   const { data: summary, isLoading: loadingSummary } = useQuery({
@@ -266,9 +268,9 @@ function ExecutiveDashboard() {
     queryFn: () => apiPinjaman.findAll(),
   });
 
-  const canPinjaman = canAccessPath(role, "/pinjaman");
-  const canVerifikasi = canAccessPath(role, "/verifikasi");
-  const canRekomendasi = canAccessPath(role, "/rekomendasi");
+  const canPinjaman = canAccessPath(role, "/pinjaman", originalRole);
+  const canVerifikasi = canAccessPath(role, "/verifikasi", originalRole);
+  const canRekomendasi = canAccessPath(role, "/rekomendasi", originalRole);
   const reviewTo = canVerifikasi
     ? "/verifikasi"
     : canRekomendasi
@@ -283,7 +285,7 @@ function ExecutiveDashboard() {
     ["DIAJUKAN", "DIVERIFIKASI_JURUBAYAR", "DIREKOMENDASIKAN"].includes(l.status),
   ).length;
   const countAcc = allLoans.filter((l) =>
-    ["DISETUJUI_KAPRIM", "DICAIRKAN", "LUNAS"].includes(l.status),
+    ["DISETUJUI_KEPRIM", "DISETUJUI_KAPRIM", "DICAIRKAN", "LUNAS"].includes(l.status),
   ).length;
   const countDitolak = allLoans.filter((l) => l.status === "DITOLAK").length;
 
@@ -330,7 +332,7 @@ function ExecutiveDashboard() {
     {
       label: "Pinjaman Disetujui (ACC)",
       value: String(countAcc || 6),
-      hint: "ACC Kaprim · Sudah dicairkan",
+      hint: "ACC Keprim · Sudah dicairkan",
       icon: BadgeCheck,
       tone: "text-primary bg-primary-soft",
     },
@@ -376,10 +378,10 @@ function ExecutiveDashboard() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpiItems.map((kpi) => (
-          <Card key={kpi.label} className="shadow-card">
+          <Card key={kpi.label} className="shadow-card card-interactive">
             <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 pb-2">
               <CardDescription className="min-w-0 truncate">{kpi.label}</CardDescription>
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary transition-transform group-hover:scale-105">
                 <kpi.icon className="size-4" />
               </span>
             </CardHeader>
@@ -402,7 +404,7 @@ function ExecutiveDashboard() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         {statusKpis.map((kpi) => (
-          <Card key={kpi.label} className="shadow-card">
+          <Card key={kpi.label} className="shadow-card card-interactive">
             <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 pb-2">
               <CardDescription className="min-w-0 truncate">{kpi.label}</CardDescription>
               <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${kpi.tone}`}>
@@ -550,13 +552,13 @@ function ExecutiveDashboard() {
                       {l.id.slice(0, 8).toUpperCase()}
                     </TableCell>
                     <TableCell>
-                      <p className="font-medium">{l.anggota?.nama || "Anggota"}</p>
+                      <p className="font-medium">{formatNamaLengkapDinas(l.anggota?.nama, l.anggota?.pangkat?.nama, l.anggota?.korps?.nama, l.anggota?.pangkat?.kategori)}</p>
                       <p className="text-xs text-muted-foreground">
-                        NRP {l.anggota?.nrpNip || "-"}
+                      NRP {l.anggota?.nrpNip || "-"} · {l.anggota?.satminkal?.nama || "Disinfolahtad"}
                       </p>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {l.anggota?.pangkat?.nama || "-"} {l.anggota?.korps?.nama ? `(${l.anggota.korps.nama})` : ""}
+                      {formatPangkatKorps(l.anggota?.pangkat?.nama, l.anggota?.korps?.nama)}
                     </TableCell>
                     <TableCell className="text-right font-semibold">
                       {formatRp(Number(l.nominal))}

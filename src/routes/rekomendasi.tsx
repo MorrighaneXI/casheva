@@ -34,7 +34,7 @@ function Page() {
         title={canAct ? "Antrean Rekomendasi Dan/Ka" : "Monitoring Antrean Rekomendasi"}
         description={
           canAct
-            ? "ACC atau tolak pengajuan — jika disetujui akan diteruskan ke Kaprim."
+            ? "ACC atau tolak pengajuan — jika disetujui akan diteruskan ke Keprim."
             : "Pantau progres antrean rekomendasi tanpa mengubah keputusan Dan/Ka."
         }
       />

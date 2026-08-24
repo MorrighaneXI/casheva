@@ -1,18 +1,18 @@
 export const API_BASE_URL =
-  (import.meta.env.VITE_API_URL as string) || "http://localhost:3000/api";
+  (import.meta.env["VITE_API_URL"] as string) || "http://localhost:3000/api";
 
 export interface ApiErrorResponse {
   statusCode: number;
   message: string | string[];
-  error?: string;
+  error?: string | undefined;
 }
 
 export class ApiError extends Error {
   statusCode: number;
-  error?: string;
-  details?: string | string[];
+  error?: string | undefined;
+  details?: string | string[] | undefined;
 
-  constructor(statusCode: number, message: string, details?: string | string[]) {
+  constructor(statusCode: number, message: string, details?: string | string[] | undefined) {
     super(message);
     this.name = "ApiError";
     this.statusCode = statusCode;
@@ -63,6 +63,9 @@ export async function apiRequest<T = any>(
 
       // Jika 401 Unauthorized, hapus token kadaluarsa
       if (response.status === 401 && typeof window !== "undefined") {
+        if (errorMessage.includes("perangkat lain")) {
+          alert("⚠️ Akses Ditolak: Akun Anda sedang aktif di perangkat/device lain. Sesi di perangkat ini diakhiri.");
+        }
         localStorage.removeItem("casheva.token");
         localStorage.removeItem("casheva.auth");
         localStorage.removeItem("casheva.user");
@@ -93,30 +96,26 @@ export async function apiRequest<T = any>(
   }
 }
 
+function buildRequestInit(method: string, body?: any, options?: RequestInit): RequestInit {
+  const init: RequestInit = { ...options, method };
+  if (body !== undefined) {
+    init.body = body instanceof FormData ? body : JSON.stringify(body);
+  }
+  return init;
+}
+
 export const api = {
   get: <T = any>(endpoint: string, options?: RequestInit) =>
     apiRequest<T>(endpoint, { ...options, method: "GET" }),
 
   post: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
-    apiRequest<T>(endpoint, {
-      ...options,
-      method: "POST",
-      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
-    }),
+    apiRequest<T>(endpoint, buildRequestInit("POST", body, options)),
 
   patch: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
-    apiRequest<T>(endpoint, {
-      ...options,
-      method: "PATCH",
-      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
-    }),
+    apiRequest<T>(endpoint, buildRequestInit("PATCH", body, options)),
 
   put: <T = any>(endpoint: string, body?: any, options?: RequestInit) =>
-    apiRequest<T>(endpoint, {
-      ...options,
-      method: "PUT",
-      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
-    }),
+    apiRequest<T>(endpoint, buildRequestInit("PUT", body, options)),
 
   delete: <T = any>(endpoint: string, options?: RequestInit) =>
     apiRequest<T>(endpoint, { ...options, method: "DELETE" }),

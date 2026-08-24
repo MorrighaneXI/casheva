@@ -25,6 +25,7 @@ import {
   Calendar,
   CreditCard,
   History,
+  Calculator,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -288,25 +289,25 @@ export function AccQueue() {
       queryClient.invalidateQueries({ queryKey: ["pinjaman-acc"] });
       queryClient.invalidateQueries({ queryKey: ["pinjaman-list"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
-      if (variables.dto.status === "SETUJU_KAPRIM") {
-        toast.success("Persetujuan ACC Kaprim Berhasil", {
+      if (variables.dto.status === "SETUJU_KEPRIM" || variables.dto.status === "SETUJU_KAPRIM") {
+        toast.success("Persetujuan ACC Keprim Berhasil", {
           description: "Berkas disetujui dan diteruskan ke Bendahara untuk tahap pencairan dana.",
         });
       } else {
-        toast.error("Pengajuan Ditolak Kaprim");
+        toast.error("Pengajuan Ditolak Keprim");
       }
       setRejectId(null);
       setRejectNote("");
     },
     onError: (err: any) => {
-      toast.error("Gagal Memproses ACC Kaprim", { description: err.message });
+      toast.error("Gagal Memproses ACC Keprim", { description: err.message });
     },
   });
 
   return (
     <Card className="shadow-card">
       <CardHeader>
-        <CardTitle>Persetujuan Akhir (ACC Kaprim) &amp; Otorisasi Pinjaman</CardTitle>
+        <CardTitle>Persetujuan Akhir (ACC Keprim) &amp; Otorisasi Pinjaman</CardTitle>
         <CardDescription>
           Berkas yang telah direkomendasikan Dan/Ka dan diverifikasi Juru Bayar
         </CardDescription>
@@ -315,11 +316,11 @@ export function AccQueue() {
         {isLoading ? (
           <div className="py-8 text-center text-muted-foreground">
             <Loader2 className="mx-auto size-6 animate-spin mb-2" />
-            Memuat antrean ACC Kaprim...
+            Memuat antrean ACC Keprim...
           </div>
         ) : (
           antrean.map((a) => (
-            <div key={a.id} className="rounded-xl border border-border p-5 bg-card shadow-sm">
+            <div key={a.id} className="rounded-xl border border-border p-5 bg-card shadow-sm card-interactive">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-base font-semibold">{a.anggota?.nama || "Anggota"}</p>
@@ -367,8 +368,8 @@ export function AccQueue() {
                     accMutation.mutate({
                       id: a.id,
                       dto: {
-                        status: "SETUJU_KAPRIM",
-                        catatan: "Disetujui dan di-ACC oleh Kepala Primer (Kaprim)",
+                        status: "SETUJU_KEPRIM",
+                        catatan: "Disetujui dan di-ACC oleh Kepala Primer (Keprim)",
                       },
                     })
                   }
@@ -381,7 +382,7 @@ export function AccQueue() {
         )}
         {!isLoading && antrean.length === 0 && (
           <div className="py-10 text-center text-muted-foreground">
-            Tidak ada berkas yang menunggu persetujuan Kaprim saat ini.
+            Tidak ada berkas yang menunggu persetujuan Keprim saat ini.
           </div>
         )}
       </CardContent>
@@ -389,7 +390,7 @@ export function AccQueue() {
       <Dialog open={!!rejectId} onOpenChange={(o) => !o && setRejectId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tolak Persetujuan Kaprim</DialogTitle>
+            <DialogTitle>Tolak Persetujuan Keprim</DialogTitle>
             <DialogDescription>
               Masukkan alasan penolakan untuk arsip evaluasi Primkopad.
             </DialogDescription>

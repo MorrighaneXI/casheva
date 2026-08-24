@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { Kopstuk, ShuAnggotaItem, TajukTtd } from './types';
+import type { Kopstuk, ReportShuAnggotaResponse, ShuAnggotaItem, TajukTtd } from './types';
 
 export interface ReportAnggotaResponse {
   kopstuk: Kopstuk | null;
@@ -133,27 +133,13 @@ export interface ReportRekapKwitansiBulananResponse {
   totalJumlah: number;
 }
 
-export interface ReportShuAnggotaResponse {
-  title?: string;
-  kopstuk: Kopstuk | null;
-  tajukTtd: TajukTtd | null;
-  ringkasanShu?: {
-    tahun: number;
-    totalPendapatan: number;
-    totalBeban: number;
-    shuBersih: number;
-    cadangan: number;
-    jasaModal: number;
-    jasaUsaha: number;
-    pengurus: number;
-    sosialPendidikan: number;
-  };
-  data: ShuAnggotaItem[];
-}
-
 export const apiReports = {
   getReportAnggota: async (): Promise<ReportAnggotaResponse> => {
     return api.get<ReportAnggotaResponse>('/reports/anggota');
+  },
+
+  getAnggota: async (): Promise<any> => {
+    return api.get('/reports/anggota');
   },
 
   getBrosurPinjaman: async (): Promise<any> => {

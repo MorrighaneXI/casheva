@@ -67,4 +67,19 @@ export const apiPinjaman = {
   bayarAngsuran: async (angsuranId: string): Promise<any> => {
     return api.post(`/pinjaman/angsuran/${angsuranId}/bayar`);
   },
+
+  getPlafond: async (anggotaId: string): Promise<{
+    anggotaId: string;
+    kategoriPangkat: string;
+    maksPlafond: number;
+    totalPinjamanAktif: number;
+    sisaKuota: number;
+    label: string;
+  }> => {
+    return api.get(`/pinjaman/plafond/${anggotaId}`);
+  },
+
+  getRekapAngsuranBulanan: async (bulan: number, tahun: number): Promise<any[]> => {
+    return api.get<any[]>(`/pinjaman/rekap-angsuran-bulanan?bulan=${bulan}&tahun=${tahun}`);
+  },
 };

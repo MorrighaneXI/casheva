@@ -47,7 +47,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatRp, workflowSteps, backendStatusToFrontend, loanStatusTone } from "@/lib/casheva-data";
+import { formatRp, workflowSteps, backendStatusToFrontend, loanStatusTone, formatNamaLengkapDinas, formatPangkatKorps } from "@/lib/casheva-data";
 import { cn } from "@/lib/utils";
 import { apiPinjaman, type Pinjaman } from "@/lib/api";
 
@@ -165,13 +165,13 @@ function JuyarPersonList({
                   return (
                     <TableRow key={r.id}>
                       <TableCell>
-                        <p className="font-medium">{r.anggota?.nama || "Anggota"}</p>
+                        <p className="font-medium">{formatNamaLengkapDinas(r.anggota?.nama, r.anggota?.pangkat?.nama, r.anggota?.korps?.nama, r.anggota?.pangkat?.kategori)}</p>
                         <p className="font-mono text-xs text-muted-foreground">
                           {r.id.slice(0, 8).toUpperCase()} · NRP {r.anggota?.nrpNip || "-"}
                         </p>
                       </TableCell>
-                      <TableCell>
-                        {r.anggota?.pangkat?.nama || "-"} {r.anggota?.korps?.nama ? `(${r.anggota.korps.nama})` : ""}
+                      <TableCell className="text-xs font-medium text-foreground">
+                        {formatPangkatKorps(r.anggota?.pangkat?.nama, r.anggota?.korps?.nama, r.anggota?.pangkat?.kategori)}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {r.anggota?.satminkal?.nama || "Disinfolahtad"}
@@ -267,7 +267,7 @@ function JuyarDetail({ item, onBack }: { item: Pinjaman; onBack: () => void }) {
     <div className="space-y-6">
       <PageHeader
         title="Detail Verifikasi Berkas Pinjaman"
-        description={`${item.id.slice(0, 8).toUpperCase()} · ${item.anggota?.pangkat?.nama || ""} ${item.anggota?.nama || ""} · ${item.anggota?.satminkal?.nama || "Disinfolahtad"}`}
+        description={`${item.id.slice(0, 8).toUpperCase()} · ${formatNamaLengkapDinas(item.anggota?.nama, item.anggota?.pangkat?.nama, item.anggota?.korps?.nama, item.anggota?.pangkat?.kategori)} · ${item.anggota?.satminkal?.nama || "Disinfolahtad"}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={onBack}>
@@ -371,8 +371,8 @@ function JuyarDetail({ item, onBack }: { item: Pinjaman; onBack: () => void }) {
             </DialogTitle>
             <DialogDescription>
               {dialog === "approve"
-                ? `Teruskan berkas pinjaman ${item.anggota?.nama || ""} senilai ${formatRp(nominal)} ke Dan/Ka?`
-                : `Pengajuan ${item.anggota?.nama || ""} akan ditolak dan dikembalikan.`}
+                ? `Teruskan berkas pinjaman ${formatNamaLengkapDinas(item.anggota?.nama, item.anggota?.pangkat?.nama, item.anggota?.korps?.nama, item.anggota?.pangkat?.kategori)} senilai ${formatRp(nominal)} ke Dan/Ka?`
+                : `Pengajuan ${formatNamaLengkapDinas(item.anggota?.nama, item.anggota?.pangkat?.nama, item.anggota?.korps?.nama, item.anggota?.pangkat?.kategori)} akan ditolak dan dikembalikan.`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">

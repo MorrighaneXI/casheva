@@ -40,7 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatRp } from "@/lib/casheva-data";
+import { formatRp, formatNamaLengkapDinas, formatPangkatKorps } from "@/lib/casheva-data";
 import {
   apiReports,
   apiKopstuk,
@@ -131,11 +131,21 @@ function LaporanPage() {
     enabled: activeTab === "brosur",
   });
 
-  const { data: reportKwitansi = [] } = useQuery({
+  const { data: reportKwitansi } = useQuery({
     queryKey: ["reports-kwitansi-bulanan"],
     queryFn: () => apiReports.getRekapKwitansiBulanan(),
     enabled: activeTab === "kwitansi",
   });
+
+  const simpananList: any[] = Array.isArray(reportSimpanan)
+    ? reportSimpanan
+    : (reportSimpanan as any)?.data || [];
+  const pinjamanList: any[] = Array.isArray(reportPinjaman)
+    ? reportPinjaman
+    : (reportPinjaman as any)?.data || [];
+  const kwitansiList: any[] = Array.isArray(reportKwitansi)
+    ? reportKwitansi
+    : (reportKwitansi as any)?.data || [];
 
   // Hitung SHU Mutation
   const hitungShuMutation = useMutation({
@@ -414,9 +424,9 @@ function LaporanPage() {
                   <tr key={a.id}>
                     <td className="border border-border p-2 text-center">{i + 1}</td>
                     <td className="border border-border p-2 font-mono">{a.nrpNip}</td>
-                    <td className="border border-border p-2 font-medium">{a.nama}</td>
+                    <td className="border border-border p-2 font-medium">{formatNamaLengkapDinas(a.nama, a.pangkat?.nama, a.korps?.nama, a.pangkat?.kategori)}</td>
                     <td className="border border-border p-2">
-                      {a.pangkat?.nama} {a.korps?.nama ? `(${a.korps.nama})` : ""}
+                      {formatPangkatKorps(a.pangkat?.nama, a.korps?.nama, a.pangkat?.kategori)}
                     </td>
                     <td className="border border-border p-2">{a.satminkal?.nama || "Disinfolahtad"}</td>
                     <td className="border border-border p-2 text-center">
@@ -453,11 +463,11 @@ function LaporanPage() {
                 </tr>
               </thead>
               <tbody>
-                {reportSimpanan.map((s: any, i: number) => (
+                {simpananList.map((s: any, i: number) => (
                   <tr key={s.anggotaId || i}>
                     <td className="border border-border p-2 text-center">{i + 1}</td>
                     <td className="border border-border p-2 font-mono">{s.nrpNip}</td>
-                    <td className="border border-border p-2 font-medium">{s.nama}</td>
+                    <td className="border border-border p-2 font-medium">{formatNamaLengkapDinas(s.nama, s.pangkat, s.korps, s.kategoriPangkat)}</td>
                     <td className="border border-border p-2 text-right">{formatRp(Number(s.pokok || 0))}</td>
                     <td className="border border-border p-2 text-right">{formatRp(Number(s.wajib || 0))}</td>
                     <td className="border border-border p-2 text-right">{formatRp(Number(s.sukarela || 0))}</td>
@@ -492,11 +502,11 @@ function LaporanPage() {
                 </tr>
               </thead>
               <tbody>
-                {reportPinjaman.map((p: any, i: number) => (
+                {pinjamanList.map((p: any, i: number) => (
                   <tr key={p.id || i}>
                     <td className="border border-border p-2 text-center">{i + 1}</td>
                     <td className="border border-border p-2 font-mono">{p.id?.slice(0, 8).toUpperCase()}</td>
-                    <td className="border border-border p-2 font-medium">{p.anggota?.nama}</td>
+                    <td className="border border-border p-2 font-medium">{formatNamaLengkapDinas(p.anggota?.nama, p.anggota?.pangkat?.nama, p.anggota?.korps?.nama, p.anggota?.pangkat?.kategori)}</td>
                     <td className="border border-border p-2 text-right">{formatRp(Number(p.nominal))}</td>
                     <td className="border border-border p-2 text-center">{p.tenorBulan} Bulan</td>
                     <td className="border border-border p-2 text-right font-semibold">
@@ -571,7 +581,7 @@ function LaporanPage() {
                 </tr>
               </thead>
               <tbody>
-                {reportKwitansi.map((k: any, i: number) => (
+                {kwitansiList.map((k: any, i: number) => (
                   <tr key={k.id || i}>
                     <td className="border border-border p-2 text-center">{i + 1}</td>
                     <td className="border border-border p-2 font-mono">{k.noInvoice || "-"}</td>
