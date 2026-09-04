@@ -25,6 +25,7 @@ import {
   Calendar,
   CreditCard,
   History,
+  Calculator,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -91,16 +92,18 @@ export function RekomendasiQueue({ monitorOnly = false }: { monitorOnly?: boolea
   });
 
   const antrean = loanList.filter((l) =>
-    ["VERIFIKASI_JURU_BAYAR", "VERIFIKASI_PRIMKOP", "DIAJUKAN"].includes(l.status),
+    ["REKOMENDASI_PIMPINAN", "VERIFIKASI_JURU_BAYAR"].includes(l.status),
   );
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: any }) => apiPinjaman.updateStatus(id, dto),
     onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["pinjaman-live-stream"] });
       queryClient.invalidateQueries({ queryKey: ["pinjaman-rekomendasi"] });
       queryClient.invalidateQueries({ queryKey: ["pinjaman-list"] });
+      queryClient.invalidateQueries({ queryKey: ["pinjaman-acc"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
-      if (variables.dto.status === "REKOMENDASI_PIMPINAN") {
+      if (variables.dto.status === "SETUJU_KEPRIM" || variables.dto.status === "REKOMENDASI_PIMPINAN") {
         toast.success("Rekomendasi Dan/Ka Diberikan", {
           description: "Pengajuan diteruskan ke Kepala Primer (Kaprim) untuk ACC akhir.",
         });
@@ -171,7 +174,7 @@ export function RekomendasiQueue({ monitorOnly = false }: { monitorOnly?: boolea
                       </span>
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {r.anggota?.satminkal?.nama || "Disinfolahtad"}
+                      {r.anggota?.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}
                     </TableCell>
                     <TableCell className="text-right font-semibold">
                       {formatRp(Number(r.nominal))}
@@ -195,7 +198,7 @@ export function RekomendasiQueue({ monitorOnly = false }: { monitorOnly?: boolea
                               updateStatusMutation.mutate({
                                 id: r.id,
                                 dto: {
-                                  status: "REKOMENDASI_PIMPINAN",
+                                  status: "SETUJU_KEPRIM",
                                   catatan: "Direkomendasikan oleh Komandan / Ka Bagian",
                                 },
                               })
@@ -280,33 +283,37 @@ export function AccQueue() {
     queryFn: () => apiPinjaman.findAll(),
   });
 
-  const antrean = loanList.filter((l) => l.status === "REKOMENDASI_PIMPINAN");
+  const antrean = loanList.filter((l) =>
+    ["SETUJU_KEPRIM", "REKOMENDASI_PIMPINAN"].includes(l.status),
+  );
 
   const accMutation = useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: any }) => apiPinjaman.updateStatus(id, dto),
     onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["pinjaman-live-stream"] });
       queryClient.invalidateQueries({ queryKey: ["pinjaman-acc"] });
+      queryClient.invalidateQueries({ queryKey: ["pinjaman-rekomendasi"] });
       queryClient.invalidateQueries({ queryKey: ["pinjaman-list"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
-      if (variables.dto.status === "SETUJU_KAPRIM") {
-        toast.success("Persetujuan ACC Kaprim Berhasil", {
+      if (variables.dto.status === "MENUNGGU_DOKUMEN" || variables.dto.status === "SETUJU_KEPRIM") {
+        toast.success("Persetujuan ACC Keprim Berhasil", {
           description: "Berkas disetujui dan diteruskan ke Bendahara untuk tahap pencairan dana.",
         });
       } else {
-        toast.error("Pengajuan Ditolak Kaprim");
+        toast.error("Pengajuan Ditolak Keprim");
       }
       setRejectId(null);
       setRejectNote("");
     },
     onError: (err: any) => {
-      toast.error("Gagal Memproses ACC Kaprim", { description: err.message });
+      toast.error("Gagal Memproses ACC Keprim", { description: err.message });
     },
   });
 
   return (
     <Card className="shadow-card">
       <CardHeader>
-        <CardTitle>Persetujuan Akhir (ACC Kaprim) &amp; Otorisasi Pinjaman</CardTitle>
+        <CardTitle>Persetujuan Akhir (ACC Keprim) &amp; Otorisasi Pinjaman</CardTitle>
         <CardDescription>
           Berkas yang telah direkomendasikan Dan/Ka dan diverifikasi Juru Bayar
         </CardDescription>
@@ -315,43 +322,38 @@ export function AccQueue() {
         {isLoading ? (
           <div className="py-8 text-center text-muted-foreground">
             <Loader2 className="mx-auto size-6 animate-spin mb-2" />
-            Memuat antrean ACC Kaprim...
+            Memuat antrean ACC Keprim...
           </div>
         ) : (
           antrean.map((a) => (
-            <div key={a.id} className="rounded-xl border border-border p-5 bg-card shadow-sm">
+            <div key={a.id} className="rounded-xl border border-border p-5 bg-card shadow-sm card-interactive">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-base font-semibold">{a.anggota?.nama || "Anggota"}</p>
                   <p className="text-xs text-muted-foreground">
                     {a.id.slice(0, 8).toUpperCase()} · {a.anggota?.pangkat?.nama || ""} (NRP:{" "}
-                    {a.anggota?.nrpNip || "-"}) · {a.anggota?.satminkal?.nama || "Disinfolahtad"}
+                    {a.anggota?.nrpNip || "-"}) · {a.anggota?.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-primary">{formatRp(Number(a.nominal))}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {a.tenorBulan} bulan · Bunga 12% p.a (1% / bln)
-                  </p>
+                  <p className="text-lg font-bold text-foreground">{formatRp(Number(a.nominal))}</p>
+                  <p className="text-xs text-muted-foreground">{a.tenorBulan} bulan · Bunga {a.bungaPersenTahun}%/thn</p>
                 </div>
               </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Badge variant="outline" className="border-success/30 bg-success/15 text-success text-xs">
-                  <FileCheck2 className="mr-1 size-3" /> Surat Permohonan Usipa
-                </Badge>
-                <Badge variant="outline" className="border-success/30 bg-success/15 text-success text-xs">
-                  <FileCheck2 className="mr-1 size-3" /> Rekomendasi Juru Bayar
-                </Badge>
-                <Badge variant="outline" className="border-success/30 bg-success/15 text-success text-xs">
-                  <FileCheck2 className="mr-1 size-3" /> Rekomendasi Dan/Ka
-                </Badge>
-                <Badge variant="outline" className="border-success/30 bg-success/15 text-success text-xs">
-                  <FileCheck2 className="mr-1 size-3" /> Slip Gaji Terlampir
+              <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-md bg-muted px-2.5 py-1 text-muted-foreground">
+                  Gaji Bersih: Rp 6.200.000
+                </span>
+                <span className="rounded-md bg-muted px-2.5 py-1 text-muted-foreground">
+                  Angsuran: {formatRp(Number(a.totalAngsuranBulanan || (Number(a.nominal) * 1.12) / a.tenorBulan))}/bln
+                </span>
+                <Badge variant="outline" className="text-xs">
+                  {backendStatusToFrontend(a.status)}
                 </Badge>
               </div>
 
-              <div className="mt-4 flex justify-end gap-2">
+              <div className="mt-4 flex justify-end gap-2 border-t pt-3">
                 <Button
                   size="sm"
                   variant="destructive"
@@ -367,8 +369,8 @@ export function AccQueue() {
                     accMutation.mutate({
                       id: a.id,
                       dto: {
-                        status: "SETUJU_KAPRIM",
-                        catatan: "Disetujui dan di-ACC oleh Kepala Primer (Kaprim)",
+                        status: "MENUNGGU_DOKUMEN",
+                        catatan: "Disetujui dan di-ACC oleh Kepala Primer (Keprim)",
                       },
                     })
                   }
@@ -381,7 +383,7 @@ export function AccQueue() {
         )}
         {!isLoading && antrean.length === 0 && (
           <div className="py-10 text-center text-muted-foreground">
-            Tidak ada berkas yang menunggu persetujuan Kaprim saat ini.
+            Tidak ada berkas yang menunggu persetujuan Keprim saat ini.
           </div>
         )}
       </CardContent>
@@ -389,7 +391,7 @@ export function AccQueue() {
       <Dialog open={!!rejectId} onOpenChange={(o) => !o && setRejectId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Tolak Persetujuan Kaprim</DialogTitle>
+            <DialogTitle>Tolak Persetujuan Keprim</DialogTitle>
             <DialogDescription>
               Masukkan alasan penolakan untuk arsip evaluasi Primkopad.
             </DialogDescription>
@@ -505,7 +507,7 @@ export function InvoiceGenerator() {
                     </TableCell>
                     <TableCell className="font-medium">{p.anggota?.nama || "Anggota"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {p.anggota?.pangkat?.nama || ""} / {p.anggota?.satminkal?.nama || "Disinfolahtad"}
+                      {p.anggota?.pangkat?.nama || ""} / {p.anggota?.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}
                     </TableCell>
                     <TableCell className="text-right font-semibold">
                       {formatRp(Number(p.nominal))}

@@ -121,7 +121,7 @@ export function MasterDataWidget() {
                             </Badge>
                           ))}
                           {relatedSatminkal.length === 0 && (
-                            <span className="text-xs text-muted-foreground">Disinfolahtad</span>
+                            <span className="text-xs text-muted-foreground">INFOLAHTADAM IV/DIPONEGORO</span>
                           )}
                         </TableCell>
                       </TableRow>
@@ -222,7 +222,7 @@ export function MasterDataWidget() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {dokumenList.map((d) => (
+                {dokumenList.map((d: any) => (
                   <TableRow key={d.id}>
                     <TableCell className="font-medium">{d.nama}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
@@ -250,7 +250,7 @@ export function MasterDataWidget() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pengurusList.map((peng) => (
+                {pengurusList.map((peng: any) => (
                   <TableRow key={peng.id}>
                     <TableCell className="font-medium">{peng.jabatan}</TableCell>
                     <TableCell>{peng.nama}</TableCell>

@@ -6,16 +6,16 @@ export interface CreateAnggotaDto {
   nama: string;
   pangkatId: string;
   korpsId: string;
-  tmtAnggota?: string;
+  tmtAnggota?: string | undefined;
 }
 
 export interface UpdateAnggotaDto {
-  nrpNip?: string;
-  nama?: string;
-  pangkatId?: string;
-  korpsId?: string;
-  isAktif?: boolean;
-  tmtAnggota?: string;
+  nrpNip?: string | undefined;
+  nama?: string | undefined;
+  pangkatId?: string | undefined;
+  korpsId?: string | undefined;
+  isAktif?: boolean | undefined;
+  tmtAnggota?: string | undefined;
 }
 
 export const apiAnggota = {

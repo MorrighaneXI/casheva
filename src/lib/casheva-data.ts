@@ -3,7 +3,7 @@ import type { BackendRole, StatusPinjaman } from './api/types';
 export type Role =
   | "Admin Koperasi"
   | "Pimpinan / Dan / Ka"
-  | "Kaprim"
+  | "Keprim"
   | "Bendahara"
   | "Juru Bayar"
   | "Anggota"
@@ -12,7 +12,7 @@ export type Role =
 export const ROLES: Role[] = [
   "Admin Koperasi",
   "Pimpinan / Dan / Ka",
-  "Kaprim",
+  "Keprim",
   "Bendahara",
   "Juru Bayar",
   "Anggota",
@@ -22,7 +22,7 @@ export const ROLES: Role[] = [
 export const roleShort: Record<Role, string> = {
   "Admin Koperasi": "Admin",
   "Pimpinan / Dan / Ka": "Dan/Ka",
-  Kaprim: "Kaprim",
+  Keprim: "Keprim",
   Bendahara: "Bendahara",
   "Juru Bayar": "Juyar",
   Anggota: "Anggota",
@@ -35,8 +35,9 @@ export function backendRoleToFrontend(role: BackendRole | string): Role {
       return 'Admin Koperasi';
     case 'PIMPINAN':
       return 'Pimpinan / Dan / Ka';
+    case 'KEPRIM':
     case 'KAPRIM':
-      return 'Kaprim';
+      return 'Keprim';
     case 'BENDAHARA':
       return 'Bendahara';
     case 'PENGAWAS':
@@ -56,8 +57,9 @@ export function frontendRoleToBackend(role: Role | string): BackendRole {
       return 'ADMIN_KOPERASI';
     case 'Pimpinan / Dan / Ka':
       return 'PIMPINAN';
+    case 'Keprim':
     case 'Kaprim':
-      return 'KAPRIM';
+      return 'KEPRIM';
     case 'Bendahara':
       return 'BENDAHARA';
     case 'Pengawas Koperasi':
@@ -74,12 +76,100 @@ export function frontendRoleToBackend(role: Role | string): BackendRole {
 export const formatRp = (n: number) =>
   "Rp " + new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(n);
 
+export function formatPangkatKorps(
+  pangkat?: string | null,
+  korps?: string | null,
+  kategori?: string | null,
+): string {
+  if (!pangkat || pangkat.trim() === '-' || pangkat.trim() === '') return '-';
+  let p = pangkat.trim();
+  const c = korps && korps.trim() !== '-' && korps.trim() !== 'NONE' ? korps.trim() : '';
+  const kat = (kategori || '').toUpperCase();
+
+  // 1. PATI (Perwira Tinggi) -> Selalu diakhiri "TNI", tidak memakai singkatan korps
+  const isPati =
+    kat === 'PATI' ||
+    ['Brigjen', 'Mayjen', 'Letjen', 'Jenderal', 'Brigadir Jenderal', 'Mayor Jenderal', 'Letnan Jenderal'].some((pat) =>
+      p.toLowerCase().startsWith(pat.toLowerCase()),
+    );
+
+  if (isPati) {
+    p = p.replace(/\s+(Inf|Kav|Arm|Arh|Czi|Cpm|Cba|Ckm|Cpl|Cke|Chk|Caj|Cku|Ctp|Cpn)\b/gi, '').trim();
+    if (p.includes('TNI')) return p;
+    return `${p} TNI`;
+  }
+
+  // 2. PAMEN & PAMA (Perwira Menengah & Pertama) -> Digabungkan dengan Korps (misal: Kolonel Inf, Kapten Czi)
+  const isPerwira =
+    kat === 'PAMEN' ||
+    kat === 'PAMA' ||
+    ['Kolonel', 'Letkol', 'Mayor', 'Kapten', 'Lettu', 'Letda', 'Letnan Kolonel', 'Letnan Satu', 'Letnan Dua'].some((per) =>
+      p.toLowerCase().startsWith(per.toLowerCase()),
+    );
+
+  if (isPerwira) {
+    if (!c) return p;
+    if (!p.toLowerCase().includes(c.toLowerCase())) {
+      return `${p} ${c}`;
+    }
+    return p;
+  }
+
+  // 3. BA / TA / PNS -> HANYA pangkat saja, hilangkan korps jika ada
+  p = p.replace(/\s+(Inf|Kav|Arm|Arh|Czi|Cpm|Cba|Ckm|Cpl|Cke|Chk|Caj|Cku|Ctp|Cpn|TNI)\b/gi, '').trim();
+  return p;
+}
+
+export const formatPangkatTniAd = formatPangkatKorps;
+
+/**
+ * Membersihkan awalan pangkat atau korps dari nama personil agar tidak terjadi duplikasi.
+ * Contoh:
+ *  - "Sertu Hendra Gunawan" -> "Hendra Gunawan"
+ *  - "Sertu Inf Sertu Hendra Gunawan" -> "Hendra Gunawan"
+ *  - "Kolonel Inf Dedi Prasetyo" -> "Dedi Prasetyo"
+ */
+export function cleanNamaPersonel(nama?: string | null): string {
+  if (!nama) return '';
+  let n = nama.trim();
+
+  // Pola regex awalan pangkat TNI/PNS + opsional korps/TNI
+  const rankPrefixRegex = /^(?:(?:Jenderal|Letnan\s+Jenderal|Letjen|Mayor\s+Jenderal|Mayjen|Brigadir\s+Jenderal|Brigjen|Kolonel|Letnan\s+Kolonel|Letkol|Mayor|Kapten|Letnan\s+Satu|Lettu|Letnan\s+Dua|Letda|Pembantu\s+Letnan\s+Satu|Peltu|Pembantu\s+Letnan\s+Dua|Pelda|Sersan\s+Mayor|Serma|Sersan\s+Kepala|Serka|Sersan\s+Satu|Sertu|Sersan\s+Dua|Serda|Kopral\s+Kepala|Kopka|Kopral\s+Satu|Koptu|Kopral\s+Dua|Kopda|Prajurit\s+Kepala|Praka|Prajurit\s+Satu|Pratu|Prajurit\s+Dua|Prada|PNS(?:\s+(?:IV|III|II|I)\/[A-Ea-e])?|PPPK)\s*(?:(?:TNI\s*AD|TNI|Inf|Kav|Arm|Arh|Czi|Cpm|Cba|Ckm|Cpl|Cke|Chk|Caj|Cku|Ctp|Cpn)\b)?\s*)+/i;
+
+  n = n.replace(rankPrefixRegex, '').trim();
+  return n || (nama?.trim() ?? '');
+}
+
+/**
+ * Format nama lengkap dinas: Pangkat [Korps] NamaOrang
+ * Contoh:
+ *  - PATI:    "Mayjen TNI Sigit Widiyanto"
+ *  - PAMEN:   "Kolonel Inf Dedi Prasetyo"
+ *  - PAMA:    "Kapten Czi Eko Yulianto"
+ *  - BINTARA: "Sertu Hendra Gunawan"
+ *  - PNS:     "PNS III/C Ahmad Subekti"
+ */
+export function formatNamaLengkapDinas(
+  nama?: string | null,
+  pangkat?: string | null,
+  korps?: string | null,
+  kategori?: string | null,
+): string {
+  const cleanNama = cleanNamaPersonel(nama);
+  if (!cleanNama) return '-';
+
+  const pkt = formatPangkatKorps(pangkat, korps, kategori);
+  if (!pkt || pkt === '-') return cleanNama;
+
+  return `${pkt} ${cleanNama}`.trim();
+}
+
 export type LoanStatus =
   | "Pending"
   | "Verified Primkop"
   | "Verified Jurbay"
   | "Approved Dan"
-  | "ACC Kaprim"
+  | "ACC Keprim"
   | "Upload Berkas"
   | "Disbursed"
   | "Rejected"
@@ -95,8 +185,9 @@ export function backendStatusToFrontend(status: StatusPinjaman | string): LoanSt
       return 'Verified Jurbay';
     case 'REKOMENDASI_PIMPINAN':
       return 'Approved Dan';
+    case 'SETUJU_KEPRIM':
     case 'SETUJU_KAPRIM':
-      return 'ACC Kaprim';
+      return 'ACC Keprim';
     case 'MENUNGGU_DOKUMEN':
       return 'Upload Berkas';
     case 'DICAIRKAN':
@@ -115,7 +206,7 @@ export const loanStatusTone: Record<LoanStatus, string> = {
   "Verified Primkop": "bg-primary-soft text-primary border-primary/20",
   "Verified Jurbay": "bg-accent text-accent-foreground border-gold/30",
   "Approved Dan": "bg-gold-soft text-accent-foreground border-gold/40",
-  "ACC Kaprim": "bg-primary-soft text-primary border-primary/25",
+  "ACC Keprim": "bg-primary-soft text-primary border-primary/25",
   "Upload Berkas": "bg-accent/40 text-foreground border-accent",
   Disbursed: "bg-success/15 text-success border-success/30",
   Rejected: "bg-destructive/12 text-destructive border-destructive/30",
@@ -127,17 +218,17 @@ export const recentLoans = [
     id: "PJM-2026-0184",
     nama: "Serma Budi Santoso",
     nrp: "21980045",
-    satminkal: "Disinfolahtad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     jumlah: 15000000,
     tenor: 24,
-    status: "ACC Kaprim" as LoanStatus,
+    status: "ACC Keprim" as LoanStatus,
     tanggal: "02 Agu 2026",
   },
   {
     id: "PJM-2026-0183",
     nama: "Kapten Inf Rahmat Hidayat",
     nrp: "11060078",
-    satminkal: "Ditkuad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     jumlah: 20000000,
     tenor: 36,
     status: "Approved Dan" as LoanStatus,
@@ -147,7 +238,7 @@ export const recentLoans = [
     id: "PJM-2026-0182",
     nama: "Pelda Agus Wibowo",
     nrp: "21930112",
-    satminkal: "Mabesad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     jumlah: 8000000,
     tenor: 18,
     status: "Verified Jurbay" as LoanStatus,
@@ -157,7 +248,7 @@ export const recentLoans = [
     id: "PJM-2026-0181",
     nama: "PNS Sri Wahyuni",
     nrp: "198504112009",
-    satminkal: "Disinfolahtad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     jumlah: 5000000,
     tenor: 12,
     status: "Pending" as LoanStatus,
@@ -167,7 +258,7 @@ export const recentLoans = [
     id: "PJM-2026-0180",
     nama: "Letkol Cba Dedi Kurnia",
     nrp: "11020033",
-    satminkal: "Ditziad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     jumlah: 18000000,
     tenor: 30,
     status: "Disbursed" as LoanStatus,
@@ -177,7 +268,7 @@ export const recentLoans = [
     id: "PJM-2026-0179",
     nama: "Sertu Hendra Gunawan",
     nrp: "31770091",
-    satminkal: "Mabesad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     jumlah: 6000000,
     tenor: 12,
     status: "Rejected" as LoanStatus,
@@ -187,7 +278,7 @@ export const recentLoans = [
     id: "PJM-2026-0178",
     nama: "Mayor Kav Fajar Nugroho",
     nrp: "11150221",
-    satminkal: "Ditkuad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     jumlah: 12000000,
     tenor: 24,
     status: "Pending" as LoanStatus,
@@ -198,7 +289,7 @@ export const recentLoans = [
 /** Ringkasan status pinjaman untuk dashboard eksekutif */
 export function getLoanStatusCounts(loans: typeof recentLoans = recentLoans) {
   const prosesStatuses: LoanStatus[] = ["Pending", "Verified Jurbay", "Approved Dan"];
-  const accStatuses: LoanStatus[] = ["ACC Kaprim", "Disbursed"];
+  const accStatuses: LoanStatus[] = ["ACC Keprim", "Disbursed"];
   return {
     proses: loans.filter((l) => prosesStatuses.includes(l.status)).length,
     disetujui: loans.filter((l) => accStatuses.includes(l.status)).length,
@@ -265,14 +356,14 @@ export type Anggota = {
 };
 
 export const anggotaList: Anggota[] = [
-  { nrp: "11020033", nama: "Dedi Kurnia", pangkat: "Letkol Cba", golongan: "Pamen", korps: "Cba", satminkal: "Ditziad", simpananWajib: 4800000, simpananSukarela: 12500000, status: "Aktif" },
-  { nrp: "11060078", nama: "Rahmat Hidayat", pangkat: "Kapten Inf", golongan: "Pama", korps: "Inf", satminkal: "Ditkuad", simpananWajib: 3600000, simpananSukarela: 7250000, status: "Aktif" },
-  { nrp: "21980045", nama: "Budi Santoso", pangkat: "Serma", golongan: "Ba/Ta", korps: "Chb", satminkal: "Disinfolahtad", simpananWajib: 2400000, simpananSukarela: 4100000, status: "Aktif" },
-  { nrp: "21930112", nama: "Agus Wibowo", pangkat: "Pelda", golongan: "Ba/Ta", korps: "Czi", satminkal: "Mabesad", simpananWajib: 2700000, simpananSukarela: 5300000, status: "Cuti" },
-  { nrp: "198504112009", nama: "Sri Wahyuni", pangkat: "Penata Muda", golongan: "PNS", korps: "PNS", satminkal: "Disinfolahtad", simpananWajib: 1800000, simpananSukarela: 2900000, status: "Aktif" },
-  { nrp: "11150221", nama: "Fajar Nugroho", pangkat: "Mayor Kav", golongan: "Pamen", korps: "Kav", satminkal: "Ditkuad", simpananWajib: 4200000, simpananSukarela: 9800000, status: "Aktif" },
-  { nrp: "31770091", nama: "Hendra Gunawan", pangkat: "Sertu", golongan: "Ba/Ta", korps: "Inf", satminkal: "Mabesad", simpananWajib: 1500000, simpananSukarela: 1750000, status: "Aktif" },
-  { nrp: "11090154", nama: "Wahyu Prasetyo", pangkat: "Lettu Chb", golongan: "Pama", korps: "Chb", satminkal: "Disinfolahtad", simpananWajib: 3000000, simpananSukarela: 6400000, status: "Non-Aktif" },
+  { nrp: "11020033", nama: "Dedi Kurnia", pangkat: "Letkol Cba", golongan: "Pamen", korps: "Cba", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 4800000, simpananSukarela: 12500000, status: "Aktif" },
+  { nrp: "11060078", nama: "Rahmat Hidayat", pangkat: "Kapten Inf", golongan: "Pama", korps: "Inf", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 3600000, simpananSukarela: 7250000, status: "Aktif" },
+  { nrp: "21980045", nama: "Budi Santoso", pangkat: "Serma", golongan: "Ba/Ta", korps: "Chb", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 2400000, simpananSukarela: 4100000, status: "Aktif" },
+  { nrp: "21930112", nama: "Agus Wibowo", pangkat: "Pelda", golongan: "Ba/Ta", korps: "Czi", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 2700000, simpananSukarela: 5300000, status: "Cuti" },
+  { nrp: "198504112009", nama: "Sri Wahyuni", pangkat: "Penata Muda", golongan: "PNS", korps: "PNS", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 1800000, simpananSukarela: 2900000, status: "Aktif" },
+  { nrp: "11150221", nama: "Fajar Nugroho", pangkat: "Mayor Kav", golongan: "Pamen", korps: "Kav", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 4200000, simpananSukarela: 9800000, status: "Aktif" },
+  { nrp: "31770091", nama: "Hendra Gunawan", pangkat: "Sertu", golongan: "Ba/Ta", korps: "Inf", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 1500000, simpananSukarela: 1750000, status: "Aktif" },
+  { nrp: "11090154", nama: "Wahyu Prasetyo", pangkat: "Lettu Chb", golongan: "Pama", korps: "Chb", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 3000000, simpananSukarela: 6400000, status: "Non-Aktif" },
 ];
 
 export const shuRows = [
@@ -288,7 +379,7 @@ export const workflowSteps = [
   "Pengajuan",
   "Verifikasi Jurbay",
   "Rekomendasi Dan/Ka",
-  "ACC Kaprim",
+  "ACC Keprim",
   "Upload Berkas",
   "Pencairan",
 ];
@@ -306,14 +397,14 @@ export type SystemUser = {
 };
 
 export const systemUsers: SystemUser[] = [
-  { id: "USR-001", nama: "Mayor Cba Arif Setiawan", nrp: "11110234", role: "Admin Koperasi", satminkal: "Disinfolahtad", status: "Aktif", lastLogin: "06 Agu 2026 06:10" },
-  { id: "USR-002", nama: "Kolonel Inf Bagus Prayitno", nrp: "10980017", role: "Pimpinan / Dan / Ka", satminkal: "Disinfolahtad", status: "Aktif", lastLogin: "05 Agu 2026 16:42" },
-  { id: "USR-003", nama: "Letkol Cba Dedi Kurnia", nrp: "11020033", role: "Kaprim", satminkal: "Ditziad", status: "Aktif", lastLogin: "05 Agu 2026 14:20" },
-  { id: "USR-004", nama: "Serma Budi Santoso", nrp: "21980045", role: "Bendahara", satminkal: "Disinfolahtad", status: "Aktif", lastLogin: "06 Agu 2026 05:55" },
-  { id: "USR-005", nama: "Kapten Inf Rahmat Hidayat", nrp: "11060078", role: "Pengawas Koperasi", satminkal: "Ditkuad", status: "Aktif", lastLogin: "04 Agu 2026 09:31" },
-  { id: "USR-006", nama: "Penata Muda Sri Wahyuni", nrp: "198504112009", role: "Bendahara", satminkal: "Disinfolahtad", status: "Nonaktif", lastLogin: "21 Jul 2026 11:04" },
-  { id: "USR-007", nama: "Pelda Agus Wibowo", nrp: "21930112", role: "Juru Bayar", satminkal: "Mabesad", status: "Aktif", lastLogin: "05 Agu 2026 08:12" },
-  { id: "USR-008", nama: "Sertu Hendra Gunawan", nrp: "31770091", role: "Anggota", satminkal: "Mabesad", status: "Aktif", lastLogin: "06 Agu 2026 07:05" },
+  { id: "USR-001", nama: "Mayor Cba Arif Setiawan", nrp: "11110234", role: "Admin Koperasi", satminkal: "INFOLAHTADAM IV/DIPONEGORO", status: "Aktif", lastLogin: "06 Agu 2026 06:10" },
+  { id: "USR-002", nama: "Kolonel Inf Bagus Prayitno", nrp: "10980017", role: "Pimpinan / Dan / Ka", satminkal: "INFOLAHTADAM IV/DIPONEGORO", status: "Aktif", lastLogin: "05 Agu 2026 16:42" },
+  { id: "USR-003", nama: "Letkol Cba Dedi Kurnia", nrp: "11020033", role: "Keprim", satminkal: "INFOLAHTADAM IV/DIPONEGORO", status: "Aktif", lastLogin: "05 Agu 2026 14:20" },
+  { id: "USR-004", nama: "Serma Budi Santoso", nrp: "21980045", role: "Bendahara", satminkal: "INFOLAHTADAM IV/DIPONEGORO", status: "Aktif", lastLogin: "06 Agu 2026 05:55" },
+  { id: "USR-005", nama: "Kapten Inf Rahmat Hidayat", nrp: "11060078", role: "Pengawas Koperasi", satminkal: "INFOLAHTADAM IV/DIPONEGORO", status: "Aktif", lastLogin: "04 Agu 2026 09:31" },
+  { id: "USR-006", nama: "Penata Muda Sri Wahyuni", nrp: "198504112009", role: "Bendahara", satminkal: "INFOLAHTADAM IV/DIPONEGORO", status: "Nonaktif", lastLogin: "21 Jul 2026 11:04" },
+  { id: "USR-007", nama: "Pelda Agus Wibowo", nrp: "21930112", role: "Juru Bayar", satminkal: "INFOLAHTADAM IV/DIPONEGORO", status: "Aktif", lastLogin: "05 Agu 2026 08:12" },
+  { id: "USR-008", nama: "Sertu Hendra Gunawan", nrp: "31770091", role: "Anggota", satminkal: "INFOLAHTADAM IV/DIPONEGORO", status: "Aktif", lastLogin: "06 Agu 2026 07:05" },
 ];
 
 /** Antrean verifikasi Juru Bayar (sebelum lanjut ke Dan/Ka) */
@@ -323,7 +414,7 @@ export const antreanJuyar = [
     nama: "Sertu Hendra Gunawan",
     pangkat: "Sertu Inf",
     nrp: "31770091",
-    satminkal: "Mabesad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     plafon: 6000000,
     tenor: 12,
     gaji: 5400000,
@@ -338,7 +429,7 @@ export const antreanJuyar = [
     nama: "Penata Muda Sri Wahyuni",
     pangkat: "Penata Muda",
     nrp: "198504112009",
-    satminkal: "Disinfolahtad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     plafon: 5000000,
     tenor: 12,
     gaji: 4800000,
@@ -353,7 +444,7 @@ export const antreanJuyar = [
     nama: "Mayor Kav Fajar Nugroho",
     pangkat: "Mayor Kav",
     nrp: "11150221",
-    satminkal: "Ditkuad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     plafon: 12000000,
     tenor: 24,
     gaji: 9100000,
@@ -367,10 +458,12 @@ export const antreanJuyar = [
 
 /** Profil gaji anggota (demo role Anggota) */
 export const anggotaGajiProfile = {
-  nama: "Sertu Hendra Gunawan",
+  nama: "Hendra Gunawan",
   nrp: "31770091",
-  pangkat: "Sertu Inf",
-  satminkal: "Mabesad",
+  pangkat: "Sertu",
+  korps: "",
+  kategori: "BINTARA",
+  satminkal: "INFOLAHTADAM IV/DIPONEGORO",
   gajiPokok: 5400000,
   tunkin: 2100000,
   tunjanganLain: 350000,
@@ -396,9 +489,7 @@ export const anggotaAngsuranSaya = [
 ];
 
 export const kotamaList = [
-  { kotama: "Mabesad", satminkal: ["Disinfolahtad", "Ditkuad", "Ditziad"], anggota: 842 },
-  { kotama: "Kodam Jaya", satminkal: ["Denma Kodam", "Kesdam Jaya"], anggota: 361 },
-  { kotama: "Kostrad", satminkal: ["Divif 1", "Divif 2"], anggota: 279 },
+  { kotama: "KODAM IV/DIPONEGORO", satminkal: ["INFOLAHTADAM IV/DIPONEGORO"], anggota: 842 },
 ];
 
 export const pangkatKorps = [
@@ -438,7 +529,7 @@ export const antreanAcc = [
     id: "PJM-2026-0184",
     nama: "Serma Budi Santoso",
     nrp: "21980045",
-    satminkal: "Disinfolahtad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     plafon: 15000000,
     tenor: 24,
     bunga: 12,
@@ -448,7 +539,7 @@ export const antreanAcc = [
     id: "PJM-2026-0183",
     nama: "Kapten Inf Rahmat Hidayat",
     nrp: "11060078",
-    satminkal: "Ditkuad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     plafon: 20000000,
     tenor: 36,
     bunga: 12,
@@ -458,7 +549,7 @@ export const antreanAcc = [
     id: "PJM-2026-0181",
     nama: "Penata Muda Sri Wahyuni",
     nrp: "198504112009",
-    satminkal: "Disinfolahtad",
+    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
     plafon: 5000000,
     tenor: 12,
     bunga: 12,

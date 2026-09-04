@@ -14,7 +14,15 @@ export const apiKopstuk = {
     return api.get<Kopstuk>('/kopstuk');
   },
 
+  get: async (): Promise<any> => {
+    return api.get('/kopstuk');
+  },
+
   upsertKopstuk: async (dto: UpsertKopstukDto): Promise<Kopstuk> => {
     return api.post<Kopstuk>('/kopstuk', dto);
+  },
+
+  upsert: async (dto: any): Promise<any> => {
+    return api.post('/kopstuk', dto);
   },
 };

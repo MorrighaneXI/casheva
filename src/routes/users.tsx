@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 import { PageHeader } from "@/components/page-header";
-import { UserManagementWidget } from "@/components/widgets/user-management";
+import { UserManagementWidget, ActiveSessionsWidget } from "@/components/widgets/user-management";
 
 export const Route = createFileRoute("/users")({
   head: () => ({
@@ -22,6 +22,7 @@ function Page() {
     <div className="space-y-6">
       <PageHeader title="Manajemen User & Hak Akses" description="Kelola akun, peran, dan hak akses pengguna Casheva." />
       <UserManagementWidget />
+      <ActiveSessionsWidget />
     </div>
   );
 }

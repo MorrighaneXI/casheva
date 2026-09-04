@@ -5,26 +5,34 @@
 export type BackendRole =
   | 'ADMIN_KOPERASI'
   | 'PIMPINAN'
+  | 'KEPRIM'
   | 'KAPRIM'
   | 'BENDAHARA'
   | 'PENGAWAS'
   | 'ANGGOTA'
   | 'JURU_BAYAR';
 
-export type KategoriPangkat = 'PAMEN' | 'PAMA' | 'BATA_ASN';
+export type KategoriPangkat =
+  | 'PATI'
+  | 'PAMEN'
+  | 'PAMA'
+  | 'BINTARA'
+  | 'BATA_ASN'
+  | 'PNS';
 
 export type StatusPinjaman =
   | 'DIAJUKAN'
   | 'VERIFIKASI_PRIMKOP'
   | 'VERIFIKASI_JURU_BAYAR'
   | 'REKOMENDASI_PIMPINAN'
+  | 'SETUJU_KEPRIM'
   | 'SETUJU_KAPRIM'
   | 'MENUNGGU_DOKUMEN'
   | 'DICAIRKAN'
   | 'LUNAS'
   | 'DITOLAK';
 
-export type JenisSimpanan = 'POKOK' | 'WAJIB' | 'SUKARELA';
+export type JenisSimpanan = 'POKOK' | 'WAJIB' | 'SUKARELA' | 'KHUSUS';
 export type JenisTransaksiSimpanan = 'SETOR' | 'TARIK';
 
 export type JenisPendapatan =
@@ -60,6 +68,7 @@ export interface Satminkal {
 export interface Pangkat {
   id: string;
   kodePkt: number;
+  kode?: string | number | undefined;
   nama: string;
   kategori: KategoriPangkat;
 }
@@ -93,15 +102,20 @@ export interface Anggota {
 export interface UserItem {
   id: string;
   username: string;
-  namaLengkap: string;
+  namaLengkap?: string | undefined;
+  nama?: string | undefined;
   role: BackendRole;
-  kotamaId: string;
-  kotama?: Kotama;
-  satminkalId: string;
-  satminkal?: Satminkal;
+  kotamaId?: string | undefined;
+  kotama?: Kotama | undefined;
+  satminkalId?: string | undefined;
+  satminkal?: Satminkal | undefined;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  isAktif?: boolean | undefined;
+  email?: string | undefined;
+  phone?: string | undefined;
+  createdAt?: string | undefined;
+  updatedAt?: string | undefined;
+  lastActiveAt?: string | undefined;
 }
 
 export interface SimpananRecord {
@@ -115,15 +129,21 @@ export interface SimpananRecord {
 }
 
 export interface SimpananRekapItem {
+  id?: string;
   anggotaId: string;
   nama: string;
   nrpNip: string;
-  pangkat: string;
-  korps: string;
-  satminkal: string;
-  simpananPokok: number;
-  simpananWajib: number;
-  simpananSukarela: number;
+  pangkat?: string;
+  kategoriPangkat?: string;
+  korps?: string;
+  satminkal?: string;
+  simpananPokok?: number;
+  simpananWajib?: number;
+  simpananSukarela?: number;
+  totalPokok?: number;
+  totalWajib?: number;
+  totalSukarela?: number;
+  totalKhusus?: number;
   totalSimpanan: number;
 }
 
@@ -145,9 +165,11 @@ export interface Angsuran {
 export interface DokumenPinjaman {
   id: string;
   pinjamanId: string;
-  namaDokumen: string;
-  urlDokumen: string;
-  jenisDokumen: string;
+  jenis: string;
+  filePath: string;
+  namaDokumen?: string;
+  urlDokumen?: string;
+  jenisDokumen?: string;
   uploadedAt: string;
 }
 
@@ -166,6 +188,7 @@ export interface Pinjaman {
   tanggalPengajuan: string;
   tanggalPencairan?: string;
   alasanPenolakan?: string;
+  catatan?: string;
   catatanJurbay?: string;
   catatanDan?: string;
   catatanKaprim?: string;
@@ -233,15 +256,17 @@ export interface BiayaOperasional {
 export interface RingkasanKeuangan {
   tahun: number;
   totalPendapatan: number;
-  totalBiaya: number;
-  shuKotor: number;
-  cadanganKoperasi: number;
-  jasaModal: number;
-  jasaUsaha: number;
-  pengurusPengawas: number;
-  sosialPendidikan: number;
-  totalModalSimpanan: number;
-  totalVolPinjaman: number;
+  totalBiaya?: number | undefined;
+  totalBeban?: number | undefined;
+  shuBersih?: number | undefined;
+  shuKotor?: number | undefined;
+  cadanganKoperasi?: number | undefined;
+  jasaModal?: number | undefined;
+  jasaUsaha?: number | undefined;
+  pengurusPengawas?: number | undefined;
+  sosialPendidikan?: number | undefined;
+  totalModalSimpanan?: number | undefined;
+  totalVolPinjaman?: number | undefined;
 }
 
 export interface ShuAnggotaItem {

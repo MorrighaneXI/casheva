@@ -9,15 +9,16 @@ export const apiDokumen = {
   upload: async (
     file: File,
     pinjamanId: string,
-    jenisDokumen?: string,
-    namaDokumen?: string
+    jenis: string = 'Dokumen Pendukung'
   ): Promise<DokumenPinjaman> => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('pinjamanId', pinjamanId);
-    if (jenisDokumen) formData.append('jenisDokumen', jenisDokumen);
-    if (namaDokumen) formData.append('namaDokumen', namaDokumen);
+    formData.append('jenis', jenis);
 
-    return api.post<DokumenPinjaman>('/dokumen/upload', formData);
+    return api.post<DokumenPinjaman>(`/dokumen/pinjaman/${pinjamanId}`, formData);
+  },
+
+  delete: async (id: string): Promise<{ message: string }> => {
+    return api.delete<{ message: string }>(`/dokumen/${id}`);
   },
 };

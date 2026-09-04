@@ -14,6 +14,14 @@ import {
   FilePlus2,
   ListChecks,
   Loader2,
+  ShieldCheck,
+  ClipboardCheck,
+  Calculator,
+  Receipt,
+  Eye,
+  RotateCcw,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 import {
   Area,
@@ -42,214 +50,142 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   angsuranData,
   anggotaAngsuranSaya,
   anggotaGajiProfile,
   formatRp,
+  formatNamaLengkapDinas,
+  formatPangkatKorps,
   backendStatusToFrontend,
   loanStatusTone,
   trenData as defaultTrenData,
+  ROLES,
+  type Role,
 } from "@/lib/casheva-data";
-import { canAccessPath, dashboardCta } from "@/lib/rbac";
+import { dashboardCta } from "@/lib/rbac";
 import { apiDashboard, apiPinjaman } from "@/lib/api";
+import {
+  RekomendasiQueue,
+  AccQueue,
+  InvoiceGenerator,
+  RekapAngsuranTable,
+  ShuBreakdown,
+  PengajuanSatuanChart,
+  LikuiditasChart,
+  BatchSimpananBanner,
+  ApprovalTrailTimeline,
+} from "@/components/widgets/role-widgets";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Dashboard Eksekutif — Casheva Koperasi TNI AD" },
+      { title: "Dashboard — Casheva Koperasi TNI AD" },
       {
         name: "description",
         content:
-          "Ringkasan anggota aktif, kas simpanan, pinjaman berjalan, dan estimasi SHU koperasi TNI AD.",
+          "Dasbor terintegrasi pengelolaan simpanan, pinjaman berjenjang, dan SHU Koperasi Simpan Pinjam TNI AD.",
       },
-      { property: "og:title", content: "Dashboard Eksekutif — Casheva" },
+      { property: "og:title", content: "Dashboard — Casheva" },
       {
         property: "og:description",
         content: "KPI koperasi TNI AD: anggota, simpanan, pinjaman, dan SHU.",
       },
     ],
   }),
-  component: Dashboard,
+  component: DashboardPage,
 });
 
-function Dashboard() {
-  const { role } = useSession();
-  const isAnggota = role === "Anggota";
-
-  if (isAnggota) {
-    return <AnggotaDashboard />;
-  }
-
-  return <ExecutiveDashboard />;
-}
-
-function AnggotaDashboard() {
-  const cta = dashboardCta("Anggota");
-  const p = anggotaGajiProfile;
-  const bruto = p.gajiPokok + p.tunkin + p.tunjanganLain;
-  const totalPotongan = p.potongan.reduce((sum, row) => sum + row.jumlah, 0);
-  const netto = bruto - totalPotongan;
+function DashboardPage() {
+  const { role, isAdmin, setRole } = useSession();
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Dashboard Anggota"
-        description={`${p.pangkat} ${p.nama} · NRP ${p.nrp} · ${p.satminkal}`}
-        actions={
-          cta ? (
-            <Button asChild>
-              <Link to={cta.to as "/"}>
-                {cta.label} <ArrowRight className="ml-1 size-4" />
-              </Link>
+      {/* Admin Perspective Notice Banner (Only shown if Admin is viewing another role's perspective) */}
+      {isAdmin && role !== "Admin Koperasi" && (
+        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl border border-primary/30 bg-primary-soft/50 shadow-sm backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
+              <Eye className="size-4" />
+            </span>
+            <div>
+              <p className="text-xs font-bold text-primary flex items-center gap-1.5">
+                Mode Perspektif Aktif: <span className="text-foreground">{role}</span>
+                <Badge variant="secondary" className="text-[10px] bg-primary-soft text-primary font-semibold">
+                  Akses Admin Penuh
+                </Badge>
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Anda login sebagai Admin Koperasi dan saat ini melihat antarmuka perspektif <strong>{role}</strong>.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Select
+              value={role}
+              onValueChange={(v) => setRole(v as Role)}
+            >
+              <SelectTrigger className="h-8 w-[160px] text-xs font-semibold bg-background border-primary/25">
+                <SelectValue placeholder="Ganti peran" />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((r) => (
+                  <SelectItem key={r} value={r} className="text-xs">
+                    {r}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setRole("Admin Koperasi")}
+              className="h-8 text-xs font-semibold"
+            >
+              <RotateCcw className="size-3.5 mr-1" /> Reset ke Admin
             </Button>
-          ) : null
+          </div>
+        </div>
+      )}
+
+      {/* Render Role-Specific Dashboard */}
+      {(() => {
+        switch (role) {
+          case "Admin Koperasi":
+            return <AdminDashboard />;
+          case "Pimpinan / Dan / Ka":
+            return <PimpinanDashboard />;
+          case "Keprim":
+            return <KeprimDashboard />;
+          case "Bendahara":
+            return <BendaharaDashboard />;
+          case "Juru Bayar":
+            return <JuruBayarDashboard />;
+          case "Anggota":
+            return <AnggotaDashboard />;
+          case "Pengawas Koperasi":
+            return <PengawasDashboard />;
+          default:
+            return <AdminDashboard />;
         }
-      />
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="shadow-card">
-          <CardHeader className="pb-2">
-            <CardDescription>Total Gaji Bruto</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between gap-3">
-            <p className="text-xl font-extrabold">{formatRp(bruto)}</p>
-            <span className="grid size-9 place-items-center rounded-lg bg-primary-soft text-primary">
-              <Banknote className="size-4" />
-            </span>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="pb-2">
-            <CardDescription>Total Potongan Gaji</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between gap-3">
-            <p className="text-xl font-extrabold">{formatRp(totalPotongan)}</p>
-            <span className="grid size-9 place-items-center rounded-lg bg-destructive/10 text-destructive">
-              <Ban className="size-4" />
-            </span>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="pb-2">
-            <CardDescription>Gaji Bersih Diterima</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between gap-3">
-            <p className="text-xl font-extrabold text-success">{formatRp(netto)}</p>
-            <span className="grid size-9 place-items-center rounded-lg bg-success/15 text-success">
-              <TrendingUp className="size-4" />
-            </span>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle>Rincian Potongan Gaji</CardTitle>
-            <CardDescription>Potongan koperasi dan kewajiban berjalan</CardDescription>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Jenis Potongan</TableHead>
-                  <TableHead className="text-right">Jumlah</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {p.potongan.map((row) => (
-                  <TableRow key={row.nama}>
-                    <TableCell>{row.nama}</TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatRp(row.jumlah)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle>Angsuran Pinjaman Saya</CardTitle>
-            <CardDescription>Progress pembayaran angsuran berjalan</CardDescription>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>No. Pinjaman</TableHead>
-                  <TableHead className="text-center">Angsuran ke-</TableHead>
-                  <TableHead className="text-right">Angsuran / bln</TableHead>
-                  <TableHead className="text-right">Sisa</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {anggotaAngsuranSaya.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-mono text-xs">{r.id}</TableCell>
-                    <TableCell className="text-center">
-                      {r.angsuranKe} / {r.totalAngsuran}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatRp(r.angsuranBulanan)}
-                    </TableCell>
-                    <TableCell className="text-right">{formatRp(r.sisa)}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="border-success/30 bg-success/15 text-success"
-                      >
-                        {r.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Button asChild variant="outline" className="h-auto justify-start gap-3 p-4">
-          <Link to="/pengajuan">
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">
-              <FilePlus2 className="size-5" />
-            </span>
-            <span className="text-left">
-              <span className="block font-semibold">Ajukan Pinjaman / Simpanan</span>
-              <span className="text-xs text-muted-foreground">
-                Unggah berkas & kalkulasi otomatis
-              </span>
-            </span>
-            <ArrowRight className="ml-auto size-4 text-muted-foreground" />
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="h-auto justify-start gap-3 p-4">
-          <Link to="/angsuran">
-            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-success/15 text-success">
-              <ListChecks className="size-5" />
-            </span>
-            <span className="text-left">
-              <span className="block font-semibold">Riwayat Angsuran</span>
-              <span className="text-xs text-muted-foreground">
-                Lihat sisa kewajiban dan progress pembayaran
-              </span>
-            </span>
-            <ArrowRight className="ml-auto size-4 text-muted-foreground" />
-          </Link>
-        </Button>
-      </div>
+      })()}
     </div>
   );
 }
 
-function ExecutiveDashboard() {
-  const { role, satminkal } = useSession();
-  const cta = dashboardCta(role);
+/* ─────────────────────────────────────────────────────────────────────────────
+   1. ADMIN KOPERASI DASHBOARD
+   ───────────────────────────────────────────────────────────────────────────── */
+
+function AdminDashboard() {
+  const { satminkal, setRole } = useSession();
+  const cta = dashboardCta("Admin Koperasi");
 
   const { data: summary, isLoading: loadingSummary } = useQuery({
     queryKey: ["dashboard-summary"],
@@ -261,31 +197,18 @@ function ExecutiveDashboard() {
     queryFn: () => apiDashboard.getCharts(),
   });
 
-  const { data: loansList } = useQuery({
+  const { data: loansList = [], isLoading: loadingLoans } = useQuery({
     queryKey: ["pinjaman-recent"],
     queryFn: () => apiPinjaman.findAll(),
   });
 
-  const canPinjaman = canAccessPath(role, "/pinjaman");
-  const canVerifikasi = canAccessPath(role, "/verifikasi");
-  const canRekomendasi = canAccessPath(role, "/rekomendasi");
-  const reviewTo = canVerifikasi
-    ? "/verifikasi"
-    : canRekomendasi
-      ? "/rekomendasi"
-      : canPinjaman
-        ? "/pinjaman"
-        : "/";
-
-  // Hitung status pinjaman dari API jika ada
-  const allLoans = loansList || [];
-  const countPending = allLoans.filter((l) =>
-    ["DIAJUKAN", "DIVERIFIKASI_JURUBAYAR", "DIREKOMENDASIKAN"].includes(l.status),
+  const countPending = loansList.filter((l) =>
+    ["DIAJUKAN", "DIVERIFIKASI_JURUBAYAR", "DIREKOMENDASIKAN", "VERIFIKASI_PRIMKOP", "VERIFIKASI_JURU_BAYAR"].includes(l.status),
   ).length;
-  const countAcc = allLoans.filter((l) =>
-    ["DISETUJUI_KAPRIM", "DICAIRKAN", "LUNAS"].includes(l.status),
+  const countAcc = loansList.filter((l) =>
+    ["DISETUJUI_KEPRIM", "DISETUJUI_KAPRIM", "SETUJU_KEPRIM", "SETUJU_KAPRIM", "DICAIRKAN", "LUNAS"].includes(l.status),
   ).length;
-  const countDitolak = allLoans.filter((l) => l.status === "DITOLAK").length;
+  const countDitolak = loansList.filter((l) => l.status === "DITOLAK").length;
 
   const totalAnggotaVal = summary?.totalAnggota ?? 20;
   const totalSimpananVal = summary?.totalSimpanan ?? 130500000;
@@ -308,7 +231,7 @@ function ExecutiveDashboard() {
     {
       label: "Pinjaman Berjalan",
       value: formatRp(totalPinjamanBerjalanVal),
-      delta: `${summary?.countPinjamanBerjalan ?? 4} Berkas Aktif`,
+      delta: `${summary?.countPinjamanBerjalan ?? (loansList.filter((l) => l.status === "DICAIRKAN").length || 4)} Berkas Aktif`,
       icon: HandCoins,
     },
     {
@@ -330,7 +253,7 @@ function ExecutiveDashboard() {
     {
       label: "Pinjaman Disetujui (ACC)",
       value: String(countAcc || 6),
-      hint: "ACC Kaprim · Sudah dicairkan",
+      hint: "ACC Keprim · Siap/Sudah Cair",
       icon: BadgeCheck,
       tone: "text-primary bg-primary-soft",
     },
@@ -343,7 +266,6 @@ function ExecutiveDashboard() {
     },
   ];
 
-  // Olah data grafik jika chartsData tersedia dari backend
   const chartSimpananPinjaman =
     chartsData?.simpananBulanan?.map((s, idx) => ({
       bulan: s.namaBulan.slice(0, 3),
@@ -354,15 +276,15 @@ function ExecutiveDashboard() {
   const chartAngsuran =
     chartsData?.angsuranBulanan?.map((a) => ({
       bulan: a.namaBulan.slice(0, 3),
-      target: Math.round(a.total * 1.05 / 1_000_000) || 50,
+      target: Math.round((a.total * 1.05) / 1_000_000) || 50,
       realisasi: Math.round(a.total / 1_000_000),
     })) || angsuranData;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Dashboard Eksekutif"
-        description={`Ringkasan kinerja koperasi simpan pinjam ${satminkal} TA 2026`}
+        title="Dashboard Eksekutif Admin"
+        description={`Pusat Kendali Utama Koperasi Simpan Pinjam ${satminkal} TA 2026`}
         actions={
           cta ? (
             <Button asChild>
@@ -374,12 +296,40 @@ function ExecutiveDashboard() {
         }
       />
 
+      {/* Quick Perspective Switching Bar */}
+      <Card className="border-primary/20 bg-card/60 backdrop-blur-sm shadow-card">
+        <CardContent className="py-3 px-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="grid size-7 place-items-center rounded-md bg-primary/10 text-primary">
+              <Eye className="size-4" />
+            </span>
+            <span className="text-xs font-semibold text-foreground">
+              Akses Cepat Perspektif Peran:
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {ROLES.filter((r) => r !== "Admin Koperasi").map((r) => (
+              <Button
+                key={r}
+                size="sm"
+                variant="outline"
+                onClick={() => setRole(r)}
+                className="h-7 text-[11px] px-2.5 font-medium hover:bg-primary-soft hover:text-primary transition-colors"
+              >
+                {r}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Main KPI Grid */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpiItems.map((kpi) => (
-          <Card key={kpi.label} className="shadow-card">
+          <Card key={kpi.label} className="shadow-card card-interactive">
             <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 pb-2">
               <CardDescription className="min-w-0 truncate">{kpi.label}</CardDescription>
-              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary transition-transform group-hover:scale-105">
                 <kpi.icon className="size-4" />
               </span>
             </CardHeader>
@@ -400,9 +350,10 @@ function ExecutiveDashboard() {
         ))}
       </div>
 
+      {/* Status Counters */}
       <div className="grid gap-4 sm:grid-cols-3">
         {statusKpis.map((kpi) => (
-          <Card key={kpi.label} className="shadow-card">
+          <Card key={kpi.label} className="shadow-card card-interactive">
             <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 pb-2">
               <CardDescription className="min-w-0 truncate">{kpi.label}</CardDescription>
               <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${kpi.tone}`}>
@@ -417,6 +368,7 @@ function ExecutiveDashboard() {
         ))}
       </div>
 
+      {/* Analytics Charts */}
       <div className="grid gap-4 lg:grid-cols-5">
         <Card className="shadow-card lg:col-span-3">
           <CardHeader>
@@ -436,11 +388,7 @@ function ExecutiveDashboard() {
                     <stop offset="100%" stopColor="var(--color-chart-2)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--color-border)"
-                  vertical={false}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                 <XAxis dataKey="bulan" tickLine={false} axisLine={false} fontSize={12} />
                 <YAxis tickLine={false} axisLine={false} fontSize={12} />
                 <Tooltip
@@ -481,11 +429,7 @@ function ExecutiveDashboard() {
           <CardContent className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartAngsuran} margin={{ left: -18, right: 8, top: 8 }}>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--color-border)"
-                  vertical={false}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />
                 <XAxis dataKey="bulan" tickLine={false} axisLine={false} fontSize={12} />
                 <YAxis tickLine={false} axisLine={false} fontSize={12} />
                 <Tooltip
@@ -498,35 +442,24 @@ function ExecutiveDashboard() {
                   }}
                 />
                 <Legend />
-                <Bar
-                  dataKey="target"
-                  name="Target"
-                  fill="var(--color-muted-foreground)"
-                  radius={[6, 6, 0, 0]}
-                />
-                <Bar
-                  dataKey="realisasi"
-                  name="Realisasi"
-                  fill="var(--color-chart-1)"
-                  radius={[6, 6, 0, 0]}
-                />
+                <Bar dataKey="target" name="Target" fill="var(--color-muted-foreground)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="realisasi" name="Realisasi" fill="var(--color-chart-1)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
+      {/* Recent Loans Overview */}
       <Card className="shadow-card">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
+          <div>
             <CardTitle>Pengajuan Pinjaman Terbaru</CardTitle>
-            <CardDescription>Status alur persetujuan berjenjang dari database</CardDescription>
+            <CardDescription>Status alur persetujuan berjenjang dari sistem database</CardDescription>
           </div>
-          {canPinjaman ? (
-            <Button variant="outline" asChild>
-              <Link to="/pinjaman">Lihat semua</Link>
-            </Button>
-          ) : null}
+          <Button variant="outline" asChild>
+            <Link to="/pinjaman">Lihat Semua Pinjaman</Link>
+          </Button>
         </CardHeader>
         <CardContent className="overflow-x-auto">
           <Table>
@@ -542,40 +475,49 @@ function ExecutiveDashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allLoans.slice(0, 8).map((l) => {
-                const uiStatus = backendStatusToFrontend(l.status);
-                return (
-                  <TableRow key={l.id}>
-                    <TableCell className="font-mono text-xs">
-                      {l.id.slice(0, 8).toUpperCase()}
-                    </TableCell>
-                    <TableCell>
-                      <p className="font-medium">{l.anggota?.nama || "Anggota"}</p>
-                      <p className="text-xs text-muted-foreground">
-                        NRP {l.anggota?.nrpNip || "-"}
-                      </p>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {l.anggota?.pangkat?.nama || "-"} {l.anggota?.korps?.nama ? `(${l.anggota.korps.nama})` : ""}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatRp(Number(l.nominal))}
-                    </TableCell>
-                    <TableCell className="text-center">{l.tenorBulan} bln</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={loanStatusTone[uiStatus] || ""}>
-                        {uiStatus}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button size="sm" variant="ghost" asChild>
-                        <Link to={reviewTo as "/"}>Tinjau</Link>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {allLoans.length === 0 && (
+              {loadingLoans ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                    <Loader2 className="mx-auto size-5 animate-spin mb-2" />
+                    Memuat data pengajuan...
+                  </TableCell>
+                </TableRow>
+              ) : (
+                loansList.slice(0, 6).map((l) => {
+                  const uiStatus = backendStatusToFrontend(l.status);
+                  return (
+                    <TableRow key={l.id}>
+                      <TableCell className="font-mono text-xs font-medium">
+                        {l.id.slice(0, 8).toUpperCase()}
+                      </TableCell>
+                      <TableCell>
+                        <p className="font-medium">{formatNamaLengkapDinas(l.anggota?.nama, l.anggota?.pangkat?.nama, l.anggota?.korps?.nama, l.anggota?.pangkat?.kategori)}</p>
+                        <p className="text-xs text-muted-foreground">
+                          NRP {l.anggota?.nrpNip || "-"} · {l.anggota?.satminkal?.nama || satminkal}
+                        </p>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">
+                        {formatPangkatKorps(l.anggota?.pangkat?.nama, l.anggota?.korps?.nama)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {formatRp(Number(l.nominal))}
+                      </TableCell>
+                      <TableCell className="text-center">{l.tenorBulan} bln</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={loanStatusTone[uiStatus] || ""}>
+                          {uiStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" variant="ghost" asChild>
+                          <Link to="/pinjaman">Tinjau</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+              {!loadingLoans && loansList.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
                     Belum ada data pengajuan pinjaman
@@ -589,3 +531,672 @@ function ExecutiveDashboard() {
     </div>
   );
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   2. PIMPINAN / DAN / KA DASHBOARD
+   ───────────────────────────────────────────────────────────────────────────── */
+
+function PimpinanDashboard() {
+  const { satminkal } = useSession();
+  const { data: loanList = [] } = useQuery({
+    queryKey: ["pinjaman-pimpinan"],
+    queryFn: () => apiPinjaman.findAll(),
+  });
+
+  const antreanCount = loanList.filter((l) =>
+    ["VERIFIKASI_JURU_BAYAR", "VERIFIKASI_PRIMKOP", "DIAJUKAN"].includes(l.status),
+  ).length;
+  const pinjamanSatuanCount = loanList.filter((l) =>
+    ["REKOMENDASI_PIMPINAN", "SETUJU_KEPRIM", "SETUJU_KAPRIM", "DICAIRKAN"].includes(l.status),
+  ).length;
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Dashboard Komandan / Ka Bagian"
+        description={`Otorisasi Rekomendasi Pinjaman & Monitoring Anggota Satuan ${satminkal}`}
+        actions={
+          <Button asChild>
+            <Link to="/rekomendasi">
+              <ClipboardCheck className="mr-1.5 size-4" /> Buka Antrean Rekomendasi
+            </Link>
+          </Button>
+        }
+      />
+
+      {/* Pimpinan KPIs */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Menunggu Rekomendasi Dan/Ka</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-2xl font-extrabold text-accent-foreground">{antreanCount}</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-gold-soft text-accent-foreground">
+              <Clock className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Pinjaman Berjalan Satuan</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-2xl font-extrabold text-primary">{pinjamanSatuanCount}</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-primary-soft text-primary">
+              <CheckCircle2 className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Plafon Pinjaman Maksimal</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-2xl font-extrabold text-success">Rp 30.000.000</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-success/15 text-success">
+              <HandCoins className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Rekomendasi Queue Component */}
+      <RekomendasiQueue monitorOnly={false} />
+
+      {/* Satuan Trends */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <PengajuanSatuanChart />
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle>Pintasan Komandan Satuan</CardTitle>
+            <CardDescription>Akses data anggota dan riwayat dinas</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button asChild variant="outline" className="w-full justify-start gap-3 p-4 h-auto">
+              <Link to="/anggota">
+                <span className="grid size-9 place-items-center rounded-lg bg-primary-soft text-primary">
+                  <Users className="size-4" />
+                </span>
+                <div className="text-left">
+                  <p className="font-semibold text-sm">Data Personel Satuan</p>
+                  <p className="text-xs text-muted-foreground">Lihat daftar anggota, pangkat, dan korps</p>
+                </div>
+                <ArrowRight className="ml-auto size-4 text-muted-foreground" />
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full justify-start gap-3 p-4 h-auto">
+              <Link to="/pinjaman">
+                <span className="grid size-9 place-items-center rounded-lg bg-gold-soft text-accent-foreground">
+                  <HandCoins className="size-4" />
+                </span>
+                <div className="text-left">
+                  <p className="font-semibold text-sm">Riwayat Pinjaman Satuan</p>
+                  <p className="text-xs text-muted-foreground">Rekap status persetujuan berkas pinjaman anggota</p>
+                </div>
+                <ArrowRight className="ml-auto size-4 text-muted-foreground" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   3. KEPRIM (KAPRIM) DASHBOARD
+   ───────────────────────────────────────────────────────────────────────────── */
+
+function KeprimDashboard() {
+  const { satminkal } = useSession();
+  const { data: loanList = [] } = useQuery({
+    queryKey: ["pinjaman-acc"],
+    queryFn: () => apiPinjaman.findAll(),
+  });
+
+  const antreanAccCount = loanList.filter((l) => l.status === "REKOMENDASI_PIMPINAN").length;
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Dashboard Kepala Primkopad (Keprim)"
+        description={`Otorisasi Keputusan Akhir (ACC Kredit) & Likuiditas Kas ${satminkal}`}
+        actions={
+          <Button asChild>
+            <Link to="/acc">
+              <BadgeCheck className="mr-1.5 size-4" /> Buka Persetujuan ACC
+            </Link>
+          </Button>
+        }
+      />
+
+      {/* Keprim KPIs */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Berkas Menunggu ACC Keprim</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-2xl font-extrabold text-primary">{antreanAccCount}</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-primary-soft text-primary">
+              <BadgeCheck className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Suku Bunga Koperasi Aktif</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-2xl font-extrabold text-success">1.0% / bulan</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-success/15 text-success">
+              <TrendingUp className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Rasio Likuiditas Kas</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-2xl font-extrabold text-foreground">84.5% (Sehat)</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-primary-soft text-primary">
+              <Wallet className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Acc Queue Widget */}
+      <AccQueue />
+
+      {/* Likuiditas Chart */}
+      <LikuiditasChart />
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   4. BENDAHARA DASHBOARD
+   ───────────────────────────────────────────────────────────────────────────── */
+
+function BendaharaDashboard() {
+  const { satminkal } = useSession();
+  const { data: loanList = [] } = useQuery({
+    queryKey: ["pinjaman-pencairan"],
+    queryFn: () => apiPinjaman.findAll(),
+  });
+
+  const siapCairCount = loanList.filter((l) =>
+    ["SETUJU_KAPRIM", "SETUJU_KEPRIM", "MENUNGGU_DOKUMEN"].includes(l.status),
+  ).length;
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Dashboard Bendahara Koperasi"
+        description={`Pencairan Pinjaman, Rekap Angsuran, & Penagihan Simpanan ${satminkal}`}
+        actions={
+          <Button asChild>
+            <Link to="/pengajuan">
+              <FilePlus2 className="mr-1.5 size-4" /> Buat Pengajuan Pinjaman
+            </Link>
+          </Button>
+        }
+      />
+
+      {/* Bendahara KPIs */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Pinjaman Siap Dicairkan</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-2xl font-extrabold text-primary">{siapCairCount} Berkas</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-primary-soft text-primary">
+              <Receipt className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Simpanan Wajib Bulanan</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-2xl font-extrabold text-success">Rp 100.000 / bln</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-success/15 text-success">
+              <Wallet className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Jadwal Potong Gaji</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-2xl font-extrabold text-accent-foreground">Tgl 5 / Bulan</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-gold-soft text-accent-foreground">
+              <Clock className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Batch Simpanan Tanggal 5 Banner */}
+      <BatchSimpananBanner />
+
+      {/* Pencairan Dana Widget */}
+      <InvoiceGenerator />
+
+      {/* Rekap Angsuran Table */}
+      <RekapAngsuranTable />
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   5. JURU BAYAR DASHBOARD
+   ───────────────────────────────────────────────────────────────────────────── */
+
+function JuruBayarDashboard() {
+  const { satminkal } = useSession();
+  const { data: loanList = [], isLoading } = useQuery({
+    queryKey: ["pinjaman-jurubayar"],
+    queryFn: () => apiPinjaman.findAll(),
+  });
+
+  const antreanVerif = loanList.filter((l) =>
+    ["DIAJUKAN", "VERIFIKASI_PRIMKOP", "VERIFIKASI_JURU_BAYAR"].includes(l.status),
+  );
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Dashboard Juru Bayar (Juyar)"
+        description={`Verifikasi Kelayakan Gaji & Potongan Kedinasan Personel ${satminkal}`}
+        actions={
+          <Button asChild>
+            <Link to="/verifikasi">
+              <ShieldCheck className="mr-1.5 size-4" /> Buka Antrean Verifikasi
+            </Link>
+          </Button>
+        }
+      />
+
+      {/* Juyar KPIs */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Menunggu Verifikasi Gaji</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-2xl font-extrabold text-accent-foreground">{antreanVerif.length}</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-gold-soft text-accent-foreground">
+              <ShieldCheck className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Batas Maksimum Angsuran</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-2xl font-extrabold text-primary">40% Gaji Netto</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-primary-soft text-primary">
+              <Banknote className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Status Rekonsiliasi Gaji</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <p className="text-2xl font-extrabold text-success">Sinkron (Aktif)</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-success/15 text-success">
+              <CheckCircle2 className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Antrean Verifikasi Table */}
+      <Card className="shadow-card">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle>Antrean Verifikasi Kelayakan Gaji &amp; Berkas Usipa</CardTitle>
+            <CardDescription>Pengajuan anggota yang menunggu validasi Juru Bayar sebelum ke Dan/Ka</CardDescription>
+          </div>
+          <Button asChild size="sm">
+            <Link to="/verifikasi">Proses Verifikasi</Link>
+          </Button>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>No. Pengajuan</TableHead>
+                <TableHead>Nama Anggota</TableHead>
+                <TableHead>Pangkat / NRP</TableHead>
+                <TableHead className="text-right">Nominal Pengajuan</TableHead>
+                <TableHead className="text-center">Tenor</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Aksi</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                    <Loader2 className="mx-auto size-5 animate-spin mb-2" />
+                    Memuat antrean verifikasi...
+                  </TableCell>
+                </TableRow>
+              ) : (
+                antreanVerif.map((l) => {
+                  const uiStatus = backendStatusToFrontend(l.status);
+                  return (
+                    <TableRow key={l.id}>
+                      <TableCell className="font-mono text-xs font-semibold">
+                        {l.id.slice(0, 8).toUpperCase()}
+                      </TableCell>
+                      <TableCell className="font-medium">{l.anggota?.nama || "Anggota"}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {l.anggota?.pangkat?.nama || ""} / NRP {l.anggota?.nrpNip || "-"}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {formatRp(Number(l.nominal))}
+                      </TableCell>
+                      <TableCell className="text-center">{l.tenorBulan} bln</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={loanStatusTone[uiStatus] || ""}>
+                          {uiStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button size="sm" asChild>
+                          <Link to="/verifikasi">Validasi Gaji</Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+              {!isLoading && antreanVerif.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    Tidak ada pengajuan yang menunggu verifikasi Juru Bayar.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Shortcuts */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Button asChild variant="outline" className="h-auto justify-start gap-3 p-4">
+          <Link to="/pencairan">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">
+              <Receipt className="size-5" />
+            </span>
+            <div className="text-left">
+              <p className="font-semibold">Monitoring Pencairan Dana</p>
+              <p className="text-xs text-muted-foreground">Lihat berkas yang telah disetujui untuk pencairan</p>
+            </div>
+            <ArrowRight className="ml-auto size-4 text-muted-foreground" />
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="h-auto justify-start gap-3 p-4">
+          <Link to="/angsuran">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-success/15 text-success">
+              <ListChecks className="size-5" />
+            </span>
+            <div className="text-left">
+              <p className="font-semibold">Rekap Potongan Angsuran</p>
+              <p className="text-xs text-muted-foreground">Daftar cicilan bulanan yang dipotong dari gaji</p>
+            </div>
+            <ArrowRight className="ml-auto size-4 text-muted-foreground" />
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   6. ANGGOTA DASHBOARD
+   ───────────────────────────────────────────────────────────────────────────── */
+
+function AnggotaDashboard() {
+  const cta = dashboardCta("Anggota");
+  const p = anggotaGajiProfile;
+  const bruto = p.gajiPokok + p.tunkin + p.tunjanganLain;
+  const totalPotongan = p.potongan.reduce((sum, row) => sum + row.jumlah, 0);
+  const netto = bruto - totalPotongan;
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Dashboard Anggota Koperasi"
+        description={`${formatNamaLengkapDinas(p.nama, p.pangkat, p.korps, p.kategori)} · NRP ${p.nrp} · ${p.satminkal}`}
+        actions={
+          cta ? (
+            <Button asChild>
+              <Link to={cta.to as "/"}>
+                {cta.label} <ArrowRight className="ml-1 size-4" />
+              </Link>
+            </Button>
+          ) : null
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Total Gaji Bruto</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between gap-3">
+            <p className="text-xl font-extrabold">{formatRp(bruto)}</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-primary-soft text-primary">
+              <Banknote className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Total Potongan Gaji</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between gap-3">
+            <p className="text-xl font-extrabold">{formatRp(totalPotongan)}</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-destructive/10 text-destructive">
+              <Ban className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Gaji Bersih Diterima (Netto)</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between gap-3">
+            <p className="text-xl font-extrabold text-success">{formatRp(netto)}</p>
+            <span className="grid size-9 place-items-center rounded-lg bg-success/15 text-success">
+              <TrendingUp className="size-4" />
+            </span>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle>Rincian Potongan Gaji</CardTitle>
+            <CardDescription>Potongan simpanan wajib, sukarela, dan kewajiban berjalan</CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Jenis Potongan</TableHead>
+                  <TableHead className="text-right">Jumlah</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {p.potongan.map((row) => (
+                  <TableRow key={row.nama}>
+                    <TableCell className="font-medium">{row.nama}</TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {formatRp(row.jumlah)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle>Angsuran Pinjaman Saya</CardTitle>
+            <CardDescription>Progress pembayaran angsuran berjalan di koperasi</CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>No. Pinjaman</TableHead>
+                  <TableHead className="text-center">Angsuran</TableHead>
+                  <TableHead className="text-right">Tagihan / bln</TableHead>
+                  <TableHead className="text-right">Sisa Pokok</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {anggotaAngsuranSaya.map((r) => (
+                  <TableRow key={r.id}>
+                    <TableCell className="font-mono text-xs font-semibold">{r.id}</TableCell>
+                    <TableCell className="text-center text-xs">
+                      {r.angsuranKe} / {r.totalAngsuran}
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {formatRp(r.angsuranBulanan)}
+                    </TableCell>
+                    <TableCell className="text-right text-xs">{formatRp(r.sisa)}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className="border-success/30 bg-success/15 text-success text-[10px]"
+                      >
+                        {r.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Button asChild variant="outline" className="h-auto justify-start gap-3 p-4">
+          <Link to="/pengajuan">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">
+              <FilePlus2 className="size-5" />
+            </span>
+            <div className="text-left">
+              <p className="font-semibold">Ajukan Pinjaman Baru</p>
+              <p className="text-xs text-muted-foreground">Kalkulasi simulasi cicilan &amp; unggah berkas</p>
+            </div>
+            <ArrowRight className="ml-auto size-4 text-muted-foreground" />
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="h-auto justify-start gap-3 p-4">
+          <Link to="/simpanan">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-success/15 text-success">
+              <Wallet className="size-5" />
+            </span>
+            <div className="text-left">
+              <p className="font-semibold">Simpanan Saya</p>
+              <p className="text-xs text-muted-foreground">Lihat saldo pokok, wajib, dan sukarela</p>
+            </div>
+            <ArrowRight className="ml-auto size-4 text-muted-foreground" />
+          </Link>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   7. PENGAWAS KOPERASI DASHBOARD
+   ───────────────────────────────────────────────────────────────────────────── */
+
+function PengawasDashboard() {
+  const { satminkal } = useSession();
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Dashboard Pengawas Koperasi"
+        description={`Audit Transparansi, Pengawasan Distribusi SHU, & Akuntabilitas ${satminkal}`}
+        actions={
+          <Button asChild>
+            <Link to="/shu">
+              <Calculator className="mr-1.5 size-4" /> Buka Pengawasan SHU
+            </Link>
+          </Button>
+        }
+      />
+
+      {/* Pengawas KPIs */}
+      <div className="grid gap-4 sm:grid-cols-4">
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Alokasi Cadangan Koperasi</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-extrabold text-primary">40%</p>
+            <p className="text-xs text-muted-foreground mt-1">Sesuai AD/ART Juknis TNI AD</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Jasa Usaha Anggota</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-extrabold text-success">30%</p>
+            <p className="text-xs text-muted-foreground mt-1">Proporsional aktivitas belanja/pinjaman</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Jasa Modal Anggota</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-extrabold text-foreground">20%</p>
+            <p className="text-xs text-muted-foreground mt-1">Proporsional simpanan pokok &amp; wajib</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="pb-2">
+            <CardDescription>Dana Pengurus &amp; Sosial</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-extrabold text-accent-foreground">10%</p>
+            <p className="text-xs text-muted-foreground mt-1">5% Pengurus · 5% Sosial Pendidikan</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* SHU Breakdown Calculator */}
+      <ShuBreakdown />
+
+      {/* Approval Trail Timeline */}
+      <ApprovalTrailTimeline />
+    </div>
+  );
+}
+

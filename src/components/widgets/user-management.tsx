@@ -57,7 +57,10 @@ export function UserManagementWidget() {
   const [newPassword, setNewPassword] = useState("Admin123!");
 
   // New User Form State
-  const [newUsername, setNewUsername] = useState("");
+  const [newNamaLengkap, setNewNamaLengkap] = useState("");
+  const [newPangkatId, setNewPangkatId] = useState("");
+  const [newKorpsId, setNewKorpsId] = useState("");
+  const [newNrpNip, setNewNrpNip] = useState("");
   const [newRole, setNewRole] = useState("ADMIN_KOPERASI");
   const [newPasswordInput, setNewPasswordInput] = useState("Admin123!");
   const [newEmail, setNewEmail] = useState("");
@@ -74,10 +77,24 @@ export function UserManagementWidget() {
     queryFn: () => apiMaster.getSatminkal(),
   });
 
+  const { data: pangkatList = [] } = useQuery({
+    queryKey: ["master-pangkat"],
+    queryFn: () => apiMaster.getPangkat(),
+  });
+
+  const { data: korpsList = [] } = useQuery({
+    queryKey: ["master-korps"],
+    queryFn: () => apiMaster.getKorps(),
+  });
+
   const createUserMutation = useMutation({
     mutationFn: () =>
       apiUsers.create({
-        username: newUsername,
+        username: newNrpNip.trim(),
+        nrpNip: newNrpNip.trim(),
+        namaLengkap: newNamaLengkap.trim(),
+        pangkatId: newPangkatId || undefined,
+        korpsId: newKorpsId && newKorpsId !== "NONE" ? newKorpsId : undefined,
         password: newPasswordInput,
         role: newRole as any,
         email: newEmail || undefined,
@@ -85,10 +102,14 @@ export function UserManagementWidget() {
         satminkalId: newSatminkalId || satminkalList[0]?.id || "",
       }),
     onSuccess: (res) => {
-      toast.success(`User @${res.username} Berhasil Dibuat`);
+      toast.success(`User @${res.username} (${res.namaLengkap}) Berhasil Dibuat`);
       queryClient.invalidateQueries({ queryKey: ["users-list"] });
+      queryClient.invalidateQueries({ queryKey: ["anggota-list"] });
       setOpenNew(false);
-      setNewUsername("");
+      setNewNamaLengkap("");
+      setNewPangkatId("");
+      setNewKorpsId("");
+      setNewNrpNip("");
       setNewEmail("");
       setNewPhone("");
     },
@@ -97,8 +118,8 @@ export function UserManagementWidget() {
 
   const toggleAktifMutation = useMutation({
     mutationFn: (id: string) => apiUsers.toggleAktif(id),
-    onSuccess: (res) => {
-      toast.success(`Status user @${res.username} diperbarui: ${res.isAktif ? "Aktif" : "Nonaktif"}`);
+    onSuccess: (res: any) => {
+      toast.success(`Status user @${res?.username || ""} diperbarui: ${res?.isAktif || res?.isActive ? "Aktif" : "Nonaktif"}`);
       queryClient.invalidateQueries({ queryKey: ["users-list"] });
     },
     onError: (err: any) => toast.error("Gagal", { description: err.message }),
@@ -107,8 +128,8 @@ export function UserManagementWidget() {
   const resetPasswordMutation = useMutation({
     mutationFn: () =>
       apiUsers.resetPassword(resetPassUser!.id, { newPassword }),
-    onSuccess: (res) => {
-      toast.success(res.message || "Password berhasil di-reset");
+    onSuccess: (res: any) => {
+      toast.success(res?.message || "Password berhasil di-reset");
       setResetPassUser(null);
       setNewPassword("Admin123!");
     },
@@ -197,7 +218,7 @@ export function UserManagementWidget() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">
-                        {u.satminkal?.nama || "Disinfolahtad"}
+                        {u.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {u.email || "-"} {u.phone ? `· ${u.phone}` : ""}
@@ -256,12 +277,60 @@ export function UserManagementWidget() {
           </SheetHeader>
           <div className="space-y-4 px-4 py-4">
             <div className="space-y-2">
-              <Label>Username</Label>
+              <Label>Nama Lengkap (Tanpa Pangkat/Korps) <span className="text-destructive">*</span></Label>
               <Input
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-                placeholder="misal: bendahara2"
+                value={newNamaLengkap}
+                onChange={(e) => setNewNamaLengkap(e.target.value)}
+                placeholder="misal: Sigit Widiyanto"
               />
+              <p className="text-[11px] text-muted-foreground">
+                Cukup masukkan nama orangnya saja, pangkat &amp; korps akan digabung otomatis oleh sistem.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Pangkat TNI AD <span className="text-destructive">*</span></Label>
+              <Select value={newPangkatId} onValueChange={setNewPangkatId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih Pangkat" />
+                </SelectTrigger>
+                <SelectContent className="max-h-56">
+                  {pangkatList.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nama} ({p.kategori})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Korps TNI AD (Opsional / Perwira)</Label>
+              <Select value={newKorpsId} onValueChange={setNewKorpsId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih Korps (Inf, Kav, Arm, Arh, Czi, Cba, dll.)" />
+                </SelectTrigger>
+                <SelectContent className="max-h-56">
+                  <SelectItem value="NONE">-- Tanpa Korps / Bintara / Tamtama / PNS --</SelectItem>
+                  {korpsList.map((k) => (
+                    <SelectItem key={k.id} value={k.id}>
+                      {k.nama} ({k.kode})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Pilih korps untuk Perwira (Pama/Pamen) agar pangkat tampil lengkap (contoh: Kapten Inf, Kolonel Czi).
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>NRP / NIP (Kunci Utama Login) <span className="text-destructive">*</span></Label>
+              <Input
+                value={newNrpNip}
+                onChange={(e) => setNewNrpNip(e.target.value)}
+                placeholder="misal: 11020019460278"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                NRP/NIP ini akan digunakan anggota/user sebagai kredensial utama saat login.
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Password Awal</Label>
@@ -280,7 +349,7 @@ export function UserManagementWidget() {
                 <SelectContent>
                   <SelectItem value="ADMIN_KOPERASI">Admin Koperasi</SelectItem>
                   <SelectItem value="PIMPINAN">Pimpinan / Dan / Ka</SelectItem>
-                  <SelectItem value="KAPRIM">Kaprim</SelectItem>
+                  <SelectItem value="KEPRIM">Keprim</SelectItem>
                   <SelectItem value="BENDAHARA">Bendahara</SelectItem>
                   <SelectItem value="PENGAWAS">Pengawas Koperasi</SelectItem>
                   <SelectItem value="JURU_BAYAR">Juru Bayar</SelectItem>
@@ -315,7 +384,7 @@ export function UserManagementWidget() {
               />
             </div>
             <div className="space-y-2">
-              <Label>No. Telepon / WA</Label>
+              <Label>No. Telepon / WA (Opsional)</Label>
               <Input
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
@@ -324,7 +393,7 @@ export function UserManagementWidget() {
             </div>
             <Button
               className="w-full mt-4"
-              disabled={!newUsername || createUserMutation.isPending}
+              disabled={!newNamaLengkap || !newNrpNip || createUserMutation.isPending}
               onClick={() => createUserMutation.mutate()}
             >
               {createUserMutation.isPending ? (
@@ -372,6 +441,102 @@ export function UserManagementWidget() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </Card>
+  );
+}
+
+export function ActiveSessionsWidget() {
+  const queryClient = useQueryClient();
+
+  const { data: activeSessions = [], isLoading } = useQuery({
+    queryKey: ["active-sessions"],
+    queryFn: async () => {
+      const res = await apiUsers.list();
+      return res.filter((u: any) => u.isActive);
+    },
+    refetchInterval: 10000,
+  });
+
+  const terminateMutation = useMutation({
+    mutationFn: (userId: string) => apiUsers.deactivate(userId),
+    onSuccess: () => {
+      toast.success("Sesi akun berhasil diakhiri");
+      queryClient.invalidateQueries({ queryKey: ["active-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["users-list"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Gagal mengakhiri sesi");
+    },
+  });
+
+  return (
+    <Card className="shadow-card mt-6">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-base font-bold flex items-center gap-2">
+              <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
+              Monitoring Sesi Aktif Perangkat (Single Device Enforcement)
+            </CardTitle>
+            <CardDescription>
+              Pantau pengguna yang sedang aktif di sistem. Pengguna hanya dapat login di 1 perangkat secara bersamaan.
+            </CardDescription>
+          </div>
+          <Badge variant="outline" className="font-mono">
+            {activeSessions.length} Pengguna Aktif
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : activeSessions.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            Tidak ada akun aktif saat ini.
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Pengguna</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Status Koperasi</TableHead>
+                <TableHead className="text-right">Tindakan Monitoring</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {activeSessions.map((s: any) => (
+                <TableRow key={s.id}>
+                  <TableCell>
+                    <p className="font-semibold text-sm">{s.namaLengkap}</p>
+                    <p className="text-xs text-muted-foreground">@{s.username}</p>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{backendRoleToFrontend(s.role)}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                      <span className="size-2 rounded-full bg-emerald-500" /> Sesi Terverifikasi (Single Device)
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      disabled={terminateMutation.isPending}
+                      onClick={() => terminateMutation.mutate(s.id)}
+                    >
+                      Akhiri Sesi (Logout Force)
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
     </Card>
   );
 }

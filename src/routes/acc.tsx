@@ -6,9 +6,9 @@ import { AccQueue } from "@/components/widgets/role-widgets";
 export const Route = createFileRoute("/acc")({
   head: () => ({
     meta: [
-      { title: "Persetujuan Akhir Kaprim — Casheva Koperasi TNI AD" },
+      { title: "Persetujuan Akhir Keprim — Casheva Koperasi TNI AD" },
       { name: "description", content: "Otorisasi akhir dan pencairan pinjaman anggota koperasi." },
-      { property: "og:title", content: "Persetujuan Akhir Kaprim — Casheva" },
+      { property: "og:title", content: "Persetujuan Akhir Keprim — Casheva" },
       { property: "og:description", content: "Otorisasi akhir dan pencairan pinjaman anggota koperasi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/acc")({
 function Page() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Persetujuan Akhir Kaprim" description="Otorisasi akhir dan pencairan pinjaman anggota koperasi." />
+      <PageHeader title="Persetujuan Akhir Keprim" description="Otorisasi akhir dan pencairan pinjaman anggota koperasi." />
       <AccQueue />
     </div>
   );

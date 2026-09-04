@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { anggotaGajiProfile, formatRp } from "@/lib/casheva-data";
+import { anggotaGajiProfile, formatRp, formatNamaLengkapDinas } from "@/lib/casheva-data";
 
 export const Route = createFileRoute("/gaji")({
   head: () => ({
@@ -48,7 +48,7 @@ function GajiPage() {
     <div className="space-y-6">
       <PageHeader
         title="Rincian Gaji"
-        description={`${p.pangkat} ${p.nama} · NRP ${p.nrp} · ${p.satminkal}`}
+        description={`${formatNamaLengkapDinas(p.nama, p.pangkat, p.korps, p.kategori)} · NRP ${p.nrp} · ${p.satminkal}`}
         actions={
           <Badge variant="outline" className="border-primary/30 bg-primary-soft text-primary">
             Slip bulan berjalan

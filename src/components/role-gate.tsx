@@ -7,7 +7,7 @@ import { canAccessPath, homePathFor } from "@/lib/rbac";
 
 /** Client-side RBAC gate — waits for session hydrate to avoid login flash. */
 export function RoleGate({ children }: { children: React.ReactNode }) {
-  const { role, authenticated, ready } = useSession();
+  const { role, originalRole, isAdmin, authenticated, ready } = useSession();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
 
@@ -21,13 +21,13 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
       navigate({ to: "/login" });
       return;
     }
-    if (!canAccessPath(role, pathname)) {
+    if (!canAccessPath(role, pathname, originalRole)) {
       toast.error("Akses ditolak untuk peran Anda", {
         description: `${role} tidak memiliki akses ke halaman ini.`,
       });
       navigate({ to: homePathFor(role) });
     }
-  }, [ready, authenticated, role, pathname, navigate]);
+  }, [ready, authenticated, role, originalRole, pathname, navigate]);
 
   if (!ready) {
     return (
@@ -38,7 +38,7 @@ export function RoleGate({ children }: { children: React.ReactNode }) {
   }
 
   if (pathname !== "/login" && !authenticated) return null;
-  if (pathname !== "/login" && !canAccessPath(role, pathname)) return null;
+  if (pathname !== "/login" && !canAccessPath(role, pathname, originalRole)) return null;
 
   return <>{children}</>;
 }

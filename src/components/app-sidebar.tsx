@@ -18,19 +18,21 @@ import {
 } from "@/components/ui/sidebar";
 import { useSession } from "@/components/session-context";
 import { roleNav } from "@/lib/role-nav";
+import { useLiveNotifications } from "@/lib/notifications";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (r) => r.location.pathname });
-  const { satminkal, kotama, role } = useSession();
-  const items = roleNav[role];
+  const { satminkal, kotama, role, user } = useSession();
+  const items = roleNav[role] || [];
+  const { getBadgeForUrl } = useLiveNotifications(role);
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border px-3 py-4">
+    <Sidebar collapsible="icon" className="transition-all duration-200">
+      <SidebarHeader className="border-b border-sidebar-border px-3 py-3.5">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-sidebar-accent/60 p-1.5">
+          <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-sidebar-accent/70 p-1.5 shadow-sm">
             <img
               src={cashevaLogo}
               alt="Logo Casheva Koperasi TNI AD"
@@ -42,49 +44,68 @@ export function AppSidebar() {
               <p className="truncate text-base font-extrabold tracking-tight text-sidebar-accent-foreground">
                 Casheva
               </p>
-              <p className="truncate text-[11px] text-sidebar-foreground/70">
+              <p className="truncate text-[11px] text-sidebar-foreground/70 font-medium">
                 Koperasi TNI AD
               </p>
             </div>
           )}
         </div>
         {!collapsed && (
-          <div className="mt-3 rounded-lg border border-sidebar-border bg-sidebar-accent/60 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-widest text-sidebar-foreground/60">
-              Sesi Aktif
+          <div className="mt-3 rounded-lg border border-sidebar-border bg-sidebar-accent/60 px-3 py-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase tracking-widest text-sidebar-foreground/60 font-semibold">
+                Sesi Aktif
+              </span>
+              <span className="inline-flex size-2 rounded-full bg-emerald-400 animate-pulse" />
+            </div>
+            <p className="mt-1 truncate font-semibold text-sidebar-accent-foreground">
+              {satminkal}
             </p>
-            <p className="mt-0.5 truncate text-xs font-semibold text-sidebar-accent-foreground">
-              Satminkal: {satminkal}
+            <p className="truncate text-[11px] text-sidebar-foreground/75">
+              {kotama}
             </p>
-            <p className="truncate text-xs text-sidebar-foreground/80">
-              Kotama: {kotama}
-            </p>
-            <p className="mt-1 truncate text-[11px] font-semibold text-sidebar-primary">
+            <div className="mt-1.5 inline-flex items-center rounded-md bg-sidebar-accent px-2 py-0.5 text-[10px] font-bold text-sidebar-primary border border-sidebar-border/80">
               {role}
-            </p>
+            </div>
           </div>
         )}
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="px-1 py-2">
         <SidebarGroup>
-          <SidebarGroupLabel>Menu {role}</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[11px] uppercase tracking-wider text-sidebar-foreground/60 font-semibold px-2">
+            Menu {role}
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => {
                 const active =
                   item.url === "/" ? pathname === "/" : pathname.startsWith(item.url);
+                const liveBadge = getBadgeForUrl(item.url);
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-                      <Link to={item.url} className="flex items-center gap-2">
-                        <item.icon className="size-4 shrink-0" />
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.title}
+                      className={`transition-all duration-150 rounded-lg ${
+                        active
+                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm"
+                          : "hover:bg-sidebar-accent/50 text-sidebar-foreground/90"
+                      }`}
+                    >
+                      <Link to={item.url} className="flex items-center gap-2.5">
+                        <item.icon
+                          className={`size-4 shrink-0 transition-transform ${
+                            active ? "text-sidebar-primary scale-110" : "text-sidebar-foreground/70"
+                          }`}
+                        />
                         <span className="truncate">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
-                    {item.badge && !collapsed ? (
-                      <SidebarMenuBadge className="bg-gold text-gold-foreground">
-                        {item.badge}
+                    {liveBadge && !collapsed ? (
+                      <SidebarMenuBadge className="bg-gold text-gold-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-in fade-in zoom-in-75 duration-200">
+                        {liveBadge}
                       </SidebarMenuBadge>
                     ) : null}
                   </SidebarMenuItem>
@@ -95,11 +116,18 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border">
-        {!collapsed && (
-          <p className="px-2 py-1 text-[10px] text-sidebar-foreground/60">
-            Casheva v1.0 · Sistem Koperasi TNI AD
-          </p>
+      <SidebarFooter className="border-t border-sidebar-border p-2.5">
+        {!collapsed ? (
+          <div className="flex items-center justify-between text-[10px] text-sidebar-foreground/60 px-1">
+            <span>Casheva v2.4</span>
+            <span className="flex items-center gap-1 text-emerald-400 font-medium">
+              <span className="size-1.5 rounded-full bg-emerald-400" /> Online
+            </span>
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <span className="size-2 rounded-full bg-emerald-400" />
+          </div>
         )}
       </SidebarFooter>
     </Sidebar>
