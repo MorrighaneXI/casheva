@@ -163,7 +163,7 @@ function LoginPage() {
             <div className="animate-in zoom-in-95 fade-in mb-8 inline-flex rounded-3xl bg-sidebar-accent/60 p-5 shadow-[0_0_60px_-12px] shadow-gold/40 delay-150 duration-700">
               <img
                 src={emblem}
-                alt="Emblem koperasi TNI AD Disinfolahtad"
+                alt="Emblem Koperasi Kartika Infolahtadam IV/Diponegoro"
                 width={512}
                 height={512}
                 className="h-28 w-28 object-contain drop-shadow-[0_0_18px_rgba(217,119,6,0.35)]"
@@ -178,7 +178,7 @@ function LoginPage() {
           </div>
 
           <p className="relative text-xs text-sidebar-foreground/60">
-            © 2026 Koperasi TNI AD · Disinfolahtad. Terhubung ke Database Neon PostgreSQL.
+            © 2026 Koperasi TNI AD · Infolahtadam IV/Diponegoro. Terhubung ke Database Neon PostgreSQL.
           </p>
         </aside>
 

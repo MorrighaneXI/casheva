@@ -35,9 +35,9 @@ export const Route = createFileRoute("/kopstuk")({
 
 function KopstukPage() {
   const queryClient = useQueryClient();
-  const [baris1, setBaris1] = useState("MARKAS BESAR ANGKATAN DARAT");
-  const [baris2, setBaris2] = useState("PRIMER KOPERASI KARTIKA DISINFOLAHTAD");
-  const [baris3, setBaris3] = useState("Jl. Veteran No. 5, Jakarta Pusat");
+  const [baris1, setBaris1] = useState("KOMANDO DAERAH MILITER IV/DIPONEGORO");
+  const [baris2, setBaris2] = useState("PRIMER KOPERASI KARTIKA INFOLAHTADAM IV/DIPONEGORO");
+  const [baris3, setBaris3] = useState("Jl. Perintis Kemerdekaan, Watugong, Semarang");
   const [garisGanda, setGarisGanda] = useState(true);
   const [showLogo, setShowLogo] = useState(true);
 

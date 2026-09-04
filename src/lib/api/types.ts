@@ -165,9 +165,11 @@ export interface Angsuran {
 export interface DokumenPinjaman {
   id: string;
   pinjamanId: string;
-  namaDokumen: string;
-  urlDokumen: string;
-  jenisDokumen: string;
+  jenis: string;
+  filePath: string;
+  namaDokumen?: string;
+  urlDokumen?: string;
+  jenisDokumen?: string;
   uploadedAt: string;
 }
 
@@ -186,6 +188,7 @@ export interface Pinjaman {
   tanggalPengajuan: string;
   tanggalPencairan?: string;
   alasanPenolakan?: string;
+  catatan?: string;
   catatanJurbay?: string;
   catatanDan?: string;
   catatanKaprim?: string;

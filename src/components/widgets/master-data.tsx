@@ -121,7 +121,7 @@ export function MasterDataWidget() {
                             </Badge>
                           ))}
                           {relatedSatminkal.length === 0 && (
-                            <span className="text-xs text-muted-foreground">Disinfolahtad</span>
+                            <span className="text-xs text-muted-foreground">INFOLAHTADAM IV/DIPONEGORO</span>
                           )}
                         </TableCell>
                       </TableRow>

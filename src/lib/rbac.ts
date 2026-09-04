@@ -50,8 +50,9 @@ export function allowedPathsFor(role: Role): Set<string> {
 export function canAccessPath(role: Role, pathname: string, originalRole?: Role): boolean {
   if (SHARED_PATHS.has(pathname)) return true;
   // Admin has full access to all paths
-  if (role === "Admin Koperasi" || originalRole === "Admin Koperasi") return true;
-  const allowed = allowedPathsFor(role);
+  if (originalRole === "Admin Koperasi" || role === "Admin Koperasi") return true;
+  const effectiveRole = originalRole || role;
+  const allowed = allowedPathsFor(effectiveRole);
   if (allowed.has(pathname)) return true;
   return false;
 }

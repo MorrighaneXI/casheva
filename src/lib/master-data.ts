@@ -35,9 +35,7 @@ export type PengurusRow = {
 };
 
 export const kotamaMaster: Kotama[] = [
-  { kotama: "Markas Besar Angkatan Darat", satminkal: ["Disinfolahtad", "Ditkuad", "Ditziad", "Mabesad"] },
-  { kotama: "Kostrad", satminkal: ["Divif 1 Kostrad", "Divif 2 Kostrad"] },
-  { kotama: "Kodam Jaya", satminkal: ["Denma Kodam Jaya", "Kesdam Jaya"] },
+  { kotama: "KODAM IV/DIPONEGORO", satminkal: ["INFOLAHTADAM IV/DIPONEGORO"] },
 ];
 
 export const satminkalMaster = kotamaMaster.flatMap((k) =>

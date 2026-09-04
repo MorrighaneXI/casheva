@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useSession } from "@/components/session-context";
 import { roleNav } from "@/lib/role-nav";
+import { useLiveNotifications } from "@/lib/notifications";
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -25,6 +26,7 @@ export function AppSidebar() {
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const { satminkal, kotama, role, user } = useSession();
   const items = roleNav[role] || [];
+  const { getBadgeForUrl } = useLiveNotifications(role);
 
   return (
     <Sidebar collapsible="icon" className="transition-all duration-200">
@@ -79,6 +81,7 @@ export function AppSidebar() {
               {items.map((item) => {
                 const active =
                   item.url === "/" ? pathname === "/" : pathname.startsWith(item.url);
+                const liveBadge = getBadgeForUrl(item.url);
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton
@@ -100,9 +103,9 @@ export function AppSidebar() {
                         <span className="truncate">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
-                    {item.badge && !collapsed ? (
-                      <SidebarMenuBadge className="bg-gold text-gold-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                        {item.badge}
+                    {liveBadge && !collapsed ? (
+                      <SidebarMenuBadge className="bg-gold text-gold-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-in fade-in zoom-in-75 duration-200">
+                        {liveBadge}
                       </SidebarMenuBadge>
                     ) : null}
                   </SidebarMenuItem>

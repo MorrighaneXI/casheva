@@ -50,6 +50,8 @@ import {
 import { formatRp, workflowSteps, backendStatusToFrontend, loanStatusTone, formatNamaLengkapDinas, formatPangkatKorps } from "@/lib/casheva-data";
 import { cn } from "@/lib/utils";
 import { apiPinjaman, type Pinjaman } from "@/lib/api";
+import { DokumenViewerModal } from "@/components/dokumen-viewer-modal";
+import { Download, Layers, Cloud } from "lucide-react";
 
 export const Route = createFileRoute("/verifikasi")({
   head: () => ({
@@ -71,11 +73,11 @@ export const Route = createFileRoute("/verifikasi")({
 });
 
 const docs = [
-  "Surat Permohonan Usipa",
-  "Rekomendasi Juru Bayar",
-  "Slip Gaji 3 Bulan Terakhir",
-  "Fotokopi KTA / KTP",
-  "Surat Pernyataan Potong Gaji",
+  { id: "usipa", name: "Surat Permohonan Usipa" },
+  { id: "jurbay", name: "Rekomendasi Juru Bayar" },
+  { id: "slip", name: "Slip Gaji 3 Bulan Terakhir" },
+  { id: "kta", name: "Fotokopi KTA / KTP" },
+  { id: "potong_gaji", name: "Surat Pernyataan Potong Gaji" },
 ];
 
 function VerificationCenter() {
@@ -174,7 +176,7 @@ function JuyarPersonList({
                         {formatPangkatKorps(r.anggota?.pangkat?.nama, r.anggota?.korps?.nama, r.anggota?.pangkat?.kategori)}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {r.anggota?.satminkal?.nama || "Disinfolahtad"}
+                        {r.anggota?.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}
                       </TableCell>
                       <TableCell className="text-right font-semibold">
                         {formatRp(Number(r.nominal))}
@@ -213,6 +215,8 @@ function JuyarDetail({ item, onBack }: { item: Pinjaman; onBack: () => void }) {
   const queryClient = useQueryClient();
   const [dialog, setDialog] = useState<null | "approve" | "reject">(null);
   const [note, setNote] = useState("");
+  const [docModalOpen, setDocModalOpen] = useState(false);
+  const [selectedDocId, setSelectedDocId] = useState("usipa");
 
   const nominal = Number(item.nominal);
   const tenor = item.tenorBulan;
@@ -225,6 +229,11 @@ function JuyarDetail({ item, onBack }: { item: Pinjaman; onBack: () => void }) {
   const sisaGaji = estimasiGajiPokok + estimasiTunkin - estimasiPotonganLain - angsuran;
   const rasio = (angsuran / (estimasiGajiPokok + estimasiTunkin)) * 100;
   const isLayak = rasio <= 40;
+
+  const openDoc = (docId: string) => {
+    setSelectedDocId(docId);
+    setDocModalOpen(true);
+  };
 
   const updateStatusMutation = useMutation({
     mutationFn: (dto: { status: any; catatan?: string; alasanPenolakan?: string }) =>
@@ -267,7 +276,7 @@ function JuyarDetail({ item, onBack }: { item: Pinjaman; onBack: () => void }) {
     <div className="space-y-6">
       <PageHeader
         title="Detail Verifikasi Berkas Pinjaman"
-        description={`${item.id.slice(0, 8).toUpperCase()} · ${formatNamaLengkapDinas(item.anggota?.nama, item.anggota?.pangkat?.nama, item.anggota?.korps?.nama, item.anggota?.pangkat?.kategori)} · ${item.anggota?.satminkal?.nama || "Disinfolahtad"}`}
+        description={`${item.id.slice(0, 8).toUpperCase()} · ${formatNamaLengkapDinas(item.anggota?.nama, item.anggota?.pangkat?.nama, item.anggota?.korps?.nama, item.anggota?.pangkat?.kategori)} · ${item.anggota?.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}`}
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="outline" size="sm" onClick={onBack}>
@@ -310,27 +319,77 @@ function JuyarDetail({ item, onBack }: { item: Pinjaman; onBack: () => void }) {
         </div>
       </div>
 
-      <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle>Pemeriksaan Dokumen Persyaratan (Lampiran Juknis)</CardTitle>
-          <CardDescription>Periksa kelengkapan berkas fisik & tanda tangan hierarki</CardDescription>
+      <Card className="shadow-card border-primary/20">
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="size-5 text-primary" />
+              Pemeriksaan Dokumen Persyaratan (Lampiran Juknis)
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Periksa kelengkapan berkas fisik & tanda tangan hierarki (Dapat dilihat dan diunduh untuk arsip)
+            </CardDescription>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => openDoc("usipa")}
+            className="gap-1.5 text-xs shrink-0 shadow-sm border-primary/30"
+          >
+            <Layers className="size-3.5 text-primary" /> Buka Arsip Lengkap
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2">
-            {docs.map((d) => (
-              <div
-                key={d}
-                className="flex items-center justify-between gap-3 rounded-xl border border-border p-3.5 bg-muted/30"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <FileText className="size-4 text-primary shrink-0" />
-                  <span className="text-sm font-medium truncate">{d}</span>
+            {docs.map((d) => {
+              const hasUploaded = (item.dokumen || []).some((doc) => {
+                const j = (doc.jenis || doc.jenisDokumen || "").toLowerCase();
+                const targetId = d.id.toLowerCase();
+                const targetName = d.name.toLowerCase();
+                return j.includes(targetId) || j.includes(targetName);
+              });
+
+              return (
+                <div
+                  key={d.id}
+                  className="flex items-center justify-between gap-2.5 rounded-xl border border-border p-3 bg-muted/20 hover:bg-muted/40 transition-colors"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <FileText className="size-4 text-primary shrink-0" />
+                    <span className="text-xs font-medium truncate">{d.name}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {hasUploaded ? (
+                      <Badge variant="outline" className="border-success/40 bg-success/15 text-success text-[10px] px-1.5 py-0 font-semibold gap-0.5">
+                        <Cloud className="size-2.5" /> Cloudinary
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="border-border bg-muted/40 text-muted-foreground text-[10px] px-1.5 py-0">
+                        Format Standar
+                      </Badge>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs gap-1 hover:bg-primary/10 hover:text-primary"
+                      onClick={() => openDoc(d.id)}
+                      title={`Lihat dokumen ${d.name}`}
+                    >
+                      <Eye className="size-3.5" /> Lihat
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs gap-1 hover:bg-primary/10 hover:text-primary"
+                      onClick={() => openDoc(d.id)}
+                      title={`Unduh arsip ${d.name}`}
+                    >
+                      <Download className="size-3.5" /> Unduh
+                    </Button>
+                  </div>
                 </div>
-                <Badge variant="outline" className="border-success/30 bg-success/10 text-success text-xs">
-                  Terverifikasi
-                </Badge>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
@@ -405,6 +464,14 @@ function JuyarDetail({ item, onBack }: { item: Pinjaman; onBack: () => void }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Pemeriksaan Dokumen & Arsip */}
+      <DokumenViewerModal
+        isOpen={docModalOpen}
+        onClose={() => setDocModalOpen(false)}
+        pinjaman={item}
+        initialDocId={selectedDocId}
+      />
     </div>
   );
 }

@@ -218,7 +218,7 @@ export function UserManagementWidget() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-xs">
-                        {u.satminkal?.nama || "Disinfolahtad"}
+                        {u.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {u.email || "-"} {u.phone ? `· ${u.phone}` : ""}

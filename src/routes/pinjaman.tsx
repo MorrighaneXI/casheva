@@ -43,6 +43,8 @@ import {
 import { formatRp, loanStatusTone, backendStatusToFrontend, formatPangkatKorps, formatNamaLengkapDinas } from "@/lib/casheva-data";
 import { canAccessPath } from "@/lib/rbac";
 import { apiPinjaman, type Pinjaman } from "@/lib/api";
+import { DokumenViewerModal } from "@/components/dokumen-viewer-modal";
+import { Download, Layers } from "lucide-react";
 
 export const Route = createFileRoute("/pinjaman")({
   head: () => ({
@@ -71,6 +73,7 @@ function PinjamanPage() {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("ALL");
   const [selectedLoan, setSelectedLoan] = useState<Pinjaman | null>(null);
+  const [docModalOpen, setDocModalOpen] = useState(false);
 
   const { data: loanList = [], isLoading } = useQuery({
     queryKey: ["pinjaman-list"],
@@ -286,7 +289,7 @@ function PinjamanPage() {
                 filteredRows.map((l) => {
                   const uiStatus = backendStatusToFrontend(l.status);
                   const angsuranPerBulan =
-                    l.angsuran && l.angsuran.length > 0
+                    l.angsuran && l.angsuran.length > 0 && l.angsuran[0]
                       ? Number(l.angsuran[0].total)
                       : Math.round((Number(l.nominal) * (1 + (Number(l.bungaPersenTahun || 12) / 100))) / l.tenorBulan);
                   const formattedPangkat = formatPangkatKorps(
@@ -324,7 +327,7 @@ function PinjamanPage() {
                         </button>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {l.anggota?.satminkal?.nama || "Disinfolahtad"}
+                        {l.anggota?.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}
                       </TableCell>
                       <TableCell className="text-right font-bold text-foreground">
                         {formatRp(Number(l.nominal))}
@@ -401,7 +404,7 @@ function PinjamanPage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Kesatuan / Satminkal:</span>
-                  <span>{selectedLoan.anggota?.satminkal?.nama || "Disinfolahtad"}</span>
+                  <span>{selectedLoan.anggota?.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}</span>
                 </div>
               </div>
 
@@ -463,10 +466,38 @@ function PinjamanPage() {
                   {selectedLoan.catatan}
                 </div>
               )}
+
+              {selectedLoan.alasanPenolakan && (
+                <div className="p-3 rounded-lg border border-destructive/30 bg-destructive/10 text-destructive text-xs">
+                  <span className="font-semibold">Alasan Penolakan: </span>
+                  {selectedLoan.alasanPenolakan}
+                </div>
+              )}
+
+              {/* Tombol Pemeriksaan Dokumen & Arsip */}
+              <div className="pt-1">
+                <Button
+                  variant="outline"
+                  onClick={() => setDocModalOpen(true)}
+                  className="w-full gap-2 text-xs font-semibold shadow-sm border-primary/30"
+                >
+                  <FileText className="size-4 text-primary" />
+                  Pemeriksaan Dokumen Persyaratan &amp; Unduh Arsip Digital
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal Pemeriksaan Dokumen & Arsip */}
+      {selectedLoan && (
+        <DokumenViewerModal
+          isOpen={docModalOpen}
+          onClose={() => setDocModalOpen(false)}
+          pinjaman={selectedLoan}
+        />
+      )}
     </div>
   );
 }

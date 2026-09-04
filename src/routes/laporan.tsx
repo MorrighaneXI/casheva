@@ -73,16 +73,16 @@ function LaporanPage() {
   const [activeTab, setActiveTab] = useState("shu");
 
   // Kopstuk state
-  const [kop1, setKop1] = useState("MARKAS BESAR ANGKATAN DARAT");
-  const [kop2, setKop2] = useState("PRIMER KOPERASI KARTIKA DISINFOLAHTAD");
-  const [kop3, setKop3] = useState("Jl. Veteran No. 5, Jakarta Pusat");
+  const [kop1, setKop1] = useState("KOMANDO DAERAH MILITER IV/DIPONEGORO");
+  const [kop2, setKop2] = useState("PRIMER KOPERASI KARTIKA INFOLAHTADAM IV/DIPONEGORO");
+  const [kop3, setKop3] = useState("Jl. Perintis Kemerdekaan, Watugong, Semarang");
 
   // Tajuk TTD state
   const [ttdOpen, setTtdOpen] = useState(false);
   const [jabatan, setJabatan] = useState("Ketua Primkop Kartika");
   const [pejabat, setPejabat] = useState("Letkol Cba Dedi Kurnia");
   const [nrp, setNrp] = useState("11020033");
-  const [tempatTgl, setTempatTgl] = useState("Jakarta, 4 Agustus 2026");
+  const [tempatTgl, setTempatTgl] = useState("Semarang, 4 Agustus 2026");
 
   // Queries
   const { data: kopstukData } = useQuery({
@@ -428,7 +428,7 @@ function LaporanPage() {
                     <td className="border border-border p-2">
                       {formatPangkatKorps(a.pangkat?.nama, a.korps?.nama, a.pangkat?.kategori)}
                     </td>
-                    <td className="border border-border p-2">{a.satminkal?.nama || "Disinfolahtad"}</td>
+                    <td className="border border-border p-2">{a.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}</td>
                     <td className="border border-border p-2 text-center">
                       {a.tmtAnggota || (a.tanggalMasuk ? new Date(a.tanggalMasuk).toLocaleDateString("id-ID") : "-")}
                     </td>

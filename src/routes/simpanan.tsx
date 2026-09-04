@@ -417,7 +417,7 @@ function SimpananPage() {
                               <Copy className="size-3 opacity-60" />
                             </button>
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{r.satminkal || "Disinfolahtad"}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{r.satminkal || "INFOLAHTADAM IV/DIPONEGORO"}</TableCell>
                           <TableCell className="text-right font-medium">{formatRp(pokok)}</TableCell>
                           <TableCell className="text-right font-medium">{formatRp(wajib)}</TableCell>
                           <TableCell className="text-right text-success font-medium">

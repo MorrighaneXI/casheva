@@ -142,8 +142,8 @@ function AnggotaPage() {
   // Statistik Ringkas
   const stats = useMemo(() => {
     const total = anggotaList.length;
-    const patiPamen = anggotaList.filter((a) => ["PATI", "PAMEN"].includes(a.pangkat?.kategori)).length;
-    const pamaBa = anggotaList.filter((a) => ["PAMA", "BINTARA", "BATA_ASN"].includes(a.pangkat?.kategori)).length;
+    const patiPamen = anggotaList.filter((a) => a.pangkat?.kategori && ["PATI", "PAMEN"].includes(a.pangkat.kategori)).length;
+    const pamaBa = anggotaList.filter((a) => a.pangkat?.kategori && ["PAMA", "BINTARA", "BATA_ASN"].includes(a.pangkat.kategori)).length;
     const pns = anggotaList.filter((a) => a.pangkat?.kategori === "PNS").length;
     return { total, patiPamen, pamaBa, pns };
   }, [anggotaList]);
@@ -386,7 +386,7 @@ function AnggotaPage() {
                         </button>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {a.satminkal?.nama || "Disinfolahtad"}
+                        {a.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}
                       </TableCell>
                       <TableCell className="text-right font-medium">{formatRp(Number(wajib))}</TableCell>
                       <TableCell className="text-right text-success font-medium">
