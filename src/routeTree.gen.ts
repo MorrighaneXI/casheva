@@ -15,18 +15,28 @@ import { Route as AnggotaRouteImport } from './routes/anggota'
 import { Route as AngsuranRouteImport } from './routes/angsuran'
 import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AuditFlowRouteImport } from './routes/audit-flow'
+import { Route as GadaiRouteImport } from './routes/gadai'
 import { Route as GajiRouteImport } from './routes/gaji'
+import { Route as InventoriRouteImport } from './routes/inventori'
+import { Route as KatalogBelanjaRouteImport } from './routes/katalog-belanja'
 import { Route as KopstukRouteImport } from './routes/kopstuk'
 import { Route as LaporanRouteImport } from './routes/laporan'
+import { Route as LaporanTokoRouteImport } from './routes/laporan-toko'
 import { Route as LikuiditasRouteImport } from './routes/likuiditas'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MarketplaceAnggotaRouteImport } from './routes/marketplace-anggota'
 import { Route as MasterDataRouteImport } from './routes/master-data'
 import { Route as PencairanRouteImport } from './routes/pencairan'
 import { Route as PengajuanRouteImport } from './routes/pengajuan'
+import { Route as PesananAntarRouteImport } from './routes/pesanan-antar'
 import { Route as PinjamanRouteImport } from './routes/pinjaman'
+import { Route as PoinUndianRouteImport } from './routes/poin-undian'
+import { Route as PosRouteImport } from './routes/pos'
 import { Route as RekomendasiRouteImport } from './routes/rekomendasi'
 import { Route as ShuRouteImport } from './routes/shu'
 import { Route as SimpananRouteImport } from './routes/simpanan'
+import { Route as SupplierRouteImport } from './routes/supplier'
+import { Route as TokoTransaksiRouteImport } from './routes/toko-transaksi'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as VerifikasiRouteImport } from './routes/verifikasi'
 
@@ -60,9 +70,24 @@ const AuditFlowRoute = AuditFlowRouteImport.update({
   path: '/audit-flow',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GadaiRoute = GadaiRouteImport.update({
+  id: '/gadai',
+  path: '/gadai',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const GajiRoute = GajiRouteImport.update({
   id: '/gaji',
   path: '/gaji',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InventoriRoute = InventoriRouteImport.update({
+  id: '/inventori',
+  path: '/inventori',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KatalogBelanjaRoute = KatalogBelanjaRouteImport.update({
+  id: '/katalog-belanja',
+  path: '/katalog-belanja',
   getParentRoute: () => rootRouteImport,
 } as any)
 const KopstukRoute = KopstukRouteImport.update({
@@ -75,6 +100,11 @@ const LaporanRoute = LaporanRouteImport.update({
   path: '/laporan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LaporanTokoRoute = LaporanTokoRouteImport.update({
+  id: '/laporan-toko',
+  path: '/laporan-toko',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LikuiditasRoute = LikuiditasRouteImport.update({
   id: '/likuiditas',
   path: '/likuiditas',
@@ -83,6 +113,11 @@ const LikuiditasRoute = LikuiditasRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketplaceAnggotaRoute = MarketplaceAnggotaRouteImport.update({
+  id: '/marketplace-anggota',
+  path: '/marketplace-anggota',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MasterDataRoute = MasterDataRouteImport.update({
@@ -100,9 +135,24 @@ const PengajuanRoute = PengajuanRouteImport.update({
   path: '/pengajuan',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PesananAntarRoute = PesananAntarRouteImport.update({
+  id: '/pesanan-antar',
+  path: '/pesanan-antar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PinjamanRoute = PinjamanRouteImport.update({
   id: '/pinjaman',
   path: '/pinjaman',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PoinUndianRoute = PoinUndianRouteImport.update({
+  id: '/poin-undian',
+  path: '/poin-undian',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PosRoute = PosRouteImport.update({
+  id: '/pos',
+  path: '/pos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RekomendasiRoute = RekomendasiRouteImport.update({
@@ -118,6 +168,16 @@ const ShuRoute = ShuRouteImport.update({
 const SimpananRoute = SimpananRouteImport.update({
   id: '/simpanan',
   path: '/simpanan',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupplierRoute = SupplierRouteImport.update({
+  id: '/supplier',
+  path: '/supplier',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TokoTransaksiRoute = TokoTransaksiRouteImport.update({
+  id: '/toko-transaksi',
+  path: '/toko-transaksi',
   getParentRoute: () => rootRouteImport,
 } as any)
 const UsersRoute = UsersRouteImport.update({
@@ -138,18 +198,28 @@ export interface FileRoutesByFullPath {
   '/angsuran': typeof AngsuranRoute
   '/audit': typeof AuditRoute
   '/audit-flow': typeof AuditFlowRoute
+  '/gadai': typeof GadaiRoute
   '/gaji': typeof GajiRoute
+  '/inventori': typeof InventoriRoute
+  '/katalog-belanja': typeof KatalogBelanjaRoute
   '/kopstuk': typeof KopstukRoute
   '/laporan': typeof LaporanRoute
+  '/laporan-toko': typeof LaporanTokoRoute
   '/likuiditas': typeof LikuiditasRoute
   '/login': typeof LoginRoute
+  '/marketplace-anggota': typeof MarketplaceAnggotaRoute
   '/master-data': typeof MasterDataRoute
   '/pencairan': typeof PencairanRoute
   '/pengajuan': typeof PengajuanRoute
+  '/pesanan-antar': typeof PesananAntarRoute
   '/pinjaman': typeof PinjamanRoute
+  '/poin-undian': typeof PoinUndianRoute
+  '/pos': typeof PosRoute
   '/rekomendasi': typeof RekomendasiRoute
   '/shu': typeof ShuRoute
   '/simpanan': typeof SimpananRoute
+  '/supplier': typeof SupplierRoute
+  '/toko-transaksi': typeof TokoTransaksiRoute
   '/users': typeof UsersRoute
   '/verifikasi': typeof VerifikasiRoute
 }
@@ -160,18 +230,28 @@ export interface FileRoutesByTo {
   '/angsuran': typeof AngsuranRoute
   '/audit': typeof AuditRoute
   '/audit-flow': typeof AuditFlowRoute
+  '/gadai': typeof GadaiRoute
   '/gaji': typeof GajiRoute
+  '/inventori': typeof InventoriRoute
+  '/katalog-belanja': typeof KatalogBelanjaRoute
   '/kopstuk': typeof KopstukRoute
   '/laporan': typeof LaporanRoute
+  '/laporan-toko': typeof LaporanTokoRoute
   '/likuiditas': typeof LikuiditasRoute
   '/login': typeof LoginRoute
+  '/marketplace-anggota': typeof MarketplaceAnggotaRoute
   '/master-data': typeof MasterDataRoute
   '/pencairan': typeof PencairanRoute
   '/pengajuan': typeof PengajuanRoute
+  '/pesanan-antar': typeof PesananAntarRoute
   '/pinjaman': typeof PinjamanRoute
+  '/poin-undian': typeof PoinUndianRoute
+  '/pos': typeof PosRoute
   '/rekomendasi': typeof RekomendasiRoute
   '/shu': typeof ShuRoute
   '/simpanan': typeof SimpananRoute
+  '/supplier': typeof SupplierRoute
+  '/toko-transaksi': typeof TokoTransaksiRoute
   '/users': typeof UsersRoute
   '/verifikasi': typeof VerifikasiRoute
 }
@@ -183,18 +263,28 @@ export interface FileRoutesById {
   '/angsuran': typeof AngsuranRoute
   '/audit': typeof AuditRoute
   '/audit-flow': typeof AuditFlowRoute
+  '/gadai': typeof GadaiRoute
   '/gaji': typeof GajiRoute
+  '/inventori': typeof InventoriRoute
+  '/katalog-belanja': typeof KatalogBelanjaRoute
   '/kopstuk': typeof KopstukRoute
   '/laporan': typeof LaporanRoute
+  '/laporan-toko': typeof LaporanTokoRoute
   '/likuiditas': typeof LikuiditasRoute
   '/login': typeof LoginRoute
+  '/marketplace-anggota': typeof MarketplaceAnggotaRoute
   '/master-data': typeof MasterDataRoute
   '/pencairan': typeof PencairanRoute
   '/pengajuan': typeof PengajuanRoute
+  '/pesanan-antar': typeof PesananAntarRoute
   '/pinjaman': typeof PinjamanRoute
+  '/poin-undian': typeof PoinUndianRoute
+  '/pos': typeof PosRoute
   '/rekomendasi': typeof RekomendasiRoute
   '/shu': typeof ShuRoute
   '/simpanan': typeof SimpananRoute
+  '/supplier': typeof SupplierRoute
+  '/toko-transaksi': typeof TokoTransaksiRoute
   '/users': typeof UsersRoute
   '/verifikasi': typeof VerifikasiRoute
 }
@@ -207,18 +297,28 @@ export interface FileRouteTypes {
     | '/angsuran'
     | '/audit'
     | '/audit-flow'
+    | '/gadai'
     | '/gaji'
+    | '/inventori'
+    | '/katalog-belanja'
     | '/kopstuk'
     | '/laporan'
+    | '/laporan-toko'
     | '/likuiditas'
     | '/login'
+    | '/marketplace-anggota'
     | '/master-data'
     | '/pencairan'
     | '/pengajuan'
+    | '/pesanan-antar'
     | '/pinjaman'
+    | '/poin-undian'
+    | '/pos'
     | '/rekomendasi'
     | '/shu'
     | '/simpanan'
+    | '/supplier'
+    | '/toko-transaksi'
     | '/users'
     | '/verifikasi'
   fileRoutesByTo: FileRoutesByTo
@@ -229,18 +329,28 @@ export interface FileRouteTypes {
     | '/angsuran'
     | '/audit'
     | '/audit-flow'
+    | '/gadai'
     | '/gaji'
+    | '/inventori'
+    | '/katalog-belanja'
     | '/kopstuk'
     | '/laporan'
+    | '/laporan-toko'
     | '/likuiditas'
     | '/login'
+    | '/marketplace-anggota'
     | '/master-data'
     | '/pencairan'
     | '/pengajuan'
+    | '/pesanan-antar'
     | '/pinjaman'
+    | '/poin-undian'
+    | '/pos'
     | '/rekomendasi'
     | '/shu'
     | '/simpanan'
+    | '/supplier'
+    | '/toko-transaksi'
     | '/users'
     | '/verifikasi'
   id:
@@ -251,18 +361,28 @@ export interface FileRouteTypes {
     | '/angsuran'
     | '/audit'
     | '/audit-flow'
+    | '/gadai'
     | '/gaji'
+    | '/inventori'
+    | '/katalog-belanja'
     | '/kopstuk'
     | '/laporan'
+    | '/laporan-toko'
     | '/likuiditas'
     | '/login'
+    | '/marketplace-anggota'
     | '/master-data'
     | '/pencairan'
     | '/pengajuan'
+    | '/pesanan-antar'
     | '/pinjaman'
+    | '/poin-undian'
+    | '/pos'
     | '/rekomendasi'
     | '/shu'
     | '/simpanan'
+    | '/supplier'
+    | '/toko-transaksi'
     | '/users'
     | '/verifikasi'
   fileRoutesById: FileRoutesById
@@ -274,18 +394,28 @@ export interface RootRouteChildren {
   AngsuranRoute: typeof AngsuranRoute
   AuditRoute: typeof AuditRoute
   AuditFlowRoute: typeof AuditFlowRoute
+  GadaiRoute: typeof GadaiRoute
   GajiRoute: typeof GajiRoute
+  InventoriRoute: typeof InventoriRoute
+  KatalogBelanjaRoute: typeof KatalogBelanjaRoute
   KopstukRoute: typeof KopstukRoute
   LaporanRoute: typeof LaporanRoute
+  LaporanTokoRoute: typeof LaporanTokoRoute
   LikuiditasRoute: typeof LikuiditasRoute
   LoginRoute: typeof LoginRoute
+  MarketplaceAnggotaRoute: typeof MarketplaceAnggotaRoute
   MasterDataRoute: typeof MasterDataRoute
   PencairanRoute: typeof PencairanRoute
   PengajuanRoute: typeof PengajuanRoute
+  PesananAntarRoute: typeof PesananAntarRoute
   PinjamanRoute: typeof PinjamanRoute
+  PoinUndianRoute: typeof PoinUndianRoute
+  PosRoute: typeof PosRoute
   RekomendasiRoute: typeof RekomendasiRoute
   ShuRoute: typeof ShuRoute
   SimpananRoute: typeof SimpananRoute
+  SupplierRoute: typeof SupplierRoute
+  TokoTransaksiRoute: typeof TokoTransaksiRoute
   UsersRoute: typeof UsersRoute
   VerifikasiRoute: typeof VerifikasiRoute
 }
@@ -334,11 +464,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuditFlowRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/gadai': {
+      id: '/gadai'
+      path: '/gadai'
+      fullPath: '/gadai'
+      preLoaderRoute: typeof GadaiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/gaji': {
       id: '/gaji'
       path: '/gaji'
       fullPath: '/gaji'
       preLoaderRoute: typeof GajiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/inventori': {
+      id: '/inventori'
+      path: '/inventori'
+      fullPath: '/inventori'
+      preLoaderRoute: typeof InventoriRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/katalog-belanja': {
+      id: '/katalog-belanja'
+      path: '/katalog-belanja'
+      fullPath: '/katalog-belanja'
+      preLoaderRoute: typeof KatalogBelanjaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/kopstuk': {
@@ -355,6 +506,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LaporanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/laporan-toko': {
+      id: '/laporan-toko'
+      path: '/laporan-toko'
+      fullPath: '/laporan-toko'
+      preLoaderRoute: typeof LaporanTokoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/likuiditas': {
       id: '/likuiditas'
       path: '/likuiditas'
@@ -367,6 +525,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketplace-anggota': {
+      id: '/marketplace-anggota'
+      path: '/marketplace-anggota'
+      fullPath: '/marketplace-anggota'
+      preLoaderRoute: typeof MarketplaceAnggotaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/master-data': {
@@ -390,11 +555,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PengajuanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pesanan-antar': {
+      id: '/pesanan-antar'
+      path: '/pesanan-antar'
+      fullPath: '/pesanan-antar'
+      preLoaderRoute: typeof PesananAntarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pinjaman': {
       id: '/pinjaman'
       path: '/pinjaman'
       fullPath: '/pinjaman'
       preLoaderRoute: typeof PinjamanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/poin-undian': {
+      id: '/poin-undian'
+      path: '/poin-undian'
+      fullPath: '/poin-undian'
+      preLoaderRoute: typeof PoinUndianRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pos': {
+      id: '/pos'
+      path: '/pos'
+      fullPath: '/pos'
+      preLoaderRoute: typeof PosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/rekomendasi': {
@@ -416,6 +602,20 @@ declare module '@tanstack/react-router' {
       path: '/simpanan'
       fullPath: '/simpanan'
       preLoaderRoute: typeof SimpananRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/supplier': {
+      id: '/supplier'
+      path: '/supplier'
+      fullPath: '/supplier'
+      preLoaderRoute: typeof SupplierRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/toko-transaksi': {
+      id: '/toko-transaksi'
+      path: '/toko-transaksi'
+      fullPath: '/toko-transaksi'
+      preLoaderRoute: typeof TokoTransaksiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/users': {
@@ -442,18 +642,28 @@ const rootRouteChildren: RootRouteChildren = {
   AngsuranRoute: AngsuranRoute,
   AuditRoute: AuditRoute,
   AuditFlowRoute: AuditFlowRoute,
+  GadaiRoute: GadaiRoute,
   GajiRoute: GajiRoute,
+  InventoriRoute: InventoriRoute,
+  KatalogBelanjaRoute: KatalogBelanjaRoute,
   KopstukRoute: KopstukRoute,
   LaporanRoute: LaporanRoute,
+  LaporanTokoRoute: LaporanTokoRoute,
   LikuiditasRoute: LikuiditasRoute,
   LoginRoute: LoginRoute,
+  MarketplaceAnggotaRoute: MarketplaceAnggotaRoute,
   MasterDataRoute: MasterDataRoute,
   PencairanRoute: PencairanRoute,
   PengajuanRoute: PengajuanRoute,
+  PesananAntarRoute: PesananAntarRoute,
   PinjamanRoute: PinjamanRoute,
+  PoinUndianRoute: PoinUndianRoute,
+  PosRoute: PosRoute,
   RekomendasiRoute: RekomendasiRoute,
   ShuRoute: ShuRoute,
   SimpananRoute: SimpananRoute,
+  SupplierRoute: SupplierRoute,
+  TokoTransaksiRoute: TokoTransaksiRoute,
   UsersRoute: UsersRoute,
   VerifikasiRoute: VerifikasiRoute,
 }

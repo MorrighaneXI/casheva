@@ -55,6 +55,7 @@ const DEMO_CREDENTIALS: Record<Role, { username: string; password: string; deskr
   Keprim: { username: "keprim", password: "Admin123!", deskripsi: "Letkol Cba Dedi Kurnia (Keprim)" },
   Bendahara: { username: "bendahara", password: "Admin123!", deskripsi: "Lettu Cku Budi (Bendahara)" },
   "Juru Bayar": { username: "jurubayar", password: "Admin123!", deskripsi: "Serma Agus (Juru Bayar)" },
+  "Kasir Toko": { username: "kasir", password: "Admin123!", deskripsi: "Kopda Hendra S. (Kasir Toko)" },
   "Pengawas Koperasi": { username: "pengawas", password: "Admin123!", deskripsi: "Mayor Inf Tri (Pengawas)" },
   Anggota: { username: "1102123401", password: "Admin123!", deskripsi: "Kolonel Inf Sigit (NRP: 1102123401)" },
 };
