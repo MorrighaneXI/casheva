@@ -6,6 +6,7 @@ export type Role =
   | "Keprim"
   | "Bendahara"
   | "Juru Bayar"
+  | "Kasir Toko"
   | "Anggota"
   | "Pengawas Koperasi";
 
@@ -15,6 +16,7 @@ export const ROLES: Role[] = [
   "Keprim",
   "Bendahara",
   "Juru Bayar",
+  "Kasir Toko",
   "Anggota",
   "Pengawas Koperasi",
 ];
@@ -25,6 +27,7 @@ export const roleShort: Record<Role, string> = {
   Keprim: "Keprim",
   Bendahara: "Bendahara",
   "Juru Bayar": "Juyar",
+  "Kasir Toko": "Kasir",
   Anggota: "Anggota",
   "Pengawas Koperasi": "Pengawas",
 };
@@ -44,6 +47,8 @@ export function backendRoleToFrontend(role: BackendRole | string): Role {
       return 'Pengawas Koperasi';
     case 'JURU_BAYAR':
       return 'Juru Bayar';
+    case 'KASIR_TOKO':
+      return 'Kasir Toko';
     case 'ANGGOTA':
       return 'Anggota';
     default:
@@ -66,6 +71,8 @@ export function frontendRoleToBackend(role: Role | string): BackendRole {
       return 'PENGAWAS';
     case 'Juru Bayar':
       return 'JURU_BAYAR';
+    case 'Kasir Toko':
+      return 'KASIR_TOKO' as BackendRole;
     case 'Anggota':
       return 'ANGGOTA';
     default:
@@ -73,8 +80,17 @@ export function frontendRoleToBackend(role: Role | string): BackendRole {
   }
 }
 
-export const formatRp = (n: number) =>
-  "Rp " + new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(n);
+export function formatRp(n: number | string | null | undefined): string {
+  if (n === null || n === undefined || isNaN(Number(n))) return "Rp 0";
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(Number(n));
+}
+
+export const formatRupiah = formatRp;
 
 export function formatPangkatKorps(
   pangkat?: string | null,
@@ -120,35 +136,34 @@ export function formatPangkatKorps(
   return p;
 }
 
+export const potonganSukarela: Record<string, number> = {
+  Pamen: 300_000,
+  Pama: 250_000,
+  "Ba/Ta/ASN": 150_000,
+};
+
+export const shuDistribusi = [
+  { pos: "Jasa Modal Anggota", persen: 20 },
+  { pos: "Jasa Usaha / Transaksi Anggota", persen: 30 },
+  { pos: "Dana Cadangan Koperasi", persen: 20 },
+  { pos: "Dana Pengurus & Pengawas", persen: 10 },
+  { pos: "Dana Pendidikan Koperasi", persen: 5 },
+  { pos: "Dana Sosial & Pembinaan Satuan", persen: 10 },
+  { pos: "Dana Karyawan / Staf", persen: 5 },
+];
+
 export const formatPangkatTniAd = formatPangkatKorps;
 
-/**
- * Membersihkan awalan pangkat atau korps dari nama personil agar tidak terjadi duplikasi.
- * Contoh:
- *  - "Sertu Hendra Gunawan" -> "Hendra Gunawan"
- *  - "Sertu Inf Sertu Hendra Gunawan" -> "Hendra Gunawan"
- *  - "Kolonel Inf Dedi Prasetyo" -> "Dedi Prasetyo"
- */
 export function cleanNamaPersonel(nama?: string | null): string {
   if (!nama) return '';
   let n = nama.trim();
 
-  // Pola regex awalan pangkat TNI/PNS + opsional korps/TNI
   const rankPrefixRegex = /^(?:(?:Jenderal|Letnan\s+Jenderal|Letjen|Mayor\s+Jenderal|Mayjen|Brigadir\s+Jenderal|Brigjen|Kolonel|Letnan\s+Kolonel|Letkol|Mayor|Kapten|Letnan\s+Satu|Lettu|Letnan\s+Dua|Letda|Pembantu\s+Letnan\s+Satu|Peltu|Pembantu\s+Letnan\s+Dua|Pelda|Sersan\s+Mayor|Serma|Sersan\s+Kepala|Serka|Sersan\s+Satu|Sertu|Sersan\s+Dua|Serda|Kopral\s+Kepala|Kopka|Kopral\s+Satu|Koptu|Kopral\s+Dua|Kopda|Prajurit\s+Kepala|Praka|Prajurit\s+Satu|Pratu|Prajurit\s+Dua|Prada|PNS(?:\s+(?:IV|III|II|I)\/[A-Ea-e])?|PPPK)\s*(?:(?:TNI\s*AD|TNI|Inf|Kav|Arm|Arh|Czi|Cpm|Cba|Ckm|Cpl|Cke|Chk|Caj|Cku|Ctp|Cpn)\b)?\s*)+/i;
 
   n = n.replace(rankPrefixRegex, '').trim();
   return n || (nama?.trim() ?? '');
 }
 
-/**
- * Format nama lengkap dinas: Pangkat [Korps] NamaOrang
- * Contoh:
- *  - PATI:    "Mayjen TNI Sigit Widiyanto"
- *  - PAMEN:   "Kolonel Inf Dedi Prasetyo"
- *  - PAMA:    "Kapten Czi Eko Yulianto"
- *  - BINTARA: "Sertu Hendra Gunawan"
- *  - PNS:     "PNS III/C Ahmad Subekti"
- */
 export function formatNamaLengkapDinas(
   nama?: string | null,
   pangkat?: string | null,
@@ -286,7 +301,6 @@ export const recentLoans = [
   },
 ];
 
-/** Ringkasan status pinjaman untuk dashboard eksekutif */
 export function getLoanStatusCounts(loans: typeof recentLoans = recentLoans) {
   const prosesStatuses: LoanStatus[] = ["Pending", "Verified Jurbay", "Approved Dan"];
   const accStatuses: LoanStatus[] = ["ACC Keprim", "Disbursed"];
@@ -323,7 +337,6 @@ export const angsuranData = [
   { bulan: "Agu", target: 380, realisasi: 366 },
 ];
 
-/** Pengajuan pinjaman satuan per bulan (jumlah berkas) */
 export const pengajuanSatuanData = [
   { bulan: "Mar", pengajuan: 12, disetujui: 9 },
   { bulan: "Apr", pengajuan: 15, disetujui: 12 },
@@ -333,7 +346,6 @@ export const pengajuanSatuanData = [
   { bulan: "Agu", pengajuan: 16, disetujui: 11 },
 ];
 
-/** Likuiditas kas vs pencairan (juta rupiah) */
 export const likuiditasData = [
   { bulan: "Mar", kas: 4200, pencairan: 980 },
   { bulan: "Apr", kas: 4380, pencairan: 1120 },
@@ -352,18 +364,20 @@ export type Anggota = {
   satminkal: string;
   simpananWajib: number;
   simpananSukarela: number;
+  creditLimit?: number;
+  tipeAnggota?: "ORGANIK" | "NON_ORGANIK";
   status: "Aktif" | "Cuti" | "Non-Aktif";
 };
 
 export const anggotaList: Anggota[] = [
-  { nrp: "11020033", nama: "Dedi Kurnia", pangkat: "Letkol Cba", golongan: "Pamen", korps: "Cba", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 4800000, simpananSukarela: 12500000, status: "Aktif" },
-  { nrp: "11060078", nama: "Rahmat Hidayat", pangkat: "Kapten Inf", golongan: "Pama", korps: "Inf", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 3600000, simpananSukarela: 7250000, status: "Aktif" },
-  { nrp: "21980045", nama: "Budi Santoso", pangkat: "Serma", golongan: "Ba/Ta", korps: "Chb", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 2400000, simpananSukarela: 4100000, status: "Aktif" },
-  { nrp: "21930112", nama: "Agus Wibowo", pangkat: "Pelda", golongan: "Ba/Ta", korps: "Czi", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 2700000, simpananSukarela: 5300000, status: "Cuti" },
-  { nrp: "198504112009", nama: "Sri Wahyuni", pangkat: "Penata Muda", golongan: "PNS", korps: "PNS", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 1800000, simpananSukarela: 2900000, status: "Aktif" },
-  { nrp: "11150221", nama: "Fajar Nugroho", pangkat: "Mayor Kav", golongan: "Pamen", korps: "Kav", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 4200000, simpananSukarela: 9800000, status: "Aktif" },
-  { nrp: "31770091", nama: "Hendra Gunawan", pangkat: "Sertu", golongan: "Ba/Ta", korps: "Inf", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 1500000, simpananSukarela: 1750000, status: "Aktif" },
-  { nrp: "11090154", nama: "Wahyu Prasetyo", pangkat: "Lettu Chb", golongan: "Pama", korps: "Chb", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 3000000, simpananSukarela: 6400000, status: "Non-Aktif" },
+  { nrp: "11020033", nama: "Dedi Kurnia", pangkat: "Letkol Cba", golongan: "Pamen", korps: "Cba", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 4800000, simpananSukarela: 12500000, creditLimit: 10000000, tipeAnggota: "ORGANIK", status: "Aktif" },
+  { nrp: "11060078", nama: "Rahmat Hidayat", pangkat: "Kapten Inf", golongan: "Pama", korps: "Inf", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 3600000, simpananSukarela: 7250000, creditLimit: 7500000, tipeAnggota: "ORGANIK", status: "Aktif" },
+  { nrp: "21980045", nama: "Budi Santoso", pangkat: "Serma", golongan: "Ba/Ta", korps: "Chb", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 2400000, simpananSukarela: 4100000, creditLimit: 5000000, tipeAnggota: "ORGANIK", status: "Aktif" },
+  { nrp: "21930112", nama: "Agus Wibowo", pangkat: "Pelda", golongan: "Ba/Ta", korps: "Czi", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 2700000, simpananSukarela: 5300000, creditLimit: 5000000, tipeAnggota: "ORGANIK", status: "Cuti" },
+  { nrp: "198504112009", nama: "Sri Wahyuni", pangkat: "Penata Muda", golongan: "PNS", korps: "PNS", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 1800000, simpananSukarela: 2900000, creditLimit: 4000000, tipeAnggota: "ORGANIK", status: "Aktif" },
+  { nrp: "11150221", nama: "Fajar Nugroho", pangkat: "Mayor Kav", golongan: "Pamen", korps: "Kav", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 4200000, simpananSukarela: 9800000, creditLimit: 8000000, tipeAnggota: "ORGANIK", status: "Aktif" },
+  { nrp: "31770091", nama: "Hendra Gunawan", pangkat: "Sertu", golongan: "Ba/Ta", korps: "Inf", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 1500000, simpananSukarela: 1750000, creditLimit: 3500000, tipeAnggota: "ORGANIK", status: "Aktif" },
+  { nrp: "11090154", nama: "Wahyu Prasetyo", pangkat: "Lettu Chb", golongan: "Pama", korps: "Chb", satminkal: "INFOLAHTADAM IV/DIPONEGORO", simpananWajib: 3000000, simpananSukarela: 6400000, creditLimit: 6000000, tipeAnggota: "ORGANIK", status: "Non-Aktif" },
 ];
 
 export const shuRows = [
@@ -384,8 +398,6 @@ export const workflowSteps = [
   "Pencairan",
 ];
 
-/* ───────────────────────── RBAC & master data ───────────────────────── */
-
 export type SystemUser = {
   id: string;
   nama: string;
@@ -405,9 +417,9 @@ export const systemUsers: SystemUser[] = [
   { id: "USR-006", nama: "Penata Muda Sri Wahyuni", nrp: "198504112009", role: "Bendahara", satminkal: "INFOLAHTADAM IV/DIPONEGORO", status: "Nonaktif", lastLogin: "21 Jul 2026 11:04" },
   { id: "USR-007", nama: "Pelda Agus Wibowo", nrp: "21930112", role: "Juru Bayar", satminkal: "INFOLAHTADAM IV/DIPONEGORO", status: "Aktif", lastLogin: "05 Agu 2026 08:12" },
   { id: "USR-008", nama: "Sertu Hendra Gunawan", nrp: "31770091", role: "Anggota", satminkal: "INFOLAHTADAM IV/DIPONEGORO", status: "Aktif", lastLogin: "06 Agu 2026 07:05" },
+  { id: "USR-009", nama: "Serda Yoga Pratama", nrp: "31800142", role: "Kasir Toko", satminkal: "INFOLAHTADAM IV/DIPONEGORO", status: "Aktif", lastLogin: "06 Agu 2026 08:00" },
 ];
 
-/** Antrean verifikasi Juru Bayar (sebelum lanjut ke Dan/Ka) */
 export const antreanJuyar = [
   {
     id: "PJM-2026-0187",
@@ -456,7 +468,6 @@ export const antreanJuyar = [
   },
 ];
 
-/** Profil gaji anggota (demo role Anggota) */
 export const anggotaGajiProfile = {
   nama: "Hendra Gunawan",
   nrp: "31770091",
@@ -471,6 +482,7 @@ export const anggotaGajiProfile = {
     { nama: "Simpanan Wajib", jumlah: 150000 },
     { nama: "Simpanan Sukarela", jumlah: 150000 },
     { nama: "Angsuran Pinjaman PJM-2026-0175", jumlah: 625000 },
+    { nama: "Cicilan Belanja Toko (Kredit POS)", jumlah: 185000 },
     { nama: "Iuran Koperasi", jumlah: 25000 },
     { nama: "Asuransi", jumlah: 500000 },
   ],
@@ -479,6 +491,7 @@ export const anggotaGajiProfile = {
 export const anggotaAngsuranSaya = [
   {
     id: "PJM-2026-0175",
+    jenis: "USIPA (Uang)",
     pokok: 7500000,
     angsuranKe: 5,
     totalAngsuran: 18,
@@ -486,116 +499,513 @@ export const anggotaAngsuranSaya = [
     sisa: 8125000,
     status: "Lancar" as const,
   },
-];
-
-export const kotamaList = [
-  { kotama: "KODAM IV/DIPONEGORO", satminkal: ["INFOLAHTADAM IV/DIPONEGORO"], anggota: 842 },
-];
-
-export const pangkatKorps = [
-  { golongan: "Pamen", pangkat: "Kolonel, Letkol, Mayor", korps: "Inf, Kav, Cba, Chb, Czi", potongan: 300000 },
-  { golongan: "Pama", pangkat: "Kapten, Lettu, Letda", korps: "Inf, Kav, Cba, Chb, Czi", potongan: 250000 },
-  { golongan: "Ba/Ta", pangkat: "Pelda s.d. Prada", korps: "Inf, Chb, Czi, Cpm", potongan: 150000 },
-  { golongan: "ASN", pangkat: "Penata s.d. Pengatur", korps: "PNS TNI AD", potongan: 150000 },
-];
-
-export const tabelPinjaman = [
-  { plafon: 1000000, tenor: 12, bunga: 12, angsuran: 88849 },
-  { plafon: 5000000, tenor: 18, bunga: 12, angsuran: 305556 },
-  { plafon: 10000000, tenor: 24, bunga: 12, angsuran: 516667 },
-  { plafon: 15000000, tenor: 30, bunga: 12, angsuran: 650000 },
-  { plafon: 20000000, tenor: 36, bunga: 12, angsuran: 755556 },
-];
-
-export const auditLogs = [
-  { waktu: "06 Agu 2026 06:12", user: "Mayor Cba Arif Setiawan", aksi: "Update Kopstuk Satuan", modul: "Pengaturan", ip: "10.12.4.21" },
-  { waktu: "06 Agu 2026 05:58", user: "Serma Budi Santoso", aksi: "Verifikasi Jurbay PJM-2026-0184", modul: "Pinjaman", ip: "10.12.4.66" },
-  { waktu: "05 Agu 2026 16:44", user: "Kolonel Inf Bagus Prayitno", aksi: "Rekomendasi Dan/Ka PJM-2026-0183", modul: "Pinjaman", ip: "10.12.4.10" },
-  { waktu: "05 Agu 2026 14:22", user: "Letkol Cba Dedi Kurnia", aksi: "ACC Kaprim PJM-2026-0180", modul: "Pinjaman", ip: "10.12.4.02" },
-  { waktu: "05 Agu 2026 08:15", user: "Pelda Agus Wibowo", aksi: "Batch Simpanan Sukarela Juli", modul: "Simpanan", ip: "10.12.4.77" },
-];
-
-/** Antrean rekomendasi Dan/Ka */
-export const antreanRekomendasi = [
-  { id: "PJM-2026-0186", nama: "Serda Yoga Pratama", pangkat: "Serda Inf", nrp: "31800142", plafon: 10000000, tenor: 24, gaji: 6200000, tunkin: 3100000, potongan: 1850000, jurbay: "Lolos Verifikasi" },
-  { id: "PJM-2026-0185", nama: "Lettu Chb Wahyu Prasetyo", pangkat: "Lettu Chb", nrp: "11090154", plafon: 15000000, tenor: 30, gaji: 8100000, tunkin: 4400000, potongan: 2600000, jurbay: "Lolos Verifikasi" },
-  { id: "PJM-2026-0183", nama: "Kapten Inf Rahmat Hidayat", pangkat: "Kapten Inf", nrp: "11060078", plafon: 20000000, tenor: 36, gaji: 9400000, tunkin: 5200000, potongan: 3100000, jurbay: "Lolos Verifikasi" },
-  { id: "PJM-2026-0182", nama: "Pelda Agus Wibowo", pangkat: "Pelda Czi", nrp: "21930112", plafon: 8000000, tenor: 18, gaji: 5800000, tunkin: 2700000, potongan: 1600000, jurbay: "Catatan: sisa gaji tipis" },
-];
-
-/** Antrean ACC Kaprim (sudah direkomendasi Dan/Ka) */
-export const antreanAcc = [
   {
-    id: "PJM-2026-0184",
-    nama: "Serma Budi Santoso",
-    nrp: "21980045",
-    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
-    plafon: 15000000,
-    tenor: 24,
-    bunga: 12,
-    dokumen: { KTP: true, "Slip Gaji": true, "Rekomendasi Dan/Ka": true, "Akad Kredit": true },
-  },
-  {
-    id: "PJM-2026-0183",
-    nama: "Kapten Inf Rahmat Hidayat",
-    nrp: "11060078",
-    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
-    plafon: 20000000,
-    tenor: 36,
-    bunga: 12,
-    dokumen: { KTP: true, "Slip Gaji": true, "Rekomendasi Dan/Ka": true, "Akad Kredit": false },
-  },
-  {
-    id: "PJM-2026-0181",
-    nama: "Penata Muda Sri Wahyuni",
-    nrp: "198504112009",
-    satminkal: "INFOLAHTADAM IV/DIPONEGORO",
-    plafon: 5000000,
-    tenor: 12,
-    bunga: 12,
-    dokumen: { KTP: true, "Slip Gaji": true, "Rekomendasi Dan/Ka": true, "Akad Kredit": true },
+    id: "KRD-2026-0042",
+    jenis: "Kredit Toko (Barang)",
+    pokok: 555000,
+    angsuranKe: 1,
+    totalAngsuran: 3,
+    angsuranBulanan: 185000,
+    sisa: 370000,
+    status: "Lancar" as const,
   },
 ];
 
-export const potonganSukarela = {
-  Pamen: 300000,
-  Pama: 250000,
-  "Ba/Ta/ASN": 150000,
-} as const;
+/* =========================================================================
+   MASTER DATA UNIT TOKO, POS, SUPPLIER, GADAI, PESANAN & LOYALTY (NEW)
+   ========================================================================= */
 
-export const shuDistribusi = [
-  { pos: "Cadangan Koperasi", persen: 40 },
-  { pos: "Jasa Modal (Simpanan)", persen: 20 },
-  { pos: "Jasa Usaha (Pinjaman)", persen: 30 },
-  { pos: "Pengurus / Pengawas", persen: 5 },
-  { pos: "Dana Sosial & Pendidikan", persen: 5 },
-];
-
-export const keuanganRingkas = {
-  pendapatan: 2_145_000_000,
-  biaya: 860_500_000,
-  shu: 1_284_500_000,
-  kas: 4_805_000_000,
-  pinjamanBerjalan: 11_950_000_000,
+export type KategoriProduk = {
+  id: string;
+  nama: string;
+  icon: string;
 };
 
-export const approvalTrail = [
-  { tahap: "Pengajuan Anggota", waktu: "28 Jul 2026 09:12", aktor: "Serma Budi Santoso", ket: "Plafon Rp 15.000.000 / tenor 24 bulan" },
-  { tahap: "Verifikasi Juru Bayar", waktu: "29 Jul 2026 10:40", aktor: "Pelda Agus Wibowo", ket: "Sisa gaji memenuhi syarat, dokumen lengkap" },
-  { tahap: "Rekomendasi Dan/Ka", waktu: "31 Jul 2026 14:05", aktor: "Kolonel Inf Bagus Prayitno", ket: "Direkomendasikan tanpa catatan" },
-  { tahap: "ACC Kaprim", waktu: "02 Agu 2026 08:30", aktor: "Letkol Cba Dedi Kurnia", ket: "Disetujui, diteruskan ke Bendahara" },
-  { tahap: "Pencairan", waktu: "03 Agu 2026 11:15", aktor: "Bendahara Koperasi", ket: "Kwitansi #INV2608030001 diterbitkan" },
+export const kategoriProdukList: KategoriProduk[] = [
+  { id: "KAT-01", nama: "Sembako & Kebutuhan Pokok", icon: "Package" },
+  { id: "KAT-02", nama: "Makanan & Minuman (Fast Consume)", icon: "UtensilsCrossed" },
+  { id: "KAT-03", nama: "Kaporlap & Atribut TNI AD", icon: "Shield" },
+  { id: "KAT-04", nama: "Elektronik & Gadget", icon: "Tv" },
+  { id: "KAT-05", nama: "Produk UMKM Anggota", icon: "Store" },
 ];
 
-export const pencairanQueue = [
-  { invoice: "#INV2608060001", id: "PJM-2026-0184", nama: "Serma Budi Santoso", jumlah: 15000000, biaya: 150000, tanggal: "06 Agu 2026" },
-  { invoice: "#INV2608060002", id: "PJM-2026-0181", nama: "Penata Muda Sri Wahyuni", jumlah: 5000000, biaya: 50000, tanggal: "06 Agu 2026" },
-  { invoice: "#INV2608050004", id: "PJM-2026-0180", nama: "Letkol Cba Dedi Kurnia", jumlah: 18000000, biaya: 180000, tanggal: "05 Agu 2026" },
+export type Produk = {
+  id: string;
+  barcode: string;
+  nama: string;
+  kategoriId: string;
+  kategoriNama: string;
+  satuanKecil: string;
+  satuanBesar?: string;
+  pcsPerUnit: number;
+  hargaBeli: number;
+  hargaJual: number;
+  stokFisik: number;
+  stokMinimum: number;
+  diskonPersen: number;
+  isPromo: boolean;
+  isFastConsume: boolean;
+  sumber: "Koperasi" | "UMKM Anggota";
+  penjualNama?: string;
+  gambar: string;
+};
+
+export const masterProdukList: Produk[] = [
+  {
+    id: "PRD-001",
+    barcode: "8992753123456",
+    nama: "Beras Premium Koperasi 5 Kg",
+    kategoriId: "KAT-01",
+    kategoriNama: "Sembako & Kebutuhan Pokok",
+    satuanKecil: "Sak",
+    satuanBesar: "Karung",
+    pcsPerUnit: 10,
+    hargaBeli: 68000,
+    hargaJual: 74000,
+    stokFisik: 45,
+    stokMinimum: 10,
+    diskonPersen: 0,
+    isPromo: false,
+    isFastConsume: false,
+    sumber: "Koperasi",
+    gambar: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400&auto=format&fit=crop&q=80",
+  },
+  {
+    id: "PRD-002",
+    barcode: "8991001123456",
+    nama: "Minyak Goreng Sawit 2 Liter",
+    kategoriId: "KAT-01",
+    kategoriNama: "Sembako & Kebutuhan Pokok",
+    satuanKecil: "Pcs",
+    satuanBesar: "Dus",
+    pcsPerUnit: 6,
+    hargaBeli: 31500,
+    hargaJual: 35000,
+    stokFisik: 84,
+    stokMinimum: 12,
+    diskonPersen: 5,
+    isPromo: true,
+    isFastConsume: false,
+    sumber: "Koperasi",
+    gambar: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=400&auto=format&fit=crop&q=80",
+  },
+  {
+    id: "PRD-003",
+    barcode: "8993175123456",
+    nama: "Kopi Hitam Prajurit Sachet (Pak)",
+    kategoriId: "KAT-02",
+    kategoriNama: "Makanan & Minuman (Fast Consume)",
+    satuanKecil: "Renceng",
+    satuanBesar: "Dus",
+    pcsPerUnit: 20,
+    hargaBeli: 12000,
+    hargaJual: 15000,
+    stokFisik: 120,
+    stokMinimum: 20,
+    diskonPersen: 0,
+    isPromo: false,
+    isFastConsume: true,
+    sumber: "Koperasi",
+    gambar: "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=400&auto=format&fit=crop&q=80",
+  },
+  {
+    id: "PRD-004",
+    barcode: "8999999123456",
+    nama: "Mie Instan Goreng Rasa Spesial (Dus)",
+    kategoriId: "KAT-02",
+    kategoriNama: "Makanan & Minuman (Fast Consume)",
+    satuanKecil: "Bks",
+    satuanBesar: "Dus",
+    pcsPerUnit: 40,
+    hargaBeli: 108000,
+    hargaJual: 120000,
+    stokFisik: 38,
+    stokMinimum: 10,
+    diskonPersen: 0,
+    isPromo: false,
+    isFastConsume: true,
+    sumber: "Koperasi",
+    gambar: "https://images.unsplash.com/photo-1612927601601-6638404737ce?w=400&auto=format&fit=crop&q=80",
+  },
+  {
+    id: "PRD-005",
+    barcode: "TNI-KPL-00123",
+    nama: "Kaos Dalam Loreng Malvinas TNI AD",
+    kategoriId: "KAT-03",
+    kategoriNama: "Kaporlap & Atribut TNI AD",
+    satuanKecil: "Pcs",
+    satuanBesar: "Lusin",
+    pcsPerUnit: 12,
+    hargaBeli: 38000,
+    hargaJual: 48000,
+    stokFisik: 60,
+    stokMinimum: 15,
+    diskonPersen: 10,
+    isPromo: true,
+    isFastConsume: false,
+    sumber: "Koperasi",
+    gambar: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=400&auto=format&fit=crop&q=80",
+  },
+  {
+    id: "PRD-006",
+    barcode: "TNI-KPL-00124",
+    nama: "Sepatu PDL Kulit Kilap Jatah",
+    kategoriId: "KAT-03",
+    kategoriNama: "Kaporlap & Atribut TNI AD",
+    satuanKecil: "Pasang",
+    satuanBesar: "Karton",
+    pcsPerUnit: 10,
+    hargaBeli: 285000,
+    hargaJual: 350000,
+    stokFisik: 8,
+    stokMinimum: 5,
+    diskonPersen: 0,
+    isPromo: false,
+    isFastConsume: false,
+    sumber: "Koperasi",
+    gambar: "https://images.unsplash.com/photo-1549298916-b41d501d3772?w=400&auto=format&fit=crop&q=80",
+  },
+  {
+    id: "PRD-007",
+    barcode: "MKP-000001",
+    nama: "[UMKM] Keripik Tempe Renyah Buatan Persit",
+    kategoriId: "KAT-05",
+    kategoriNama: "Produk UMKM Anggota",
+    satuanKecil: "Bks",
+    satuanBesar: "Paket",
+    pcsPerUnit: 5,
+    hargaBeli: 12000,
+    hargaJual: 15000,
+    stokFisik: 25,
+    stokMinimum: 5,
+    diskonPersen: 0,
+    isPromo: false,
+    isFastConsume: true,
+    sumber: "UMKM Anggota",
+    penjualNama: "Ny. Sri Wahyuni",
+    gambar: "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=400&auto=format&fit=crop&q=80",
+  },
+  {
+    id: "PRD-008",
+    barcode: "MKP-000002",
+    nama: "[UMKM] Sambal Bawang Teri Barak",
+    kategoriId: "KAT-05",
+    kategoriNama: "Produk UMKM Anggota",
+    satuanKecil: "Btl",
+    satuanBesar: "Lusin",
+    pcsPerUnit: 12,
+    hargaBeli: 20000,
+    hargaJual: 25000,
+    stokFisik: 18,
+    stokMinimum: 5,
+    diskonPersen: 0,
+    isPromo: false,
+    isFastConsume: true,
+    sumber: "UMKM Anggota",
+    penjualNama: "Serma Budi Santoso",
+    gambar: "https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?w=400&auto=format&fit=crop&q=80",
+  },
 ];
 
-export const rekapAngsuran = [
-  { nrp: "11020033", nama: "Letkol Cba Dedi Kurnia", pokok: 18000000, angsuranKe: 6, sisa: 14400000, status: "Lancar" },
-  { nrp: "21980045", nama: "Serma Budi Santoso", pokok: 15000000, angsuranKe: 2, sisa: 13750000, status: "Lancar" },
-  { nrp: "11060078", nama: "Kapten Inf Rahmat Hidayat", pokok: 20000000, angsuranKe: 9, sisa: 15000000, status: "Lancar" },
-  { nrp: "21930112", nama: "Pelda Agus Wibowo", pokok: 8000000, angsuranKe: 4, sisa: 5600000, status: "Terlambat" },
+export function formatBoxPcs(
+  totalPcs: number,
+  pcsPerUnit = 1,
+  satuanBesar?: string | null,
+  satuanKecil = "Pcs",
+): string {
+  if (!satuanBesar || pcsPerUnit <= 1) {
+    return `${totalPcs} ${satuanKecil}`;
+  }
+  const box = Math.floor(totalPcs / pcsPerUnit);
+  const sisaPcs = totalPcs % pcsPerUnit;
+  if (box === 0) return `${sisaPcs} ${satuanKecil}`;
+  if (sisaPcs === 0) return `${box} ${satuanBesar}`;
+  return `${box} ${satuanBesar}, ${sisaPcs} ${satuanKecil}`;
+}
+
+export function hitungCicilanBarang(nominal: number, tenorBulan: number) {
+  const angsuranPokok = Math.ceil(nominal / tenorBulan);
+  return {
+    nominal,
+    tenorBulan,
+    angsuranBulanan: angsuranPokok,
+    totalBayar: angsuranPokok * tenorBulan,
+  };
+}
+
+export type Supplier = {
+  id: string;
+  kode: string;
+  nama: string;
+  kontak: string;
+  telepon: string;
+  alamat: string;
+  totalHutang: number;
+};
+
+export const masterSupplierList: Supplier[] = [
+  { id: "SUP-001", kode: "SUP-001", nama: "PT Indofood Sukses Makmur", kontak: "Bpk. Bambang", telepon: "081234567890", alamat: "Kawasan Industri Candi Semarang", totalHutang: 8450000 },
+  { id: "SUP-002", kode: "SUP-002", nama: "CV Kaporlap Jaya Abadi", kontak: "Ibu Ratna", telepon: "081987654321", alamat: "Jl. Pemuda No. 88 Bandung", totalHutang: 12600000 },
+  { id: "SUP-003", kode: "SUP-003", nama: "Perum BULOG Kanwil Jateng", kontak: "Bpk. Irwan", telepon: "082145678912", alamat: "Jl. Menteri Supeno No. 1 Semarang", totalHutang: 0 },
 ];
+
+export type PesananOnline = {
+  id: string;
+  nomorPesanan: string;
+  anggotaNama: string;
+  anggotaNrp: string;
+  tipe: "AMBIL_SENDIRI" | "TITIP_PIKET_SATUAN" | "DELIVERY_CEPAT";
+  lokasi: string;
+  petugasPiket?: string;
+  noHp: string;
+  totalBelanja: number;
+  ongkir: number;
+  totalTagihan: number;
+  status: "MENUNGGU_KONFIRMASI" | "DIPROSES_PETUGAS" | "SEDANG_DIANTAR" | "TITIP_DI_PIKET" | "SELESAI";
+  estimasiMenit: number;
+  menitBerjalan: number;
+  isTerlambatSla: boolean;
+  kompensasiDiskon: number;
+  items: Array<{ nama: string; jumlah: number; harga: number }>;
+  waktuPesan: string;
+};
+
+export const pesananOnlineList: PesananOnline[] = [
+  {
+    id: "ORD-001",
+    nomorPesanan: "ORD-20260806-0001",
+    anggotaNama: "Sertu Hendra Gunawan",
+    anggotaNrp: "31770091",
+    tipe: "DELIVERY_CEPAT",
+    lokasi: "Barak Remaja Batalyon B - Lt. 2",
+    noHp: "081398765432",
+    totalBelanja: 65000,
+    ongkir: 5000,
+    totalTagihan: 70000,
+    status: "SEDANG_DIANTAR",
+    estimasiMenit: 30,
+    menitBerjalan: 18,
+    isTerlambatSla: false,
+    kompensasiDiskon: 0,
+    items: [
+      { nama: "Kopi Hitam Prajurit Sachet", jumlah: 2, harga: 15000 },
+      { nama: "Mie Instan Goreng Rasa Spesial", jumlah: 5, harga: 3000 },
+      { nama: "[UMKM] Keripik Tempe Renyah", jumlah: 1, harga: 15000 },
+    ],
+    waktuPesan: "06 Agu 2026 14:15",
+  },
+  {
+    id: "ORD-002",
+    nomorPesanan: "ORD-20260806-0002",
+    anggotaNama: "Kapten Inf Rahmat Hidayat",
+    anggotaNrp: "11060078",
+    tipe: "TITIP_PIKET_SATUAN",
+    lokasi: "Meja Piket Penjagaan Utama",
+    petugasPiket: "Serda Yoga Pratama (Piket Jaga)",
+    noHp: "081245678901",
+    totalBelanja: 158000,
+    ongkir: 0,
+    totalTagihan: 158000,
+    status: "TITIP_DI_PIKET",
+    estimasiMenit: 45,
+    menitBerjalan: 35,
+    isTerlambatSla: false,
+    kompensasiDiskon: 0,
+    items: [
+      { nama: "Beras Premium Koperasi 5 Kg", jumlah: 1, harga: 74000 },
+      { nama: "Minyak Goreng Sawit 2 Liter", jumlah: 2, harga: 35000 },
+      { nama: "[UMKM] Sambal Bawang Teri", jumlah: 1, harga: 25000 },
+    ],
+    waktuPesan: "06 Agu 2026 13:30",
+  },
+  {
+    id: "ORD-003",
+    nomorPesanan: "ORD-20260806-0003",
+    anggotaNama: "Pelda Agus Wibowo",
+    anggotaNrp: "21930112",
+    tipe: "DELIVERY_CEPAT",
+    lokasi: "Rumah Dinas Blok C No. 14",
+    noHp: "085234567890",
+    totalBelanja: 85000,
+    ongkir: 5000,
+    totalTagihan: 77250, // kena kompensasi diskon 15% karena telat
+    status: "SELESAI",
+    estimasiMenit: 30,
+    menitBerjalan: 42,
+    isTerlambatSla: true,
+    kompensasiDiskon: 12750,
+    items: [
+      { nama: "Minyak Goreng Sawit 2 Liter", jumlah: 2, harga: 35000 },
+      { nama: "Kopi Hitam Prajurit Sachet", jumlah: 1, harga: 15000 },
+    ],
+    waktuPesan: "06 Agu 2026 11:20",
+  },
+];
+
+export type PengajuanMarketplace = {
+  id: string;
+  anggotaNama: string;
+  anggotaNrp: string;
+  namaProduk: string;
+  kategori: string;
+  hargaUsul: number;
+  stokAwal: number;
+  komisiPersen: number;
+  status: "DIAJUKAN" | "DISETUJUI" | "DITOLAK";
+  catatan?: string;
+  gambar: string;
+  tanggal: string;
+};
+
+export const pengajuanMarketplaceList: PengajuanMarketplace[] = [
+  {
+    id: "MKP-REQ-001",
+    anggotaNama: "Ny. Sri Wahyuni (Persit)",
+    anggotaNrp: "198504112009",
+    namaProduk: "Keripik Tempe Renyah Gurih",
+    kategori: "Makanan Ringan",
+    hargaUsul: 15000,
+    stokAwal: 30,
+    komisiPersen: 5,
+    status: "DISETUJUI",
+    catatan: "Kualitas kemasan bagus, higienis, layak jual di etalase koperasi",
+    gambar: "https://images.unsplash.com/photo-1599490659213-e2b9527bd087?w=400&auto=format&fit=crop&q=80",
+    tanggal: "02 Agu 2026",
+  },
+  {
+    id: "MKP-REQ-002",
+    anggotaNama: "Serma Budi Santoso",
+    anggotaNrp: "21980045",
+    namaProduk: "Madu Hutan Asli Murni 500ml",
+    kategori: "Kesehatan & Herbal",
+    hargaUsul: 85000,
+    stokAwal: 15,
+    komisiPersen: 7.5,
+    status: "DIAJUKAN",
+    catatan: "Menunggu pengecekan segel kemasan oleh bendahara toko",
+    gambar: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=400&auto=format&fit=crop&q=80",
+    tanggal: "05 Agu 2026",
+  },
+  {
+    id: "MKP-REQ-003",
+    anggotaNama: "Sertu Hendra Gunawan",
+    anggotaNrp: "31770091",
+    namaProduk: "Gantungan Kunci Paracord Handmade",
+    kategori: "Aksesoris & Kerajinan",
+    hargaUsul: 20000,
+    stokAwal: 20,
+    komisiPersen: 5,
+    status: "DISETUJUI",
+    catatan: "Produk kerajinan prajurit sangat rapi dan diminati",
+    gambar: "https://images.unsplash.com/photo-1618354691373-d851c5c3a990?w=400&auto=format&fit=crop&q=80",
+    tanggal: "04 Agu 2026",
+  },
+];
+
+export type GadaiItem = {
+  id: string;
+  nomorSbg: string;
+  anggotaNama: string;
+  anggotaNrp: string;
+  kategori: "EMAS_PERHIASAN" | "ELEKTRONIK_GADGET" | "KENDARAAN_BERMOTOR";
+  namaBarang: string;
+  spesifikasi: string;
+  nilaiTaksiran: number;
+  uangPinjaman: number;
+  jasaTitipBulan: number;
+  tanggalGadai: string;
+  jatuhTempo: string;
+  status: "AKTIF_BERJALAN" | "DITEBUS_LUNAS" | "JATUH_TEMPO_LELANG" | "BARANG_TERJUAL_LELANG";
+  hargaLelangBuka?: number;
+  hargaLelangTerjual?: number;
+  foto: string;
+};
+
+export const gadaiList: GadaiItem[] = [
+  {
+    id: "GD-001",
+    nomorSbg: "SBG-20260715-0012",
+    anggotaNama: "Serma Budi Santoso",
+    anggotaNrp: "21980045",
+    kategori: "EMAS_PERHIASAN",
+    namaBarang: "Kalung Emas Kuning 22 Karat",
+    spesifikasi: "Berat 10.5 gram, kadar 87.5%, kondisi mulus + surat toko",
+    nilaiTaksiran: 12500000,
+    uangPinjaman: 10000000,
+    jasaTitipBulan: 150000,
+    tanggalGadai: "15 Jul 2026",
+    jatuhTempo: "15 Nov 2026",
+    status: "AKTIF_BERJALAN",
+    foto: "https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=400&auto=format&fit=crop&q=80",
+  },
+  {
+    id: "GD-002",
+    nomorSbg: "SBG-20260410-0004",
+    anggotaNama: "PNS Sri Wahyuni",
+    anggotaNrp: "198504112009",
+    kategori: "ELEKTRONIK_GADGET",
+    namaBarang: "Laptop Asus Vivobook 14 Core i5",
+    spesifikasi: "RAM 8GB, SSD 512GB, Charger Ori, Box Lengkap",
+    nilaiTaksiran: 6500000,
+    uangPinjaman: 4500000,
+    jasaTitipBulan: 67500,
+    tanggalGadai: "10 Apr 2026",
+    jatuhTempo: "10 Agu 2026",
+    status: "JATUH_TEMPO_LELANG",
+    hargaLelangBuka: 4800000,
+    foto: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&auto=format&fit=crop&q=80",
+  },
+  {
+    id: "GD-003",
+    nomorSbg: "SBG-20260305-0002",
+    anggotaNama: "Pelda Agus Wibowo",
+    anggotaNrp: "21930112",
+    kategori: "EMAS_PERHIASAN",
+    namaBarang: "Cincin Emas Putih Berlian 18 Karat",
+    spesifikasi: "Berat 4.2 gram, sertifikat keaslian lengkap",
+    nilaiTaksiran: 5800000,
+    uangPinjaman: 4500000,
+    jasaTitipBulan: 67500,
+    tanggalGadai: "05 Mar 2026",
+    jatuhTempo: "05 Jul 2026",
+    status: "BARANG_TERJUAL_LELANG",
+    hargaLelangBuka: 4900000,
+    hargaLelangTerjual: 5100000,
+    foto: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400&auto=format&fit=crop&q=80",
+  },
+];
+
+export type PoinDanUndian = {
+  totalPoin: number;
+  totalPoinKlaim: number;
+  kuponSaya: string[];
+  targetBelanjaNominal: number;
+  belanjaBulanIni: number;
+  bonusPoinTarget: number;
+  eventAktif: {
+    id: string;
+    nama: string;
+    hadiahUtama: string;
+    poinPerKupon: number;
+    tanggalUndi: string;
+    totalKuponTerdaftar: number;
+  };
+};
+
+export const poinUndianDemo: PoinDanUndian = {
+  totalPoin: 185,
+  totalPoinKlaim: 100,
+  kuponSaya: ["KP-000142", "KP-000143"],
+  targetBelanjaNominal: 500000,
+  belanjaBulanIni: 385000,
+  bonusPoinTarget: 100,
+  eventAktif: {
+    id: "EVT-2026-01",
+    nama: "Undian Doorprize RAT Koperasi Tahun Buku 2026",
+    hadiahUtama: "Sepeda Motor Honda Beat CBS & Logam Mulia 5 Gram",
+    poinPerKupon: 50,
+    tanggalUndi: "20 Des 2026",
+    totalKuponTerdaftar: 428,
+  },
+};
+
