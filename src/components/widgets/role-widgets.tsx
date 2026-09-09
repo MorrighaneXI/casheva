@@ -1054,8 +1054,9 @@ export function BatchSimpananBanner() {
           </p>
           <p className="mt-1 text-sm text-accent-foreground/80">
             Jadwal potongan otomatis tanggal 5 setiap bulan · Pamen{" "}
-            {formatRp(potonganSukarela.Pamen)} · Pama {formatRp(potonganSukarela.Pama)} ·
-            Ba/Ta/ASN {formatRp(potonganSukarela["Ba/Ta/ASN"])}
+            {formatRp((potonganSukarela as any)["Pamen"] ?? 300_000)} · Pama{" "}
+            {formatRp((potonganSukarela as any)["Pama"] ?? 250_000)} · Ba/Ta/ASN{" "}
+            {formatRp((potonganSukarela as any)["Ba/Ta/ASN"] ?? 150_000)}
           </p>
         </div>
         <Button

@@ -179,36 +179,57 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const u = dto.username.toLowerCase().trim();
         let roleMapped: Role = "Anggota";
         let roleBackend: any = "ANGGOTA";
-        let nama = `Personel (${dto.username})`;
+        let nama = "";
 
-        if (u === "admin") {
-          roleMapped = "Admin Koperasi";
-          roleBackend = "ADMIN_KOPERASI";
-          nama = "Administrator Koperasi";
-        } else if (u === "pimpinan") {
-          roleMapped = "Pimpinan / Dan / Ka";
-          roleBackend = "PIMPINAN";
-          nama = "Kolonel Inf Heru (Dan/Ka)";
-        } else if (u === "keprim") {
-          roleMapped = "Keprim";
-          roleBackend = "KEPRIM";
-          nama = "Letkol Cba Dedi Kurnia (Keprim)";
-        } else if (u === "bendahara") {
-          roleMapped = "Bendahara";
-          roleBackend = "BENDAHARA";
-          nama = "Lettu Cku Budi (Bendahara)";
-        } else if (u === "jurubayar") {
-          roleMapped = "Juru Bayar";
-          roleBackend = "JURU_BAYAR";
-          nama = "Serma Agus (Juru Bayar)";
-        } else if (u === "pengawas") {
-          roleMapped = "Pengawas Koperasi";
-          roleBackend = "PENGAWAS";
-          nama = "Mayor Inf Tri (Pengawas)";
-        } else if (u === "1102123401") {
-          roleMapped = "Anggota";
-          roleBackend = "ANGGOTA";
-          nama = "Kolonel Inf Sigit Suhendro";
+        // 1. Cek dari anggota cache lokal
+        try {
+          const rawCache = localStorage.getItem("casheva.anggota_cache");
+          if (rawCache) {
+            const cachedList: any[] = JSON.parse(rawCache);
+            const found = cachedList.find((a) => a.nrpNip?.toLowerCase() === u || a.id === u);
+            if (found) {
+              const pNama = (found.pangkat?.nama && found.pangkat.nama !== "-") ? `${found.pangkat.nama} ` : "";
+              const kNama = (found.korps?.nama && found.korps.nama !== "-") ? `${found.korps.nama} ` : "";
+              nama = found.nama?.toLowerCase().startsWith(pNama.trim().toLowerCase())
+                ? found.nama
+                : `${pNama}${kNama}${found.nama}`.trim();
+            }
+          }
+        } catch {}
+
+        if (!nama) {
+          if (u === "admin") {
+            roleMapped = "Admin Koperasi";
+            roleBackend = "ADMIN_KOPERASI";
+            nama = "Administrator Koperasi";
+          } else if (u === "pimpinan") {
+            roleMapped = "Pimpinan / Dan / Ka";
+            roleBackend = "PIMPINAN";
+            nama = "Kolonel Inf Heru (Dan/Ka)";
+          } else if (u === "keprim") {
+            roleMapped = "Keprim";
+            roleBackend = "KEPRIM";
+            nama = "Letkol Cba Dedi Kurnia (Keprim)";
+          } else if (u === "bendahara") {
+            roleMapped = "Bendahara";
+            roleBackend = "BENDAHARA";
+            nama = "Lettu Cku Budi (Bendahara)";
+          } else if (u === "jurubayar") {
+            roleMapped = "Juru Bayar";
+            roleBackend = "JURU_BAYAR";
+            nama = "Serma Agus (Juru Bayar)";
+          } else if (u === "pengawas") {
+            roleMapped = "Pengawas Koperasi";
+            roleBackend = "PENGAWAS";
+            nama = "Mayor Inf Tri (Pengawas)";
+          } else if (u === "1102123401") {
+            roleMapped = "Anggota";
+            roleBackend = "ANGGOTA";
+            nama = "Kolonel Inf Sigit Suhendro";
+          } else {
+            // Jika NRP angka dinas
+            nama = `Personel (${dto.username})`;
+          }
         }
 
         const fakeToken = "demo-session-token-" + Math.random().toString(36).substring(2);

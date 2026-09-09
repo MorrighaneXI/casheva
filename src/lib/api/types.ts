@@ -97,6 +97,8 @@ export interface Anggota {
   simpananPokok?: number;
   simpananWajib?: number;
   simpananSukarela?: number;
+  role?: BackendRole;
+  user?: UserItem | null;
 }
 
 export interface UserItem {
@@ -205,6 +207,20 @@ export interface DashboardSummary {
   kasKoperasi: number;
   shuTahunBerjalan: number;
   tahun: number;
+  // Anggota-specific personal KPI fields (hanya ada saat role = Anggota)
+  totalSimpananPokok?: number;
+  totalSimpananWajib?: number;
+  totalSimpananSukarela?: number;
+  angsuranBulanIni?: number;
+  statusAngsuranBulanIni?: boolean;
+  anggota?: {
+    id: string;
+    nama: string;
+    nrpNip: string;
+    pangkat?: string;
+    korps?: string;
+    satminkal?: string;
+  };
 }
 
 export interface DashboardCharts {

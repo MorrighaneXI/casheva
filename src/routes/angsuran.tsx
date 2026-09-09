@@ -170,6 +170,211 @@ function Page() {
     .filter((a) => a.dibayar)
     .reduce((acc, curr) => acc + curr.total, 0);
 
+  if (isAnggota) {
+    // ============================
+    // TAMPILAN PERSONAL ANGGOTA
+    // ============================
+    const myLoans = activeLoans;
+    const myAngsuranAll = myLoans.flatMap((l) => (l.angsuran || []).map((a: any) => ({ ...a, pinjaman: l })));
+    const totalPinjamanSaya = myLoans.reduce((acc, l) => acc + Number(l.nominal || 0), 0);
+    const sisaPokokSaya = myLoans.reduce((acc, l) => acc + Number(l.sisaPokok ?? l.nominal ?? 0), 0);
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const angsuranBulanIni = myAngsuranAll.find(
+      (a) =>
+        new Date(a.jatuhTempo).getMonth() === currentMonth &&
+        new Date(a.jatuhTempo).getFullYear() === currentYear,
+    ) || myAngsuranAll.find((a) => !a.dibayar);
+    const tagihanBulanIni = angsuranBulanIni ? Number(angsuranBulanIni.total || 0) : 0;
+    const sudahBayarBulanIni = angsuranBulanIni?.dibayar ?? true;
+
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Riwayat Angsuran Saya"
+          description="Jadwal cicilan, riwayat pembayaran, dan kwitansi pinjaman USIPA Anda"
+        />
+
+        {/* Ringkasan Personal */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Card className="shadow-card">
+            <CardHeader className="pb-2">
+              <CardDescription>Total Pinjaman Saya</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between gap-3">
+              {loadingLoans ? (
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
+              ) : (
+                <p className="text-xl font-extrabold">{formatRp(totalPinjamanSaya)}</p>
+              )}
+              <span className="grid size-9 place-items-center rounded-lg bg-primary-soft text-primary">
+                <DollarSign className="size-4" />
+              </span>
+            </CardContent>
+          </Card>
+          <Card className="shadow-card">
+            <CardHeader className="pb-2">
+              <CardDescription>Sisa Pokok Pinjaman</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between gap-3">
+              {loadingLoans ? (
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
+              ) : (
+                <p className="text-xl font-extrabold text-destructive">{formatRp(sisaPokokSaya)}</p>
+              )}
+              <span className="grid size-9 place-items-center rounded-lg bg-destructive/10 text-destructive">
+                <Receipt className="size-4" />
+              </span>
+            </CardContent>
+          </Card>
+          <Card className="shadow-card">
+            <CardHeader className="pb-2">
+              <CardDescription>Tagihan Angsuran Bulan Ini</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between gap-3">
+              {loadingLoans ? (
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
+              ) : (
+                <p className={`text-xl font-extrabold ${sudahBayarBulanIni ? "text-success" : "text-accent-foreground"}`}>
+                  {formatRp(tagihanBulanIni)}
+                </p>
+              )}
+              <span className={`grid size-9 place-items-center rounded-lg ${sudahBayarBulanIni ? "bg-success/15 text-success" : "bg-gold-soft text-accent-foreground"}`}>
+                <Calendar className="size-4" />
+              </span>
+            </CardContent>
+          </Card>
+          <Card className="shadow-card">
+            <CardHeader className="pb-2">
+              <CardDescription>Status Pembayaran Bulan Ini</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between gap-3">
+              <p className={`text-xl font-extrabold ${sudahBayarBulanIni ? "text-success" : "text-destructive"}`}>
+                {myLoans.length === 0 ? "Tidak Ada Pinjaman" : sudahBayarBulanIni ? "✓ Sudah Lunas" : "⏳ Belum Bayar"}
+              </p>
+              <span className={`grid size-9 place-items-center rounded-lg ${sudahBayarBulanIni ? "bg-success/15 text-success" : "bg-destructive/10 text-destructive"}`}>
+                <CheckCircle2 className="size-4" />
+              </span>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Jadwal Angsuran Per Pinjaman */}
+        {loadingLoans ? (
+          <Card className="shadow-card">
+            <CardContent className="py-12 text-center text-muted-foreground">
+              <Loader2 className="mx-auto size-6 animate-spin mb-2 text-primary" />
+              Memuat jadwal angsuran...
+            </CardContent>
+          </Card>
+        ) : myLoans.length === 0 ? (
+          <Card className="shadow-card">
+            <CardContent className="py-12 text-center text-muted-foreground">
+              Anda belum memiliki pinjaman aktif. Ajukan melalui menu Pengajuan USIPA.
+            </CardContent>
+          </Card>
+        ) : (
+          myLoans.map((loan) => {
+            const angsuranList = loan.angsuran || [];
+            const lunas = angsuranList.filter((a: any) => a.dibayar).length;
+            const total = angsuranList.length;
+            return (
+              <Card key={loan.id} className="shadow-card">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      Jadwal Angsuran
+                      <span className="font-mono text-sm text-muted-foreground">
+                        #{loan.id.slice(0, 8).toUpperCase()}
+                      </span>
+                    </CardTitle>
+                    <CardDescription>
+                      Plafon {formatRp(Number(loan.nominal))} · Tenor {loan.tenorBulan} bulan ·{" "}
+                      {lunas}/{total} cicilan lunas · Sisa Pokok {formatRp(Number(loan.sisaPokok ?? loan.nominal))}
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-9 text-xs border-success/40 bg-success/10 text-success hover:bg-success/20 font-semibold"
+                    onClick={() => {
+                      const headers = ["Ke-", "Jatuh Tempo", "Pokok", "Bunga", "Total", "Tanggal Bayar", "No. Invoice", "Status"];
+                      const rows = angsuranList.map((a: any) => [
+                        a.bulanKe || a.angsuranKe,
+                        a.jatuhTempo ? new Date(a.jatuhTempo).toLocaleDateString("id-ID") : "-",
+                        Number(a.pokok || 0),
+                        Number(a.bunga || 0),
+                        Number(a.total || 0),
+                        a.tanggalBayar ? new Date(a.tanggalBayar).toLocaleDateString("id-ID") : "-",
+                        a.noInvoice || "-",
+                        a.dibayar ? "Lunas" : "Belum Bayar",
+                      ]);
+                      exportToCSV(`Angsuran_${loan.id.slice(0, 8).toUpperCase()}`, headers, rows);
+                    }}
+                  >
+                    <FileSpreadsheet className="size-4" /> Ekspor Kwitansi
+                  </Button>
+                </CardHeader>
+                <CardContent className="overflow-x-auto p-0">
+                  <Table>
+                    <TableHeader className="bg-muted/40">
+                      <TableRow>
+                        <TableHead className="w-12">Ke-</TableHead>
+                        <TableHead>Jatuh Tempo</TableHead>
+                        <TableHead className="text-right">Pokok</TableHead>
+                        <TableHead className="text-right">Bunga (1%)</TableHead>
+                        <TableHead className="text-right">Total Tagihan</TableHead>
+                        <TableHead>Tanggal Bayar</TableHead>
+                        <TableHead>No. Invoice</TableHead>
+                        <TableHead className="text-right">Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {angsuranList.map((ang: any) => (
+                        <TableRow key={ang.id} className={!ang.dibayar && ang.jatuhTempo && new Date(ang.jatuhTempo) < now ? "bg-destructive/5" : ""}>
+                          <TableCell className="font-semibold text-center">{ang.bulanKe || ang.angsuranKe}</TableCell>
+                          <TableCell className="text-xs">
+                            {ang.jatuhTempo ? new Date(ang.jatuhTempo).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "-"}
+                          </TableCell>
+                          <TableCell className="text-right">{formatRp(Number(ang.pokok || 0))}</TableCell>
+                          <TableCell className="text-right">{formatRp(Number(ang.bunga || 0))}</TableCell>
+                          <TableCell className="text-right font-bold">{formatRp(Number(ang.total || 0))}</TableCell>
+                          <TableCell className="text-xs">
+                            {ang.tanggalBayar ? (
+                              <span className="text-success font-semibold">
+                                {new Date(ang.tanggalBayar).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground italic">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="font-mono text-xs text-muted-foreground">{ang.noInvoice || "-"}</TableCell>
+                          <TableCell className="text-right">
+                            {ang.dibayar ? (
+                              <Badge variant="outline" className="border-success/30 bg-success/15 text-success text-[11px] font-semibold">
+                                Lunas
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-[11px] text-muted-foreground">
+                                Belum Bayar
+                              </Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader

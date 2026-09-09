@@ -1,4 +1,4 @@
-import { formatRp, tabelPinjaman } from "@/lib/casheva-data";
+import { formatRp } from "@/lib/casheva-data";
 
 export type Kotama = {
   kotama: string;
@@ -74,7 +74,8 @@ export const pengurusMaster: PengurusRow[] = [
   { id: "PGS-03", nama: "Kapten Inf Rahmat Hidayat", pangkat: "Kapten Inf", nrp: "11060078", jabatan: "Pengawas", periode: "2025-2028" },
 ];
 
-export const pinjamanMaster = tabelPinjaman.map((row) => ({
-  ...row,
-  label: `${formatRp(row.plafon)} • ${row.tenor} bulan`,
-}));
+export const pinjamanMaster = [
+  { id: "P-10-12", plafon: 10_000_000, tenor: 12, angsuranPokok: 833_333, bunga: 100_000, label: `${formatRp(10_000_000)} • 12 bulan` },
+  { id: "P-25-24", plafon: 25_000_000, tenor: 24, angsuranPokok: 1_041_667, bunga: 250_000, label: `${formatRp(25_000_000)} • 24 bulan` },
+  { id: "P-50-36", plafon: 50_000_000, tenor: 36, angsuranPokok: 1_388_889, bunga: 500_000, label: `${formatRp(50_000_000)} • 36 bulan` },
+];

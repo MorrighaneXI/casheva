@@ -170,11 +170,19 @@ export function formatNamaLengkapDinas(
   korps?: string | null,
   kategori?: string | null,
 ): string {
-  const cleanNama = cleanNamaPersonel(nama);
+  let cleanNama = cleanNamaPersonel(nama);
   if (!cleanNama) return '-';
+
+  if (cleanNama.toLowerCase() === 'anggota koperasi') {
+    cleanNama = 'Personel TNI AD';
+  }
 
   const pkt = formatPangkatKorps(pangkat, korps, kategori);
   if (!pkt || pkt === '-') return cleanNama;
+
+  if (cleanNama.toLowerCase().startsWith(pkt.toLowerCase())) {
+    return cleanNama;
+  }
 
   return `${pkt} ${cleanNama}`.trim();
 }
@@ -536,7 +544,7 @@ export type Produk = {
   kategoriId: string;
   kategoriNama: string;
   satuanKecil: string;
-  satuanBesar?: string;
+  satuanBesar?: string | undefined;
   pcsPerUnit: number;
   hargaBeli: number;
   hargaJual: number;
@@ -546,7 +554,7 @@ export type Produk = {
   isPromo: boolean;
   isFastConsume: boolean;
   sumber: "Koperasi" | "UMKM Anggota";
-  penjualNama?: string;
+  penjualNama?: string | undefined;
   gambar: string;
 };
 

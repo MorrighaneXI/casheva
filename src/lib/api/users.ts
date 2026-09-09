@@ -19,6 +19,8 @@ export interface UpdateUserDto {
   username?: string | undefined;
   password?: string | undefined;
   namaLengkap?: string | undefined;
+  pangkatId?: string | undefined;
+  korpsId?: string | undefined;
   role?: BackendRole | undefined;
   kotamaId?: string | undefined;
   satminkalId?: string | undefined;
@@ -53,6 +55,22 @@ export const apiUsers = {
     return api.delete<UserItem>(`/users/${id}`);
   },
 
+  updateRole: async (id: string, role: BackendRole): Promise<UserItem> => {
+    return api.patch<UserItem>(`/users/${id}/role`, { role });
+  },
+
+  getRealtimeStatus: async (): Promise<any[]> => {
+    return api.get<any[]>('/users/realtime-status');
+  },
+
+  getActiveSessions: async (): Promise<any[]> => {
+    return api.get<any[]>('/users/active-sessions');
+  },
+
+  terminateSession: async (id: string): Promise<any> => {
+    return api.post<any>(`/users/terminate-session/${id}`, {});
+  },
+
   deactivate: async (id: string): Promise<any> => {
     return api.delete<any>(`/users/${id}`);
   },
@@ -65,3 +83,4 @@ export const apiUsers = {
     return api.post<any>(`/users/${id}/reset-password`, body);
   },
 };
+

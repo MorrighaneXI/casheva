@@ -15,10 +15,10 @@ export const SIMPANAN_DEFAULT = {
   wajib: 100_000,
 } as const;
 
-export const getPotonganSukarela = (golongan: Anggota["golongan"]) => {
-  if (golongan === "Pamen") return potonganSukarela.Pamen;
-  if (golongan === "Pama") return potonganSukarela.Pama;
-  return potonganSukarela["Ba/Ta/ASN"];
+export const getPotonganSukarela = (golongan: Anggota["golongan"]): number => {
+  if (golongan === "Pamen") return (potonganSukarela as any)["Pamen"] ?? 300_000;
+  if (golongan === "Pama") return (potonganSukarela as any)["Pama"] ?? 250_000;
+  return (potonganSukarela as any)["Ba/Ta/ASN"] ?? 150_000;
 };
 
 const formatDateID = (d: Date) =>

@@ -132,28 +132,78 @@ function PengajuanPage() {
 
   // Cari anggota yang sesuai dengan sesi user saat ini (untuk role Anggota)
   const currentMember = useMemo(() => {
-    if (!anggotaList || anggotaList.length === 0) return null;
+    // 1. Ambil dari query anggotaList
+    let pool = anggotaList || [];
 
-    // 1. Cocokkan berdasarkan NRP/NIP (user.username)
-    const byNrp = anggotaList.find((a) => a.nrpNip === user?.username);
-    if (byNrp) return byNrp;
-
-    // 2. Cocokkan berdasarkan ID akun
-    const byId = anggotaList.find((a) => a.id === user?.id);
-    if (byId) return byId;
-
-    // 3. Cocokkan berdasarkan nama lengkap (membersihkan format gelar pangkat)
-    if (user?.namaLengkap) {
-      const cleanUser = cleanNamaPersonel(user.namaLengkap).toLowerCase();
-      const byName = anggotaList.find((a) => {
-        const cleanA = cleanNamaPersonel(a.nama).toLowerCase();
-        return cleanA === cleanUser || cleanA.includes(cleanUser) || cleanUser.includes(cleanA);
-      });
-      if (byName) return byName;
+    // Jika pool kosong, coba baca dari local cache
+    if (pool.length === 0 && typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("casheva.anggota_cache");
+        if (raw) pool = JSON.parse(raw);
+      } catch {}
     }
 
-    // 4. Default fallback jika tidak ada yang cocok langsung
-    return anggotaList[0];
+    if (pool.length > 0 && user) {
+      // Cocokkan berdasarkan NRP/NIP (user.username)
+      const byNrp = pool.find((a) => a.nrpNip?.toLowerCase() === user.username?.toLowerCase());
+      if (byNrp) return byNrp;
+
+      // Cocokkan berdasarkan ID akun
+      const byId = pool.find((a) => a.id === user.id);
+      if (byId) return byId;
+
+      // Cocokkan berdasarkan nama lengkap
+      if (user.namaLengkap) {
+        const cleanUser = cleanNamaPersonel(user.namaLengkap).toLowerCase();
+        const byName = pool.find((a) => {
+          const cleanA = cleanNamaPersonel(a.nama).toLowerCase();
+          return cleanA === cleanUser || (cleanUser.length > 3 && cleanA.includes(cleanUser));
+        });
+        if (byName) return byName;
+      }
+    }
+
+    // 2. Fallback aman dari profil sesi login pengguna
+    if (user) {
+      let displayName = user.namaLengkap?.trim() || "";
+      if (!displayName || displayName.toLowerCase() === "anggota koperasi" || displayName.toLowerCase() === "bintara anggota koperasi") {
+        displayName = user.username ? `Personel (${user.username})` : "Personel Koperasi";
+      }
+
+      const pMatch = displayName.match(/^(Jenderal|Letjen|Mayjen|Brigjen|Kolonel|Letkol|Mayor|Kapten|Lettu|Letda|Peltu|Pelda|Serma|Serka|Sertu|Serda|Kopka|Koptu|Kopda|Praka|Pratu|Prada|Pembina|Penata|Pengatur)/i);
+      const rankName = pMatch ? pMatch[0] : "Bintara";
+
+      return {
+        id: user.id || "current-user",
+        nama: displayName,
+        nrpNip: user.username || "-",
+        isAktif: true,
+        satminkal: {
+          id: (user as any).satminkalId || "satminkal-1",
+          kode: "INFOLAHTA",
+          nama: user.satminkal || "INFOLAHTADAM IV/DIPONEGORO",
+          kotamaId: (user as any).kotamaId || "kotama-1",
+        },
+        pangkat: {
+          id: "pkt-1",
+          kodePkt: 51,
+          nama: rankName,
+          kategori: "BINTARA",
+        },
+        korps: {
+          id: "crp-1",
+          kode: "INF",
+          nama: "Inf",
+        },
+        pangkatId: "pkt-1",
+        korpsId: "crp-1",
+        satminkalId: (user as any).satminkalId || "satminkal-1",
+        tmtAnggota: new Date().toISOString(),
+        creditLimit: 50_000_000,
+      } as any;
+    }
+
+    return null;
   }, [anggotaList, user]);
 
   // Otomatis lock ke akun anggota sendiri jika role bukan Bendahara/Admin

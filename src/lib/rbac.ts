@@ -25,13 +25,16 @@ const EXTRA_ACCESS: Partial<Record<Role, string[]>> = {
     "/gaji",
     "/shu",
     "/audit-flow",
+    "/transaksi",
+    "/toko-transaksi",
   ],
-  Keprim: ["/rekomendasi", "/acc", "/likuiditas", "/laporan", "/pinjaman", "/anggota"],
-  Bendahara: ["/pengajuan", "/simpanan", "/pencairan", "/angsuran", "/rekomendasi"],
-  "Juru Bayar": ["/verifikasi", "/pencairan", "/angsuran"],
+  Keprim: ["/rekomendasi", "/acc", "/likuiditas", "/laporan", "/pinjaman", "/anggota", "/transaksi"],
+  Bendahara: ["/pengajuan", "/simpanan", "/pencairan", "/angsuran", "/rekomendasi", "/transaksi"],
+  "Juru Bayar": ["/verifikasi", "/pencairan", "/angsuran", "/transaksi"],
   Anggota: ["/gaji", "/pengajuan", "/angsuran", "/simpanan"],
-  "Pimpinan / Dan / Ka": ["/rekomendasi", "/anggota", "/pinjaman"],
-  "Pengawas Koperasi": ["/shu", "/audit-flow", "/laporan"],
+  "Pimpinan / Dan / Ka": ["/rekomendasi", "/anggota", "/pinjaman", "/transaksi"],
+  "Kasir Toko": ["/pos", "/inventori", "/pesanan-antar", "/toko-transaksi", "/transaksi", "/poin-undian", "/gadai", "/laporan-toko"],
+  "Pengawas Koperasi": ["/shu", "/audit-flow", "/laporan", "/transaksi"],
 };
 
 function navPathsFor(role: Role): string[] {

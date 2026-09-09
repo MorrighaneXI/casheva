@@ -14,7 +14,7 @@ import {
   BadgeCheck,
   UserCheck,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -49,8 +49,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-context";
-import { ROLES, type Role } from "@/lib/casheva-data";
+import { ROLES, type Role, formatNamaLengkapDinas } from "@/lib/casheva-data";
+import { apiAnggota } from "@/lib/api";
 import { useLiveNotifications } from "@/lib/notifications";
 
 export function TopHeader() {
@@ -61,6 +63,33 @@ export function TopHeader() {
   const [searchQuery, setSearchQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+
+  // Lookup member data to display official military name (e.g. Kapten Cpm Indra, S.Kom.)
+  const { data: anggotaList = [] } = useQuery({
+    queryKey: ["anggota-list-active"],
+    queryFn: () => apiAnggota.findAll(true),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const currentMember = useMemo(() => {
+    if (!user) return null;
+    return anggotaList.find((a) => a.nrpNip === user.username || a.id === user.id);
+  }, [anggotaList, user]);
+
+  const displayFullName = useMemo(() => {
+    if (currentMember) {
+      return formatNamaLengkapDinas(
+        currentMember.nama,
+        currentMember.pangkat?.nama,
+        currentMember.korps?.nama,
+        currentMember.pangkat?.kategori
+      );
+    }
+    if (user?.namaLengkap && !user.namaLengkap.startsWith("Personel (")) {
+      return user.namaLengkap;
+    }
+    return user?.namaLengkap || "Anggota Koperasi";
+  }, [currentMember, user]);
 
   // Live Digital Military Clock
   const [timeString, setTimeString] = useState("");
@@ -119,6 +148,8 @@ export function TopHeader() {
       navigate({ to: "/laporan" });
     } else if (q.includes("kopstuk") || q.includes("ttd") || q.includes("cap")) {
       navigate({ to: "/kopstuk" });
+    } else if (q.includes("transaksi") || q.includes("rekap") || q.includes("mutasi")) {
+      navigate({ to: "/transaksi" });
     } else if (q.includes("user") || q.includes("pengguna")) {
       navigate({ to: "/users" });
     } else {
@@ -224,15 +255,13 @@ export function TopHeader() {
                         navigate({ to: n.url });
                       }
                     }}
-                    className={`p-3.5 hover:bg-muted/60 transition-colors ${
-                      n.url ? "cursor-pointer" : ""
-                    } ${n.unread ? "bg-primary-soft/40 border-l-2 border-primary" : ""}`}
+                    className={`p-3.5 hover:bg-muted/60 transition-colors ${n.url ? "cursor-pointer" : ""
+                      } ${n.unread ? "bg-primary-soft/40 border-l-2 border-primary" : ""}`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-semibold text-foreground leading-snug">{n.title}</p>
-                      <span className={`text-[10px] font-bold shrink-0 px-1.5 py-0.5 rounded ${
-                        n.unread ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
-                      }`}>
+                      <span className={`text-[10px] font-bold shrink-0 px-1.5 py-0.5 rounded ${n.unread ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground"
+                        }`}>
                         {n.time}
                       </span>
                     </div>
@@ -245,71 +274,72 @@ export function TopHeader() {
             </PopoverContent>
           </Popover>
 
-            {/* Dark / Light Theme Toggle */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              className="size-9 transition-transform active:scale-95"
-              title="Ubah Tema"
-            >
-              {dark ? <Sun className="size-4 text-gold" /> : <Moon className="size-4" />}
-            </Button>
+          {/* Dark / Light Theme Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="size-9 transition-transform active:scale-95"
+            title="Ubah Tema"
+          >
+            {dark ? <Sun className="size-4 text-gold" /> : <Moon className="size-4" />}
+          </Button>
 
-            {/* User Profile Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-2 px-2 transition-transform active:scale-95"
-                >
-                  <div className="flex size-7 items-center justify-center rounded-full bg-primary font-bold text-xs text-primary-foreground">
-                    {user?.namaLengkap ? user.namaLengkap.slice(0, 1).toUpperCase() : "U"}
-                  </div>
-                  <div className="hidden text-left sm:block max-w-[120px]">
-                    <p className="truncate text-xs font-semibold leading-none">
-                      {user?.namaLengkap || "User Koperasi"}
-                    </p>
-                    <p className="truncate text-[10px] text-muted-foreground mt-0.5 font-mono">
-                      {user?.username || role}
-                    </p>
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-semibold">{user?.namaLengkap || "Pengguna Koperasi"}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{user?.username || "-"}</p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <Badge variant="outline" className="w-fit text-[10px] font-semibold">
-                        {role}
+          {/* User Profile Dropdown */}
+          {/* User Profile Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 px-2 transition-transform active:scale-95"
+              >
+                <div className="flex size-7 items-center justify-center rounded-full bg-primary font-bold text-xs text-primary-foreground">
+                  {displayFullName ? displayFullName.slice(0, 1).toUpperCase() : "U"}
+                </div>
+                <div className="hidden text-left sm:block max-w-[180px]">
+                  <p className="truncate text-xs font-semibold leading-none" title={displayFullName}>
+                    {displayFullName}
+                  </p>
+                  <p className="truncate text-[10px] text-muted-foreground mt-0.5 font-mono">
+                    {user?.username || role}
+                  </p>
+                </div>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-semibold">{displayFullName}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{user?.username || "-"}</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Badge variant="outline" className="w-fit text-[10px] font-semibold">
+                      {role}
+                    </Badge>
+                    {isAdmin && role !== "Admin Koperasi" && (
+                      <Badge variant="secondary" className="text-[9px] bg-primary-soft text-primary">
+                        Admin View
                       </Badge>
-                      {isAdmin && role !== "Admin Koperasi" && (
-                        <Badge variant="secondary" className="text-[9px] bg-primary-soft text-primary">
-                          Admin View
-                        </Badge>
-                      )}
-                    </div>
+                    )}
                   </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {isAdmin && (
-                  <DropdownMenuItem onClick={() => navigate({ to: "/users" })} className="gap-2 cursor-pointer">
-                    <UserRound className="size-4" /> Manajemen Akun
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem onClick={() => setProfileOpen(true)} className="gap-2 cursor-pointer">
-                  <Settings className="size-4" /> Profil &amp; Satminkal
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {isAdmin && (
+                <DropdownMenuItem onClick={() => navigate({ to: "/users" })} className="gap-2 cursor-pointer">
+                  <UserRound className="size-4" /> Manajemen Akun
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="gap-2 text-destructive cursor-pointer font-medium">
-                  <LogOut className="size-4" /> Akhiri Sesi (Keluar)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+              )}
+              <DropdownMenuItem onClick={() => setProfileOpen(true)} className="gap-2 cursor-pointer">
+                <Settings className="size-4" /> Profil &amp; Satminkal
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout} className="gap-2 text-destructive cursor-pointer font-medium">
+                <LogOut className="size-4" /> Akhiri Sesi (Keluar)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
 
       {/* Profil & Satminkal Modal Dialog */}
