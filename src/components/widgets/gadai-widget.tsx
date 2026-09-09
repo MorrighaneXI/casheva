@@ -113,11 +113,11 @@ export function GadaiWidget() {
     setPawnItems((prev) =>
       prev.map((g) =>
         g.id === item.id
-          ? {
+          ? ({
               ...g,
               status: "BARANG_TERJUAL_LELANG",
-              hargaLelangTerjual: g.hargaLelangBuka,
-            }
+              hargaLelangTerjual: g.hargaLelangBuka ?? 0,
+            } as GadaiItem)
           : g
       )
     );

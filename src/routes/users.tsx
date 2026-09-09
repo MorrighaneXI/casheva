@@ -6,10 +6,10 @@ import { UserManagementWidget, ActiveSessionsWidget } from "@/components/widgets
 export const Route = createFileRoute("/users")({
   head: () => ({
     meta: [
-      { title: "Manajemen User & Hak Akses — Casheva Koperasi TNI AD" },
-      { name: "description", content: "Kelola akun, peran, dan hak akses pengguna Casheva." },
-      { property: "og:title", content: "Manajemen User & Hak Akses — Casheva" },
-      { property: "og:description", content: "Kelola akun, peran, dan hak akses pengguna Casheva." },
+      { title: "Manajemen User & Data Anggota — Casheva Koperasi TNI AD" },
+      { name: "description", content: "Pengelolaan terpadu akun login pengguna, data personel anggota, peran dinamis, dan aktivitas realtime." },
+      { property: "og:title", content: "Manajemen User & Data Anggota — Casheva" },
+      { property: "og:description", content: "Kelola akun, peran dinamis, dan status realtime pengguna Casheva." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -20,7 +20,10 @@ export const Route = createFileRoute("/users")({
 function Page() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Manajemen User & Hak Akses" description="Kelola akun, peran, dan hak akses pengguna Casheva." />
+      <PageHeader
+        title="Manajemen User & Data Anggota"
+        description="Pengelolaan akun login terpadu, data personel anggota koperasi, peran dinamis (RBAC), dan pemantauan status aktivitas realtime."
+      />
       <UserManagementWidget />
       <ActiveSessionsWidget />
     </div>

@@ -37,6 +37,7 @@ import { Route as ShuRouteImport } from './routes/shu'
 import { Route as SimpananRouteImport } from './routes/simpanan'
 import { Route as SupplierRouteImport } from './routes/supplier'
 import { Route as TokoTransaksiRouteImport } from './routes/toko-transaksi'
+import { Route as TransaksiRouteImport } from './routes/transaksi'
 import { Route as UsersRouteImport } from './routes/users'
 import { Route as VerifikasiRouteImport } from './routes/verifikasi'
 
@@ -180,6 +181,11 @@ const TokoTransaksiRoute = TokoTransaksiRouteImport.update({
   path: '/toko-transaksi',
   getParentRoute: () => rootRouteImport,
 } as any)
+const TransaksiRoute = TransaksiRouteImport.update({
+  id: '/transaksi',
+  path: '/transaksi',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const UsersRoute = UsersRouteImport.update({
   id: '/users',
   path: '/users',
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/simpanan': typeof SimpananRoute
   '/supplier': typeof SupplierRoute
   '/toko-transaksi': typeof TokoTransaksiRoute
+  '/transaksi': typeof TransaksiRoute
   '/users': typeof UsersRoute
   '/verifikasi': typeof VerifikasiRoute
 }
@@ -252,6 +259,7 @@ export interface FileRoutesByTo {
   '/simpanan': typeof SimpananRoute
   '/supplier': typeof SupplierRoute
   '/toko-transaksi': typeof TokoTransaksiRoute
+  '/transaksi': typeof TransaksiRoute
   '/users': typeof UsersRoute
   '/verifikasi': typeof VerifikasiRoute
 }
@@ -285,6 +293,7 @@ export interface FileRoutesById {
   '/simpanan': typeof SimpananRoute
   '/supplier': typeof SupplierRoute
   '/toko-transaksi': typeof TokoTransaksiRoute
+  '/transaksi': typeof TransaksiRoute
   '/users': typeof UsersRoute
   '/verifikasi': typeof VerifikasiRoute
 }
@@ -319,6 +328,7 @@ export interface FileRouteTypes {
     | '/simpanan'
     | '/supplier'
     | '/toko-transaksi'
+    | '/transaksi'
     | '/users'
     | '/verifikasi'
   fileRoutesByTo: FileRoutesByTo
@@ -351,6 +361,7 @@ export interface FileRouteTypes {
     | '/simpanan'
     | '/supplier'
     | '/toko-transaksi'
+    | '/transaksi'
     | '/users'
     | '/verifikasi'
   id:
@@ -383,6 +394,7 @@ export interface FileRouteTypes {
     | '/simpanan'
     | '/supplier'
     | '/toko-transaksi'
+    | '/transaksi'
     | '/users'
     | '/verifikasi'
   fileRoutesById: FileRoutesById
@@ -416,6 +428,7 @@ export interface RootRouteChildren {
   SimpananRoute: typeof SimpananRoute
   SupplierRoute: typeof SupplierRoute
   TokoTransaksiRoute: typeof TokoTransaksiRoute
+  TransaksiRoute: typeof TransaksiRoute
   UsersRoute: typeof UsersRoute
   VerifikasiRoute: typeof VerifikasiRoute
 }
@@ -618,6 +631,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TokoTransaksiRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/transaksi': {
+      id: '/transaksi'
+      path: '/transaksi'
+      fullPath: '/transaksi'
+      preLoaderRoute: typeof TransaksiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/users': {
       id: '/users'
       path: '/users'
@@ -664,6 +684,7 @@ const rootRouteChildren: RootRouteChildren = {
   SimpananRoute: SimpananRoute,
   SupplierRoute: SupplierRoute,
   TokoTransaksiRoute: TokoTransaksiRoute,
+  TransaksiRoute: TransaksiRoute,
   UsersRoute: UsersRoute,
   VerifikasiRoute: VerifikasiRoute,
 }

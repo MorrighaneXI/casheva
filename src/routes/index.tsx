@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -22,6 +23,7 @@ import {
   RotateCcw,
   CheckCircle2,
   Clock,
+  PiggyBank,
 } from "lucide-react";
 import {
   Area,
@@ -58,8 +60,6 @@ import {
 } from "@/components/ui/select";
 import {
   angsuranData,
-  anggotaAngsuranSaya,
-  anggotaGajiProfile,
   formatRp,
   formatNamaLengkapDinas,
   formatPangkatKorps,
@@ -70,7 +70,7 @@ import {
   type Role,
 } from "@/lib/casheva-data";
 import { dashboardCta } from "@/lib/rbac";
-import { apiDashboard, apiPinjaman } from "@/lib/api";
+import { apiDashboard, apiPinjaman, apiAnggota, type Anggota } from "@/lib/api";
 import {
   RekomendasiQueue,
   AccQueue,
@@ -971,144 +971,254 @@ function JuruBayarDashboard() {
    ───────────────────────────────────────────────────────────────────────────── */
 
 function AnggotaDashboard() {
-  const cta = dashboardCta("Anggota");
-  const p = anggotaGajiProfile;
-  const bruto = p.gajiPokok + p.tunkin + p.tunjanganLain;
-  const totalPotongan = p.potongan.reduce((sum, row) => sum + row.jumlah, 0);
-  const netto = bruto - totalPotongan;
+  const { user } = useSession();
+
+  // Fetch personal dashboard summary dari backend
+  const { data: summary, isLoading: loadingSummary } = useQuery({
+    queryKey: ["dashboard-summary"],
+    queryFn: apiDashboard.getSummary,
+  });
+
+  // Fetch daftar pinjaman milik anggota (difilter di backend)
+  const { data: loanList = [], isLoading: loadingLoans } = useQuery({
+    queryKey: ["pinjaman-anggota-saya"],
+    queryFn: () => apiPinjaman.findAll(),
+  });
+
+  // Fetch daftar anggota untuk resolve nama dinas resmi (pangkat + korps + nama)
+  const { data: anggotaList = [] } = useQuery({
+    queryKey: ["anggota-list-active"],
+    queryFn: () => apiAnggota.findAll(true),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const matchedAnggota = useMemo(() => {
+    if (summary?.anggota && summary.anggota.pangkat && summary.anggota.pangkat !== "-") {
+      return summary.anggota;
+    }
+    const fromList = anggotaList.find((a: Anggota) => a.nrpNip === user?.username || a.id === user?.id);
+    if (fromList) {
+      return {
+        id: fromList.id,
+        nama: fromList.nama,
+        nrpNip: fromList.nrpNip,
+        pangkat: fromList.pangkat?.nama || "-",
+        korps: fromList.korps?.nama || "-",
+        satminkal: fromList.satminkal?.nama || user?.satminkal || "INFOLAHTADAM IV/DIPONEGORO",
+      };
+    }
+    return summary?.anggota;
+  }, [summary, anggotaList, user]);
+
+  const officialDisplayName = useMemo(() => {
+    if (matchedAnggota) {
+      const pNama = (matchedAnggota.pangkat && matchedAnggota.pangkat !== "-") ? `${matchedAnggota.pangkat} ` : "";
+      const kNama = (matchedAnggota.korps && matchedAnggota.korps !== "-") ? `${matchedAnggota.korps} ` : "";
+      const rawNama = matchedAnggota.nama || user?.namaLengkap || "Anggota Koperasi";
+      return rawNama.toLowerCase().startsWith(pNama.trim().toLowerCase())
+        ? rawNama
+        : `${pNama}${kNama}${rawNama}`.trim();
+    }
+    if (user?.namaLengkap && !user.namaLengkap.startsWith("Personel (")) {
+      return user.namaLengkap;
+    }
+    return user?.namaLengkap || "Anggota Koperasi";
+  }, [matchedAnggota, user]);
+
+  const nrpDisplay = matchedAnggota?.nrpNip || user?.username || "-";
+  const satminkalDisplay = matchedAnggota?.satminkal || user?.satminkal || "INFOLAHTADAM IV/DIPONEGORO";
+
+  // KPI finansial personal dari backend
+  const totalSimpanan = summary?.totalSimpanan ?? 0;
+  const totalSimpananPokok = summary?.totalSimpananPokok ?? 0;
+  const totalSimpananWajib = summary?.totalSimpananWajib ?? 0;
+  const totalSimpananSukarela = summary?.totalSimpananSukarela ?? 0;
+  const totalPinjamanBerjalan = summary?.totalPinjamanBerjalan ?? 0;
+  const angsuranBulanIni = summary?.angsuranBulanIni ?? 0;
+  const statusAngsuranBulanIni = summary?.statusAngsuranBulanIni ?? true;
+  const shuTahunBerjalan = summary?.shuTahunBerjalan ?? 0;
+
+  // Pinjaman berjalan (diajukan & dicairkan)
+  const pinjamanAktif = loanList.filter((l) =>
+    ["DIAJUKAN", "DIVERIFIKASI_JURUBAYAR", "DIREKOMENDASIKAN", "VERIFIKASI_PRIMKOP",
+      "VERIFIKASI_JURU_BAYAR", "REKOMENDASI_PIMPINAN", "SETUJU_KEPRIM", "SETUJU_KAPRIM",
+      "MENUNGGU_DOKUMEN", "DICAIRKAN"].includes(l.status)
+  );
+
+  const kpiItems = [
+    {
+      label: "Total Simpanan Saya",
+      value: formatRp(totalSimpanan),
+      sub: `Pokok ${formatRp(totalSimpananPokok)} · Wajib ${formatRp(totalSimpananWajib)} · Lainnya ${formatRp(totalSimpananSukarela)}`,
+      icon: PiggyBank,
+      tone: "bg-primary-soft text-primary",
+    },
+    {
+      label: "Sisa Pinjaman Berjalan",
+      value: formatRp(totalPinjamanBerjalan),
+      sub: `${summary?.countPinjamanBerjalan ?? 0} berkas aktif`,
+      icon: HandCoins,
+      tone: "bg-destructive/10 text-destructive",
+    },
+    {
+      label: "Tagihan Angsuran Bulan Ini",
+      value: formatRp(angsuranBulanIni),
+      sub: statusAngsuranBulanIni ? "✓ Sudah Terbayar" : "⏳ Belum Dibayar",
+      icon: Banknote,
+      tone: statusAngsuranBulanIni ? "bg-success/15 text-success" : "bg-gold-soft text-accent-foreground",
+    },
+    {
+      label: "Estimasi SHU Saya",
+      value: formatRp(shuTahunBerjalan),
+      sub: `Tahun Buku ${summary?.tahun ?? new Date().getFullYear()}`,
+      icon: TrendingUp,
+      tone: "bg-success/15 text-success",
+    },
+  ];
 
   return (
     <div className="space-y-6">
+      {/* Header Identitas Personel */}
       <PageHeader
         title="Dashboard Anggota Koperasi"
-        description={`${formatNamaLengkapDinas(p.nama, p.pangkat, p.korps, p.kategori)} · NRP ${p.nrp} · ${p.satminkal}`}
+        description={
+          loadingSummary && !officialDisplayName
+            ? "Memuat data personel..."
+            : `${officialDisplayName} · NRP ${nrpDisplay} · ${satminkalDisplay}`
+        }
         actions={
-          cta ? (
-            <Button asChild>
-              <Link to={cta.to as "/"}>
-                {cta.label} <ArrowRight className="ml-1 size-4" />
-              </Link>
-            </Button>
-          ) : null
+          <Button asChild>
+            <Link to="/pengajuan">
+              <FilePlus2 className="mr-1.5 size-4" /> Ajukan Pinjaman
+            </Link>
+          </Button>
         }
       />
 
+      {/* KPI Finansial Personal */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {kpiItems.map((kpi) => (
+          <Card key={kpi.label} className="shadow-card card-interactive">
+            <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 pb-2">
+              <CardDescription className="min-w-0 truncate">{kpi.label}</CardDescription>
+              <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${kpi.tone}`}>
+                <kpi.icon className="size-4" />
+              </span>
+            </CardHeader>
+            <CardContent>
+              {loadingSummary ? (
+                <div className="flex items-center gap-2 py-1 text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" /> Memuat...
+                </div>
+              ) : (
+                <p className="text-xl font-extrabold tracking-tight break-words">{kpi.value}</p>
+              )}
+              <p className="mt-1 text-xs text-muted-foreground">{kpi.sub}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Rincian Simpanan Saya */}
+      <div className="grid gap-4 sm:grid-cols-4">
+        {[
+          { label: "Simpanan Pokok", value: totalSimpananPokok, color: "text-primary" },
+          { label: "Simpanan Wajib", value: totalSimpananWajib, color: "text-success" },
+          { label: "Simpanan Sukarela & Khusus", value: totalSimpananSukarela, color: "text-foreground" },
+          { label: "Total Tersimpan", value: totalSimpanan, color: "text-primary font-extrabold" },
+        ].map((item) => (
+          <Card key={item.label} className="shadow-card">
+            <CardHeader className="pb-2">
+              <CardDescription>{item.label}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingSummary ? (
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
+              ) : (
+                <p className={`text-lg font-bold ${item.color}`}>{formatRp(item.value)}</p>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Status Pengajuan Pinjaman Saya */}
+      <Card className="shadow-card">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+          <div>
+            <CardTitle>Status Pengajuan Pinjaman Saya</CardTitle>
+            <CardDescription>Alur persetujuan berjenjang dari pengajuan hingga pencairan</CardDescription>
+          </div>
+          <Button variant="outline" asChild size="sm">
+            <Link to="/pengajuan">Lihat Semua &amp; Ajukan Baru</Link>
+          </Button>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>No. Pengajuan</TableHead>
+                <TableHead className="text-right">Nominal</TableHead>
+                <TableHead className="text-center">Tenor</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Tanggal Ajukan</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loadingLoans ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                    <Loader2 className="mx-auto size-5 animate-spin mb-2" />
+                    Memuat data pengajuan...
+                  </TableCell>
+                </TableRow>
+              ) : pinjamanAktif.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                    Belum ada pengajuan pinjaman. Klik tombol "Ajukan Pinjaman" untuk mulai.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                pinjamanAktif.slice(0, 5).map((l) => {
+                  const uiStatus = backendStatusToFrontend(l.status);
+                  return (
+                    <TableRow key={l.id}>
+                      <TableCell className="font-mono text-xs font-semibold">
+                        #{l.id.slice(0, 8).toUpperCase()}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {formatRp(Number(l.nominal))}
+                      </TableCell>
+                      <TableCell className="text-center">{l.tenorBulan} bln</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={loanStatusTone[uiStatus] || ""}>
+                          {uiStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {l.tanggalPengajuan ? new Date(l.tanggalPengajuan).toLocaleDateString("id-ID", {
+                          day: "2-digit", month: "short", year: "numeric"
+                        }) : "-"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+
+      {/* Quick Action Buttons */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="shadow-card">
-          <CardHeader className="pb-2">
-            <CardDescription>Total Gaji Bruto</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between gap-3">
-            <p className="text-xl font-extrabold">{formatRp(bruto)}</p>
-            <span className="grid size-9 place-items-center rounded-lg bg-primary-soft text-primary">
-              <Banknote className="size-4" />
-            </span>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="pb-2">
-            <CardDescription>Total Potongan Gaji</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between gap-3">
-            <p className="text-xl font-extrabold">{formatRp(totalPotongan)}</p>
-            <span className="grid size-9 place-items-center rounded-lg bg-destructive/10 text-destructive">
-              <Ban className="size-4" />
-            </span>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="pb-2">
-            <CardDescription>Gaji Bersih Diterima (Netto)</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center justify-between gap-3">
-            <p className="text-xl font-extrabold text-success">{formatRp(netto)}</p>
-            <span className="grid size-9 place-items-center rounded-lg bg-success/15 text-success">
-              <TrendingUp className="size-4" />
-            </span>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle>Rincian Potongan Gaji</CardTitle>
-            <CardDescription>Potongan simpanan wajib, sukarela, dan kewajiban berjalan</CardDescription>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Jenis Potongan</TableHead>
-                  <TableHead className="text-right">Jumlah</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {p.potongan.map((row) => (
-                  <TableRow key={row.nama}>
-                    <TableCell className="font-medium">{row.nama}</TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatRp(row.jumlah)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle>Angsuran Pinjaman Saya</CardTitle>
-            <CardDescription>Progress pembayaran angsuran berjalan di koperasi</CardDescription>
-          </CardHeader>
-          <CardContent className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>No. Pinjaman</TableHead>
-                  <TableHead className="text-center">Angsuran</TableHead>
-                  <TableHead className="text-right">Tagihan / bln</TableHead>
-                  <TableHead className="text-right">Sisa Pokok</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {anggotaAngsuranSaya.map((r) => (
-                  <TableRow key={r.id}>
-                    <TableCell className="font-mono text-xs font-semibold">{r.id}</TableCell>
-                    <TableCell className="text-center text-xs">
-                      {r.angsuranKe} / {r.totalAngsuran}
-                    </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatRp(r.angsuranBulanan)}
-                    </TableCell>
-                    <TableCell className="text-right text-xs">{formatRp(r.sisa)}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="outline"
-                        className="border-success/30 bg-success/15 text-success text-[10px]"
-                      >
-                        {r.status}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
         <Button asChild variant="outline" className="h-auto justify-start gap-3 p-4">
           <Link to="/pengajuan">
             <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">
               <FilePlus2 className="size-5" />
             </span>
             <div className="text-left">
-              <p className="font-semibold">Ajukan Pinjaman Baru</p>
-              <p className="text-xs text-muted-foreground">Kalkulasi simulasi cicilan &amp; unggah berkas</p>
+              <p className="font-semibold">Pengajuan USIPA</p>
+              <p className="text-xs text-muted-foreground">Ajukan pinjaman &amp; unggah berkas</p>
             </div>
             <ArrowRight className="ml-auto size-4 text-muted-foreground" />
           </Link>
@@ -1116,11 +1226,23 @@ function AnggotaDashboard() {
         <Button asChild variant="outline" className="h-auto justify-start gap-3 p-4">
           <Link to="/simpanan">
             <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-success/15 text-success">
-              <Wallet className="size-5" />
+              <PiggyBank className="size-5" />
             </span>
             <div className="text-left">
               <p className="font-semibold">Simpanan Saya</p>
-              <p className="text-xs text-muted-foreground">Lihat saldo pokok, wajib, dan sukarela</p>
+              <p className="text-xs text-muted-foreground">Saldo pokok, wajib &amp; sukarela</p>
+            </div>
+            <ArrowRight className="ml-auto size-4 text-muted-foreground" />
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="h-auto justify-start gap-3 p-4">
+          <Link to="/angsuran">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-gold-soft text-accent-foreground">
+              <Banknote className="size-5" />
+            </span>
+            <div className="text-left">
+              <p className="font-semibold">Riwayat Angsuran</p>
+              <p className="text-xs text-muted-foreground">Jadwal cicilan &amp; kwitansi pembayaran</p>
             </div>
             <ArrowRight className="ml-auto size-4 text-muted-foreground" />
           </Link>

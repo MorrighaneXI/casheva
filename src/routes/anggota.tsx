@@ -14,7 +14,10 @@ import {
   Shield,
   Award,
   UserCheck,
+  UserX,
   CheckCircle2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -40,6 +43,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -47,8 +60,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatRp, formatPangkatKorps, cleanNamaPersonel } from "@/lib/casheva-data";
+import {
+  formatRp,
+  formatPangkatKorps,
+  cleanNamaPersonel,
+  backendRoleToFrontend,
+} from "@/lib/casheva-data";
 import { apiAnggota, apiMaster, apiSimpanan, type Anggota, type Korps, type Pangkat } from "@/lib/api";
+import { exportToExcel } from "@/lib/export-excel";
 
 export const Route = createFileRoute("/anggota")({
   head: () => ({
@@ -77,6 +96,8 @@ function AnggotaPage() {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("ALL");
   const [edit, setEdit] = useState<Anggota | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -84,8 +105,16 @@ function AnggotaPage() {
     nrpNip: "",
     pangkatId: "",
     korpsId: "",
+    role: "ANGGOTA",
+    password: "Admin123!",
     tmtAnggota: new Date().toISOString().split("T")[0],
   });
+
+  // CRUD Alert Confirmation States
+  const [openConfirmCreate, setOpenConfirmCreate] = useState(false);
+  const [openConfirmUpdate, setOpenConfirmUpdate] = useState(false);
+  const [openConfirmDelete, setOpenConfirmDelete] = useState(false);
+  const [selectedAnggotaAction, setSelectedAnggotaAction] = useState<Anggota | null>(null);
 
   // Queries
   const { data: anggotaList = [], isLoading } = useQuery({
@@ -150,12 +179,22 @@ function AnggotaPage() {
 
   // Mutations
   const createMutation = useMutation({
-    mutationFn: (dto: typeof formData) => apiAnggota.create(dto),
-    onSuccess: () => {
-      toast.success("Anggota Baru & Akun Login Berhasil Dibuat!", {
-        description: "Akun login otomatis diaktifkan dengan Username = NRP dan Password awal = Admin123!",
+    mutationFn: (dto: typeof formData) =>
+      apiAnggota.create({
+        nama: dto.nama,
+        nrpNip: dto.nrpNip,
+        pangkatId: dto.pangkatId,
+        korpsId: dto.korpsId,
+        tmtAnggota: dto.tmtAnggota,
+        role: dto.role as any,
+        password: dto.password,
+      }),
+    onSuccess: (res) => {
+      toast.success("Anggota & Akun User Berhasil Dibuat!", {
+        description: `Personel ${res.nama} (${res.nrpNip}) otomatis aktif dengan akun login user sistem.`,
       });
       queryClient.invalidateQueries({ queryKey: ["anggota-list"] });
+      queryClient.invalidateQueries({ queryKey: ["users-list"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
       setIsCreateOpen(false);
       setFormData({
@@ -163,6 +202,8 @@ function AnggotaPage() {
         nrpNip: "",
         pangkatId: "",
         korpsId: "",
+        role: "ANGGOTA",
+        password: "Admin123!",
         tmtAnggota: new Date().toISOString().split("T")[0],
       });
     },
@@ -174,8 +215,11 @@ function AnggotaPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: any }) => apiAnggota.update(id, dto),
     onSuccess: () => {
-      toast.success("Data anggota berhasil diperbarui");
+      toast.success("Data Anggota & Akun User Berhasil Diperbarui", {
+        description: "Perubahan data personel dan hak akses login tersinkronisasi.",
+      });
       queryClient.invalidateQueries({ queryKey: ["anggota-list"] });
+      queryClient.invalidateQueries({ queryKey: ["users-list"] });
       setEdit(null);
     },
     onError: (err: any) => {
@@ -197,6 +241,68 @@ function AnggotaPage() {
     },
   });
 
+  const toggleAktifMutation = useMutation({
+    mutationFn: ({ id, isAktif }: { id: string; isAktif: boolean }) =>
+      apiAnggota.update(id, { isAktif }),
+    onSuccess: (_, variables) => {
+      toast.success(
+        variables.isAktif ? "Anggota Berhasil Diaktifkan" : "Anggota Berhasil Dinonaktifkan",
+        {
+          description: "Status keanggotaan dan akun login sistem telah diselaraskan.",
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: ["anggota-list"] });
+      queryClient.invalidateQueries({ queryKey: ["users-list"] });
+    },
+    onError: (err: any) => {
+      toast.error("Gagal mengubah status anggota", { description: err.message });
+    },
+  });
+
+  const handleExportExcel = () => {
+    const filename = `Data_Anggota_Koperasi_${new Date().toISOString().split("T")[0]}`;
+    const headers = [
+      "No.",
+      "Nama Personel",
+      "Pangkat",
+      "Korps",
+      "NRP / NIP",
+      "Satminkal",
+      "Simpanan Wajib",
+      "Simpanan Sukarela",
+      "Status",
+    ];
+
+    const rows = filteredRows.map((a, idx) => {
+      const simp = simpananMap.get(a.id);
+      return [
+        idx + 1,
+        cleanNamaPersonel(a.nama),
+        a.pangkat?.nama || "-",
+        a.korps?.nama || "-",
+        a.nrpNip,
+        a.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO",
+        Number(simp?.simpananWajib ?? 0),
+        Number(simp?.simpananSukarela ?? 0),
+        a.isAktif ? "Aktif" : "Non-Aktif",
+      ];
+    });
+
+    exportToExcel({
+      filename,
+      title: "Daftar Anggota & Rekap Posisi Simpanan Koperasi TNI AD",
+      headers,
+      rows,
+      summary: [
+        { label: "Total Personel Anggota Terdaftar", value: `${filteredRows.length} Personel` },
+      ],
+    });
+
+    toast.success("File Excel Anggota Berhasil Diunduh!", {
+      description: `${filteredRows.length} data anggota berhasil diekspor.`,
+    });
+  };
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`NRP disalin: ${text}`);
@@ -209,6 +315,13 @@ function AnggotaPage() {
         description={`${anggotaList.length} personel terdaftar pada Satminkal binaan (3 Kunci Utama: Nama, Pangkat, NRP).`}
         actions={
           <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={handleExportExcel}
+              className="text-xs bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100"
+            >
+              Ekspor ke Excel
+            </Button>
             <Button
               variant="outline"
               disabled={massalMutation.isPending}
@@ -342,6 +455,7 @@ function AnggotaPage() {
                 <TableHead>Nama Lengkap</TableHead>
                 <TableHead>Pangkat / Golongan</TableHead>
                 <TableHead>NRP / NIP</TableHead>
+                <TableHead>Role Sistem</TableHead>
                 <TableHead>Satminkal</TableHead>
                 <TableHead className="text-right">Simpanan Wajib</TableHead>
                 <TableHead className="text-right">Sukarela</TableHead>
@@ -352,7 +466,7 @@ function AnggotaPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="py-12 text-center text-muted-foreground">
+                  <TableCell colSpan={10} className="py-12 text-center text-muted-foreground">
                     <Loader2 className="mx-auto size-6 animate-spin mb-2 text-primary" />
                     Memuat data anggota dari database...
                   </TableCell>
@@ -367,6 +481,7 @@ function AnggotaPage() {
                     a.korps?.nama,
                     a.pangkat?.kategori,
                   );
+                  const memberRole = a.role || a.user?.role || "ANGGOTA";
 
                   return (
                     <TableRow key={a.id} className="hover:bg-muted/50 transition-colors">
@@ -384,6 +499,14 @@ function AnggotaPage() {
                           {a.nrpNip}
                           <Copy className="size-3 opacity-60" />
                         </button>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="secondary"
+                          className="text-[10px] font-semibold bg-primary/10 text-primary border-primary/20"
+                        >
+                          {backendRoleToFrontend(memberRole)}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {a.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}
@@ -404,11 +527,12 @@ function AnggotaPage() {
                           {a.isAktif ? "Aktif" : "Non-Aktif"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right space-x-1">
                         <Button
                           size="icon"
                           variant="ghost"
                           className="size-8"
+                          title="Edit Data Personel &amp; Hak Akses"
                           onClick={() => {
                             setEdit(a);
                             setFormData({
@@ -416,11 +540,30 @@ function AnggotaPage() {
                               nrpNip: a.nrpNip,
                               pangkatId: a.pangkatId,
                               korpsId: a.korpsId,
+                              role: memberRole as any,
+                              password: "",
                               tmtAnggota: a.tmtAnggota ? a.tmtAnggota.split("T")[0] : "",
                             });
                           }}
                         >
                           <Pencil className="size-3.5" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-8"
+                          title={a.isAktif ? "Nonaktifkan Anggota" : "Aktifkan Anggota"}
+                          disabled={toggleAktifMutation.isPending}
+                          onClick={() => {
+                            setSelectedAnggotaAction(a);
+                            setOpenConfirmDelete(true);
+                          }}
+                        >
+                          {a.isAktif ? (
+                            <UserX className="size-3.5 text-destructive" />
+                          ) : (
+                            <UserCheck className="size-3.5 text-success" />
+                          )}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -450,16 +593,17 @@ function AnggotaPage() {
           </DialogHeader>
           <div className="space-y-4 py-2 text-xs">
             <div className="space-y-1.5">
-              <Label>Nama Lengkap (Kunci Utama 1)</Label>
+              <Label>Nama Lengkap (Kunci Utama 1) <span className="text-destructive">*</span></Label>
               <Input
                 value={formData.nama}
                 onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                placeholder="Contoh: Sigit Suhendro"
+                placeholder="Contoh: Sigit Widiyanto, S.T., M.Tr.(Han)"
               />
+              <p className="text-[10px] text-muted-foreground">Boleh mencantumkan gelar akademik / kehormatan</p>
             </div>
 
             <div className="space-y-1.5">
-              <Label>Pangkat TNI AD (Kunci Utama 2)</Label>
+              <Label>Pangkat TNI AD (Kunci Utama 2) <span className="text-destructive">*</span></Label>
               <Select
                 value={formData.pangkatId}
                 onValueChange={(val) => setFormData({ ...formData, pangkatId: val })}
@@ -478,13 +622,19 @@ function AnggotaPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>NRP / NIP (Kunci Utama 3 / Login ID)</Label>
+              <Label>NRP / NIP (Kunci Utama 3 / Login ID) <span className="text-destructive">*</span></Label>
               <Input
                 value={formData.nrpNip}
-                onChange={(e) => setFormData({ ...formData, nrpNip: e.target.value })}
-                placeholder="Contoh: 1102123401"
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 18);
+                  setFormData({ ...formData, nrpNip: val });
+                }}
+                placeholder="Contoh: 11020019460278"
                 className="font-mono"
+                inputMode="numeric"
+                maxLength={18}
               />
+              <p className="text-[10px] text-muted-foreground">Hanya angka, maksimal 18 digit</p>
             </div>
 
             <div className="space-y-1.5">
@@ -497,6 +647,7 @@ function AnggotaPage() {
                   <SelectValue placeholder="-- Pilih Korps --" />
                 </SelectTrigger>
                 <SelectContent className="max-h-56">
+                  <SelectItem value="NONE">-- Tanpa Korps / Bintara / Tamtama / PNS --</SelectItem>
                   {korpsList.map((k) => (
                     <SelectItem key={k.id} value={k.id}>
                       {k.nama} ({k.kode})
@@ -504,6 +655,89 @@ function AnggotaPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Role Hak Akses Sistem</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(val) => setFormData({ ...formData, role: val })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-56 text-xs">
+                  <SelectItem value="ANGGOTA">Anggota</SelectItem>
+                  <SelectItem value="BENDAHARA">Bendahara</SelectItem>
+                  <SelectItem value="KASIR_TOKO">Kasir Toko</SelectItem>
+                  <SelectItem value="JURU_BAYAR">Juru Bayar</SelectItem>
+                  <SelectItem value="PIMPINAN">Pimpinan / Dan / Ka</SelectItem>
+                  <SelectItem value="KEPRIM">Keprim</SelectItem>
+                  <SelectItem value="PENGAWAS">Pengawas Koperasi</SelectItem>
+                  <SelectItem value="ADMIN_KOPERASI">Admin Koperasi</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Kata Sandi Awal <span className="text-destructive">*</span></Label>
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="misal: Admin1a"
+                  className="pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                  title={showPassword ? "Sembunyikan kata sandi" : "Lihat kata sandi"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </button>
+              </div>
+              {(() => {
+                const pw = formData.password;
+                const hasUpper = /[A-Z]/.test(pw);
+                const hasLower = /[a-z]/.test(pw);
+                const hasDigit = /[0-9]/.test(pw);
+                const hasMinLen = pw.length >= 6;
+                const allValid = hasUpper && hasLower && hasDigit && hasMinLen;
+                return (
+                  <div className="space-y-0.5 mt-1">
+                    <p className={`text-[10px] ${hasMinLen ? "text-success" : "text-muted-foreground"}`}>
+                      {hasMinLen ? "✓" : "○"} Minimal 6 karakter
+                    </p>
+                    <p className={`text-[10px] ${hasUpper ? "text-success" : "text-muted-foreground"}`}>
+                      {hasUpper ? "✓" : "○"} Mengandung huruf kapital (A-Z)
+                    </p>
+                    <p className={`text-[10px] ${hasLower ? "text-success" : "text-muted-foreground"}`}>
+                      {hasLower ? "✓" : "○"} Mengandung huruf kecil (a-z)
+                    </p>
+                    <p className={`text-[10px] ${hasDigit ? "text-success" : "text-muted-foreground"}`}>
+                      {hasDigit ? "✓" : "○"} Mengandung angka (0-9)
+                    </p>
+                    {pw.length > 0 && !allValid && (
+                      <p className="text-[10px] text-destructive font-medium mt-0.5">Kata sandi belum memenuhi syarat</p>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Satuan</Label>
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs font-semibold text-foreground">
+                INFOLAHTADAM IV/DIP
+              </div>
+              <p className="text-[10px] text-muted-foreground">Satuan tetap — seluruh personel terdaftar di INFOLAHTADAM IV/DIP</p>
             </div>
 
             <div className="space-y-1.5">
@@ -517,17 +751,27 @@ function AnggotaPage() {
 
             <div className="rounded-lg border border-primary/25 bg-primary-soft/50 p-3 space-y-1">
               <p className="font-semibold text-foreground flex items-center gap-1.5">
-                <CheckCircle2 className="size-3.5 text-primary" /> Auto-Provisioning Akun:
+                <CheckCircle2 className="size-3.5 text-primary" /> Auto-Provisioning Akun User:
               </p>
               <p className="text-[11px] text-muted-foreground">
-                Akun login anggota otomatis dibuat dengan Username = NRP dan Password awal = <strong>Admin123!</strong>.
+                Menambahkan anggota otomatis membuat akun login User dengan Username = NRP dan Password yang ditentukan. Data langsung sinkron di <strong>Manajemen User &amp; Anggota</strong>.
               </p>
             </div>
           </div>
           <DialogFooter>
             <Button
-              disabled={!formData.nama || !formData.pangkatId || !formData.nrpNip || createMutation.isPending}
-              onClick={() => createMutation.mutate(formData)}
+              disabled={
+                !formData.nama.trim() ||
+                !formData.pangkatId ||
+                !formData.nrpNip ||
+                formData.nrpNip.length < 1 ||
+                !/[A-Z]/.test(formData.password) ||
+                !/[a-z]/.test(formData.password) ||
+                !/[0-9]/.test(formData.password) ||
+                formData.password.length < 6 ||
+                createMutation.isPending
+              }
+              onClick={() => setOpenConfirmCreate(true)}
             >
               {createMutation.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
               Simpan &amp; Aktifkan Akun
@@ -552,15 +796,23 @@ function AnggotaPage() {
               <Input
                 value={formData.nama}
                 onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
+                placeholder="misal: Sigit Widiyanto, S.T., M.Tr.(Han)"
               />
+              <p className="text-[10px] text-muted-foreground">Boleh mencantumkan gelar akademik / kehormatan</p>
             </div>
             <div className="space-y-1.5">
               <Label>NRP / NIP</Label>
               <Input
                 value={formData.nrpNip}
-                onChange={(e) => setFormData({ ...formData, nrpNip: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 18);
+                  setFormData({ ...formData, nrpNip: val });
+                }}
                 className="font-mono"
+                inputMode="numeric"
+                maxLength={18}
               />
+              <p className="text-[10px] text-muted-foreground">Hanya angka, maksimal 18 digit</p>
             </div>
             <div className="space-y-1.5">
               <Label>Pangkat TNI AD</Label>
@@ -590,6 +842,7 @@ function AnggotaPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="max-h-56">
+                  <SelectItem value="NONE">-- Tanpa Korps / Bintara / Tamtama / PNS --</SelectItem>
                   {korpsList.map((k) => (
                     <SelectItem key={k.id} value={k.id}>
                       {k.nama} ({k.kode})
@@ -598,15 +851,96 @@ function AnggotaPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="space-y-1.5">
+              <Label>Role Hak Akses Sistem</Label>
+              <Select
+                value={formData.role}
+                onValueChange={(val) => setFormData({ ...formData, role: val as any })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-h-56 text-xs">
+                  <SelectItem value="ANGGOTA">Anggota</SelectItem>
+                  <SelectItem value="BENDAHARA">Bendahara</SelectItem>
+                  <SelectItem value="KASIR_TOKO">Kasir Toko</SelectItem>
+                  <SelectItem value="JURU_BAYAR">Juru Bayar</SelectItem>
+                  <SelectItem value="PIMPINAN">Pimpinan / Dan / Ka</SelectItem>
+                  <SelectItem value="KEPRIM">Keprim</SelectItem>
+                  <SelectItem value="PENGAWAS">Pengawas Koperasi</SelectItem>
+                  <SelectItem value="ADMIN_KOPERASI">Admin Koperasi</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Kata Sandi Baru (Opsional)</Label>
+              <div className="relative">
+                <Input
+                  type={showEditPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  placeholder="Kosongkan jika tidak ingin mengubah password"
+                  className="pr-9"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowEditPassword((prev) => !prev)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                  title={showEditPassword ? "Sembunyikan kata sandi" : "Lihat kata sandi"}
+                >
+                  {showEditPassword ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
+                </button>
+              </div>
+              {formData.password && formData.password.length > 0 && (
+                <div className="space-y-0.5 mt-1">
+                  <p className={`text-[10px] ${formData.password.length >= 6 ? "text-success" : "text-muted-foreground"}`}>
+                    {formData.password.length >= 6 ? "✓" : "○"} Minimal 6 karakter
+                  </p>
+                  <p className={`text-[10px] ${/[A-Z]/.test(formData.password) ? "text-success" : "text-muted-foreground"}`}>
+                    {/[A-Z]/.test(formData.password) ? "✓" : "○"} Mengandung huruf kapital (A-Z)
+                  </p>
+                  <p className={`text-[10px] ${/[a-z]/.test(formData.password) ? "text-success" : "text-muted-foreground"}`}>
+                    {/[a-z]/.test(formData.password) ? "✓" : "○"} Mengandung huruf kecil (a-z)
+                  </p>
+                  <p className={`text-[10px] ${/[0-9]/.test(formData.password) ? "text-success" : "text-muted-foreground"}`}>
+                    {/[0-9]/.test(formData.password) ? "✓" : "○"} Mengandung angka (0-9)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-lg border border-primary/25 bg-primary-soft/50 p-2.5 space-y-0.5">
+              <p className="font-semibold text-foreground flex items-center gap-1.5 text-[11px]">
+                <CheckCircle2 className="size-3.5 text-primary" /> Sinkronisasi 2-Arah Terhubung:
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Perubahan data personel, role, atau kata sandi di sini langsung disinkronkan ke <strong>Manajemen User</strong>.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button
-              disabled={updateMutation.isPending}
-              onClick={() => {
-                if (edit) {
-                  updateMutation.mutate({ id: edit.id, dto: formData });
-                }
-              }}
+              disabled={
+                Boolean(
+                  updateMutation.isPending ||
+                  !formData.nama.trim() ||
+                  !formData.nrpNip ||
+                  (formData.password && formData.password.length > 0 && (
+                    formData.password.length < 6 ||
+                    !/[A-Z]/.test(formData.password) ||
+                    !/[a-z]/.test(formData.password) ||
+                    !/[0-9]/.test(formData.password)
+                  ))
+                )
+              }
+              onClick={() => setOpenConfirmUpdate(true)}
             >
               {updateMutation.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
               Simpan Perubahan
@@ -617,6 +951,99 @@ function AnggotaPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Alert Pop-up: Tambah Anggota */}
+      <AlertDialog open={openConfirmCreate} onOpenChange={setOpenConfirmCreate}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-bold">
+              Anda Yakin ingin menambahkan data ini?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Data personel <strong>{formData.nama}</strong> (NRP/NIP: {formData.nrpNip}) akan ditambahkan sebagai anggota koperasi dan akun login user akan dibuat secara realtime.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batalkan</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={createMutation.isPending}
+              onClick={() => {
+                createMutation.mutate(formData);
+                setOpenConfirmCreate(false);
+              }}
+            >
+              {createMutation.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
+              Iya, Tambahkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Alert Pop-up: Edit Anggota */}
+      <AlertDialog open={openConfirmUpdate} onOpenChange={setOpenConfirmUpdate}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-bold">
+              Anda Yakin ingin mengedit data ini?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Perubahan data personel <strong>{formData.nama}</strong> dan hak akses akun login akan disinkronkan ke seluruh sistem secara realtime.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batalkan</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={updateMutation.isPending}
+              onClick={() => {
+                if (edit) {
+                  updateMutation.mutate({ id: edit.id, dto: formData });
+                }
+                setOpenConfirmUpdate(false);
+              }}
+            >
+              {updateMutation.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
+              Iya, Simpan Perubahan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Alert Pop-up: Hapus / Nonaktifkan Anggota */}
+      <AlertDialog open={openConfirmDelete} onOpenChange={setOpenConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-bold">
+              {selectedAnggotaAction?.isAktif
+                ? "Anda Yakin ingin menghapus data ini?"
+                : "Anda Yakin ingin mengaktifkan data ini?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {selectedAnggotaAction?.isAktif
+                ? `Menonaktifkan keanggotaan dan mencabut akses login untuk personel ${selectedAnggotaAction?.nama} (NRP: ${selectedAnggotaAction?.nrpNip}).`
+                : `Mengaktifkan kembali keanggotaan dan hak akses login untuk personel ${selectedAnggotaAction?.nama} (NRP: ${selectedAnggotaAction?.nrpNip}).`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batalkan</AlertDialogCancel>
+            <AlertDialogAction
+              className={selectedAnggotaAction?.isAktif ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+              disabled={toggleAktifMutation.isPending}
+              onClick={() => {
+                if (selectedAnggotaAction) {
+                  toggleAktifMutation.mutate({
+                    id: selectedAnggotaAction.id,
+                    isAktif: !selectedAnggotaAction.isAktif,
+                  });
+                }
+                setOpenConfirmDelete(false);
+              }}
+            >
+              {toggleAktifMutation.isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
+              {selectedAnggotaAction?.isAktif ? "Iya, Nonaktifkan" : "Iya, Aktifkan"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

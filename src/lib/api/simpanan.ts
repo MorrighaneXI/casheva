@@ -63,4 +63,33 @@ export const apiSimpanan = {
   }): Promise<any> => {
     return api.post('/simpanan/setor', dto);
   },
+
+  batchGolongan: async (dto: {
+    rates: { golongan: string; nominalPokok: number; nominalWajib: number }[];
+    periode?: string;
+    keterangan?: string;
+  }): Promise<{
+    message: string;
+    periode: string;
+    totalAnggota: number;
+    totalTransaksi: number;
+    totalPokok: number;
+    totalWajib: number;
+    totalNominal: number;
+    rincian: {
+      id: string;
+      nama: string;
+      nrpNip: string;
+      pangkat: string;
+      kategoriPangkat: string;
+      korps: string;
+      golongan: string;
+      simpananPokok: number;
+      simpananWajib: number;
+      totalPotongan: number;
+    }[];
+  }> => {
+    return api.post('/simpanan/batch-golongan', dto);
+  },
 };
+
