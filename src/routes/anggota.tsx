@@ -68,6 +68,7 @@ import {
 } from "@/lib/casheva-data";
 import { apiAnggota, apiMaster, apiSimpanan, type Anggota, type Korps, type Pangkat } from "@/lib/api";
 import { exportToExcel } from "@/lib/export-excel";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 
 export const Route = createFileRoute("/anggota")({
   head: () => ({
@@ -115,6 +116,9 @@ function AnggotaPage() {
   const [openConfirmUpdate, setOpenConfirmUpdate] = useState(false);
   const [openConfirmDelete, setOpenConfirmDelete] = useState(false);
   const [selectedAnggotaAction, setSelectedAnggotaAction] = useState<Anggota | null>(null);
+  const [openConfirmMassal, setOpenConfirmMassal] = useState(false);
+  const [openConfirmHapus, setOpenConfirmHapus] = useState(false);
+  const [selectedHapusAnggota, setSelectedHapusAnggota] = useState<Anggota | null>(null);
 
   // Queries
   const { data: anggotaList = [], isLoading } = useQuery({
@@ -259,6 +263,22 @@ function AnggotaPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiAnggota.remove(id),
+    onSuccess: (res) => {
+      toast.success("Anggota Berhasil Dihapus Permanen", {
+        description: `Data personel ${res?.nama || ""} telah dihapus dari database beserta akun login terkait.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["anggota-list"] });
+      queryClient.invalidateQueries({ queryKey: ["users-list"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["simpanan-rekap"] });
+    },
+    onError: (err: any) => {
+      toast.error("Gagal menghapus anggota", { description: err.message });
+    },
+  });
+
   const handleExportExcel = () => {
     const filename = `Data_Anggota_Koperasi_${new Date().toISOString().split("T")[0]}`;
     const headers = [
@@ -325,7 +345,7 @@ function AnggotaPage() {
             <Button
               variant="outline"
               disabled={massalMutation.isPending}
-              onClick={() => massalMutation.mutate()}
+              onClick={() => setOpenConfirmMassal(true)}
             >
               {massalMutation.isPending ? (
                 <Loader2 className="mr-2 size-4 animate-spin" />
@@ -564,6 +584,19 @@ function AnggotaPage() {
                           ) : (
                             <UserCheck className="size-3.5 text-success" />
                           )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-8"
+                          title="Hapus Permanen Anggota"
+                          disabled={deleteMutation.isPending}
+                          onClick={() => {
+                            setSelectedHapusAnggota(a);
+                            setOpenConfirmHapus(true);
+                          }}
+                        >
+                          <Trash2 className="size-3.5 text-destructive" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -1044,6 +1077,53 @@ function AnggotaPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Alert Pop-up: Hapus Permanen Anggota */}
+      <ConfirmActionDialog
+        open={openConfirmHapus}
+        onOpenChange={(o) => {
+          setOpenConfirmHapus(o);
+          if (!o) setSelectedHapusAnggota(null);
+        }}
+        title="Hapus Permanen Data Anggota?"
+        description={
+          <>
+            Data personel <strong>{selectedHapusAnggota?.nama}</strong> (NRP: {selectedHapusAnggota?.nrpNip}) akan dihapus secara permanen dari database beserta akun login terkait.
+            <br />
+            <span className="text-destructive font-semibold">Aksi ini tidak dapat dibatalkan!</span>
+          </>
+        }
+        confirmText="Ya, Hapus Permanen"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+        details={[
+          { label: "Nama", value: selectedHapusAnggota?.nama || "-" },
+          { label: "NRP / NIP", value: selectedHapusAnggota?.nrpNip || "-" },
+          { label: "Status", value: selectedHapusAnggota?.isAktif ? "Aktif" : "Non-Aktif" },
+        ]}
+        onConfirm={() => {
+          if (selectedHapusAnggota) {
+            deleteMutation.mutate(selectedHapusAnggota.id);
+          }
+          setOpenConfirmHapus(false);
+          setSelectedHapusAnggota(null);
+        }}
+      />
+
+      {/* Alert Pop-up: Simpanan Sukarela Massal */}
+      <ConfirmActionDialog
+        open={openConfirmMassal}
+        onOpenChange={setOpenConfirmMassal}
+        title="Generate Simpanan Sukarela Massal?"
+        description="Potongan simpanan sukarela bulanan akan dijalankan untuk seluruh anggota aktif berdasarkan kategori pangkat (Pamen, Pama, Ba/Ta/ASN). Pastikan periode yang dipilih sudah benar."
+        confirmText="Ya, Jalankan Potongan"
+        variant="warning"
+        isLoading={massalMutation.isPending}
+        onConfirm={() => {
+          massalMutation.mutate();
+          setOpenConfirmMassal(false);
+        }}
+      />
     </div>
   );
 }

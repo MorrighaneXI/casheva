@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Calendar,
@@ -11,6 +11,20 @@ import {
   Receipt,
   UserCheck,
   Copy,
+  AlertTriangle,
+  ShieldAlert,
+  ShieldCheck,
+  Zap,
+  Printer,
+  Info,
+  Clock,
+  Sparkles,
+  Calculator,
+  HelpCircle,
+  Check,
+  ArrowRight,
+  TrendingDown,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -18,6 +32,8 @@ import { PageHeader } from "@/components/page-header";
 import { useSession } from "@/components/session-context";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -49,9 +65,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatRp, formatPangkatKorps, formatNamaLengkapDinas } from "@/lib/casheva-data";
-import { apiPinjaman, type Pinjaman } from "@/lib/api";
+import { Separator } from "@/components/ui/separator";
+import { formatRp, formatPangkatKorps, formatNamaLengkapDinas, cleanNamaPersonel } from "@/lib/casheva-data";
+import { apiPinjaman, apiAnggota, type Pinjaman, type KalkulasiDinamisResponse, type BayarAngsuranDinamisDto } from "@/lib/api";
 import { exportToCSV } from "@/lib/export-excel";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 
 export const Route = createFileRoute("/angsuran")({
   head: () => ({
@@ -76,7 +94,7 @@ const BULAN_NAMES = [
 
 function Page() {
   const queryClient = useQueryClient();
-  const { role, isAdmin } = useSession();
+  const { user, role, isAdmin } = useSession();
   const isAnggota = role === "Anggota";
   const isBendaharaOrAdmin = isAdmin || role === "Bendahara" || role === "Admin Koperasi";
 
@@ -84,6 +102,49 @@ function Page() {
   const [selectedBulan, setSelectedBulan] = useState<number>(currentDate.getMonth() + 1);
   const [selectedTahun, setSelectedTahun] = useState<number>(currentDate.getFullYear());
   const [selectedLoan, setSelectedLoan] = useState<Pinjaman | null>(null);
+
+  // States untuk Pembayaran Dinamis & Kwitansi
+  const [dinamisLoanId, setDinamisLoanId] = useState<string | null>(null);
+  const [nominalBayarInput, setNominalBayarInput] = useState<number>(0);
+  const [isPelunasanDipercepat, setIsPelunasanDipercepat] = useState<boolean>(false);
+  const [tanggalBayarInput, setTanggalBayarInput] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [receiptData, setReceiptData] = useState<any | null>(null);
+  const [confirmDinamisOpen, setConfirmDinamisOpen] = useState(false);
+
+  // Ambil data anggota untuk pencocokan akun dinas personel
+  const { data: anggotaList = [] } = useQuery({
+    queryKey: ["anggota-list-active"],
+    queryFn: () => apiAnggota.findAll(true),
+  });
+
+  const currentMember = useMemo(() => {
+    if (!user) return null;
+    let pool = anggotaList || [];
+    if (pool.length === 0 && typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("casheva.anggota_cache");
+        if (raw) pool = JSON.parse(raw);
+      } catch {}
+    }
+
+    if (pool.length > 0) {
+      const byNrp = pool.find((a) => a.nrpNip?.toLowerCase() === user.username?.toLowerCase());
+      if (byNrp) return byNrp;
+
+      const byId = pool.find((a) => a.id === user.id);
+      if (byId) return byId;
+
+      if (user.namaLengkap) {
+        const cleanUser = cleanNamaPersonel(user.namaLengkap).toLowerCase();
+        const byName = pool.find((a) => {
+          const cleanA = cleanNamaPersonel(a.nama).toLowerCase();
+          return cleanA === cleanUser || (cleanUser.length > 3 && (cleanA.includes(cleanUser) || cleanUser.includes(cleanA)));
+        });
+        if (byName) return byName;
+      }
+    }
+    return null;
+  }, [anggotaList, user]);
 
   // Queries
   const { data: loanList = [], isLoading: loadingLoans } = useQuery({
@@ -95,6 +156,43 @@ function Page() {
     queryKey: ["angsuran-rekap-bulanan", selectedBulan, selectedTahun],
     queryFn: () => apiPinjaman.getRekapAngsuranBulanan(selectedBulan, selectedTahun),
   });
+
+  // Query kalkulasi dinamis untuk pinjaman yang sedang dipilih di modal
+  const { data: kalkulasiData, isLoading: loadingKalkulasi } = useQuery({
+    queryKey: ["kalkulasi-dinamis", dinamisLoanId],
+    queryFn: () => (dinamisLoanId ? apiPinjaman.getKalkulasiDinamis(dinamisLoanId) : null),
+    enabled: !!dinamisLoanId,
+  });
+
+  // Otomatis set default nominal bayar saat kalkulasi dinamis dimuat
+  useEffect(() => {
+    if (kalkulasiData) {
+      if (isPelunasanDipercepat) {
+        setNominalBayarInput(kalkulasiData.pelunasanDipercepat.totalBayar);
+      } else {
+        setNominalBayarInput(kalkulasiData.totalKewajibanBulanIni);
+      }
+    }
+  }, [kalkulasiData, isPelunasanDipercepat]);
+
+  const liveCalculation = useMemo(() => {
+    if (!kalkulasiData) return null;
+    const nominal = nominalBayarInput || 0;
+    const totalBungaWajib = (kalkulasiData.tunggakanBunga || 0) + (kalkulasiData.bungaBulanan || 0);
+    const porsiBunga = Math.min(nominal, totalBungaWajib);
+    const porsiPokok = Math.max(0, nominal - porsiBunga);
+    const sisaPokokBaru = Math.max(0, kalkulasiData.sisaPokok - porsiPokok);
+    const sisaBungaTertunggak = Math.max(0, totalBungaWajib - porsiBunga);
+
+    return {
+      nominal,
+      porsiBunga,
+      porsiPokok,
+      sisaPokokBaru,
+      sisaBungaTertunggak,
+      isLunas: isPelunasanDipercepat || sisaPokokBaru === 0,
+    };
+  }, [kalkulasiData, nominalBayarInput, isPelunasanDipercepat]);
 
   const activeLoans = loanList.filter((l) =>
     ["DICAIRKAN", "LUNAS"].includes(l.status),
@@ -117,6 +215,33 @@ function Page() {
     },
     onError: (err: any) => {
       toast.error("Gagal Memproses Pembayaran", { description: err.message });
+    },
+  });
+
+  const bayarDinamisMutation = useMutation({
+    mutationFn: async (dto: BayarAngsuranDinamisDto) => {
+      if (!dinamisLoanId) throw new Error("ID Pinjaman tidak valid");
+      return apiPinjaman.bayarDinamis(dinamisLoanId, dto);
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ["pinjaman-angsuran-all"] });
+      queryClient.invalidateQueries({ queryKey: ["angsuran-rekap-bulanan"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["kalkulasi-dinamis"] });
+      setReceiptData({
+        ...res,
+        anggota: kalkulasiData?.anggota,
+        tenorBulan: kalkulasiData?.tenorBulan,
+      });
+      setDinamisLoanId(null);
+      toast.success("Pembayaran Angsuran Dinamis Berhasil!", {
+        description: `No. Kwitansi: ${res.noInvoice}`,
+      });
+    },
+    onError: (err: any) => {
+      toast.error("Gagal Memproses Pembayaran", {
+        description: err.message || "Terjadi kesalahan saat memproses pembayaran",
+      });
     },
   });
 
@@ -174,7 +299,28 @@ function Page() {
     // ============================
     // TAMPILAN PERSONAL ANGGOTA
     // ============================
-    const myLoans = activeLoans;
+    // Saring HANYA pinjaman yang diajukan oleh / milik anggota yang sedang login
+    const myLoans = activeLoans.filter((l) => {
+      if (currentMember && (l.anggotaId === currentMember.id || l.anggota?.id === currentMember.id)) {
+        return true;
+      }
+      if (user?.username) {
+        const cleanUsername = user.username.toLowerCase().trim();
+        const nrpAnggota = (l.anggota?.nrpNip || "").toLowerCase().trim();
+        if (nrpAnggota === cleanUsername) return true;
+      }
+      if (user?.id && (l.anggotaId === user.id || l.anggota?.id === user.id)) {
+        return true;
+      }
+      if (user?.namaLengkap && l.anggota?.nama) {
+        const cleanUser = cleanNamaPersonel(user.namaLengkap).toLowerCase();
+        const cleanA = cleanNamaPersonel(l.anggota.nama).toLowerCase();
+        if (cleanA === cleanUser || (cleanUser.length > 3 && (cleanA.includes(cleanUser) || cleanUser.includes(cleanA)))) {
+          return true;
+        }
+      }
+      return false;
+    });
     const myAngsuranAll = myLoans.flatMap((l) => (l.angsuran || []).map((a: any) => ({ ...a, pinjaman: l })));
     const totalPinjamanSaya = myLoans.reduce((acc, l) => acc + Number(l.nominal || 0), 0);
     const sisaPokokSaya = myLoans.reduce((acc, l) => acc + Number(l.sisaPokok ?? l.nominal ?? 0), 0);
@@ -321,49 +467,61 @@ function Page() {
                   <Table>
                     <TableHeader className="bg-muted/40">
                       <TableRow>
-                        <TableHead className="w-12">Ke-</TableHead>
+                        <TableHead className="w-12 text-center">Bulan</TableHead>
                         <TableHead>Jatuh Tempo</TableHead>
                         <TableHead className="text-right">Pokok</TableHead>
                         <TableHead className="text-right">Bunga (1%)</TableHead>
                         <TableHead className="text-right">Total Tagihan</TableHead>
                         <TableHead>Tanggal Bayar</TableHead>
-                        <TableHead>No. Invoice</TableHead>
+                        <TableHead>No. Kwitansi</TableHead>
                         <TableHead className="text-right">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {angsuranList.map((ang: any) => (
-                        <TableRow key={ang.id} className={!ang.dibayar && ang.jatuhTempo && new Date(ang.jatuhTempo) < now ? "bg-destructive/5" : ""}>
-                          <TableCell className="font-semibold text-center">{ang.bulanKe || ang.angsuranKe}</TableCell>
-                          <TableCell className="text-xs">
-                            {ang.jatuhTempo ? new Date(ang.jatuhTempo).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }) : "-"}
-                          </TableCell>
-                          <TableCell className="text-right">{formatRp(Number(ang.pokok || 0))}</TableCell>
-                          <TableCell className="text-right">{formatRp(Number(ang.bunga || 0))}</TableCell>
-                          <TableCell className="text-right font-bold">{formatRp(Number(ang.total || 0))}</TableCell>
-                          <TableCell className="text-xs">
-                            {ang.tanggalBayar ? (
-                              <span className="text-success font-semibold">
-                                {new Date(ang.tanggalBayar).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground italic">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs text-muted-foreground">{ang.noInvoice || "-"}</TableCell>
-                          <TableCell className="text-right">
-                            {ang.dibayar ? (
-                              <Badge variant="outline" className="border-success/30 bg-success/15 text-success text-[11px] font-semibold">
-                                Lunas
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-[11px] text-muted-foreground">
-                                Belum Bayar
-                              </Badge>
-                            )}
+                      {angsuranList.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                            Belum ada jadwal angsuran untuk pinjaman ini.
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        angsuranList.map((item: any) => (
+                          <TableRow key={item.id} className="hover:bg-muted/50 transition-colors">
+                            <TableCell className="font-semibold text-center">{item.bulanKe || item.angsuranKe}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {item.jatuhTempo ? new Date(item.jatuhTempo).toLocaleDateString("id-ID") : "-"}
+                            </TableCell>
+                            <TableCell className="text-right font-medium">{formatRp(Number(item.pokok || 0))}</TableCell>
+                            <TableCell className="text-right font-medium">{formatRp(Number(item.bunga || 0))}</TableCell>
+                            <TableCell className="text-right font-bold text-foreground">
+                              {formatRp(Number(item.total || 0))}
+                            </TableCell>
+                            <TableCell className="text-xs">
+                              {item.tanggalBayar ? (
+                                <span className="text-success font-semibold">
+                                  {new Date(item.tanggalBayar).toLocaleDateString("id-ID")}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground italic">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs text-muted-foreground">
+                              {item.noInvoice || "-"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {item.dibayar ? (
+                                <Badge variant="outline" className="border-success/30 bg-success/15 text-success text-[11px] font-semibold">
+                                  Lunas
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-400 text-[11px]">
+                                  Belum Bayar
+                                </Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -378,42 +536,38 @@ function Page() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Rekap Angsuran Pinjaman Anggota"
-        description="Rincian pembayaran angsuran bulanan, pencatatan transaksi oleh Bendahara, dan ekspor excel."
+        title="Pengelolaan Angsuran &amp; Pembayaran Dinamis"
+        description="Kelola pembayaran cicilan fleksibel, alokasi prioritas bunga, opsi pelunasan dipercepat (2x bunga), masa toleransi 2 bulan, dan eksekusi potong juru bayar."
       />
 
-      <Tabs defaultValue="bulanan" className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="bulanan">Rekap Angsuran Bulanan</TabsTrigger>
-          <TabsTrigger value="berjalan">Pinjaman Berjalan</TabsTrigger>
+      <Tabs defaultValue="rekap" className="space-y-4">
+        <TabsList className="bg-muted/80 p-1">
+          <TabsTrigger value="rekap" className="gap-2 text-xs">
+            <Receipt className="size-4" /> Rekap Bulanan Periode
+          </TabsTrigger>
+          <TabsTrigger value="berjalan" className="gap-2 text-xs">
+            <Calendar className="size-4" /> Daftar Pinjaman Berjalan &amp; Jadwal
+          </TabsTrigger>
         </TabsList>
 
-        {/* ============================================================== */}
-        {/* TAB 1: REKAP ANGSURAN BULANAN (RINCIAN SIAPA & TANGGAL & EXCEL) */}
-        {/* ============================================================== */}
-        <TabsContent value="bulanan" className="space-y-6">
-          {/* Summary Row */}
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card className="shadow-card border-primary/20">
+        <TabsContent value="rekap" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="shadow-card">
               <CardHeader className="pb-2">
                 <CardDescription>Total Tagihan Periode {BULAN_NAMES[selectedBulan - 1]}</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-extrabold text-foreground">{formatRp(totalTagihanBulan)}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Total {rekapBulananList.length} tagihan angsuran
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">Total {rekapBulananList.length} tagihan</p>
               </CardContent>
             </Card>
             <Card className="shadow-card border-success/20">
               <CardHeader className="pb-2">
-                <CardDescription>Sudah Terbayar / Masuk Kas</CardDescription>
+                <CardDescription>Sudah Terbayar</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-extrabold text-success">{formatRp(totalTerbayarBulan)}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {rekapBulananList.filter((a) => a.dibayar).length} dari {rekapBulananList.length} orang lunas
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">{rekapBulananList.filter((a) => a.dibayar).length} lunas</p>
               </CardContent>
             </Card>
             <Card className="shadow-card border-destructive/20">
@@ -421,12 +575,8 @@ function Page() {
                 <CardDescription>Sisa Belum Dibayar</CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-extrabold text-destructive">
-                  {formatRp(Math.max(0, totalTagihanBulan - totalTerbayarBulan))}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {rekapBulananList.filter((a) => !a.dibayar).length} tagihan menunggu pembayaran
-                </p>
+                <p className="text-2xl font-extrabold text-destructive">{formatRp(Math.max(0, totalTagihanBulan - totalTerbayarBulan))}</p>
+                <p className="text-xs text-muted-foreground mt-1">{rekapBulananList.filter((a) => !a.dibayar).length} menunggu</p>
               </CardContent>
             </Card>
           </div>
@@ -435,54 +585,23 @@ function Page() {
             <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4">
               <div>
                 <CardTitle>Daftar Angsuran Masuk Periode {BULAN_NAMES[selectedBulan - 1]} {selectedTahun}</CardTitle>
-                <CardDescription>
-                  Rincian pengangsur, jatuh tempo, tanggal bayar realisasi, dan status pelunasan
-                </CardDescription>
+                <CardDescription>Rincian pengangsur, jatuh tempo, tanggal bayar realisasi, dan aksi bayar dinamis</CardDescription>
               </div>
 
-              {/* Filter Bulan & Tahun + Tombol Ekspor */}
               <div className="flex flex-wrap items-center gap-2">
-                <div className="flex items-center gap-1.5">
-                  <Select
-                    value={String(selectedBulan)}
-                    onValueChange={(v) => setSelectedBulan(Number(v))}
-                  >
-                    <SelectTrigger className="w-32 h-9 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BULAN_NAMES.map((b, idx) => (
-                        <SelectItem key={idx + 1} value={String(idx + 1)}>
-                          {b}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={String(selectedTahun)}
-                    onValueChange={(v) => setSelectedTahun(Number(v))}
-                  >
-                    <SelectTrigger className="w-24 h-9 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[2025, 2026, 2027].map((y) => (
-                        <SelectItem key={y} value={String(y)}>
-                          {y}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button
-                  variant="outline"
-                  onClick={handleExportExcel}
-                  className="h-9 gap-1.5 text-xs border-success/40 bg-success/10 text-success hover:bg-success/20 font-semibold"
-                >
-                  <FileSpreadsheet className="size-4" /> Ekspor ke Excel (.csv)
-                </Button>
+                <Select value={String(selectedBulan)} onValueChange={(v) => setSelectedBulan(Number(v))}>
+                  <SelectTrigger className="w-32 h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BULAN_NAMES.map((b, i) => <SelectItem key={i+1} value={String(i+1)}>{b}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={String(selectedTahun)} onValueChange={(v) => setSelectedTahun(Number(v))}>
+                  <SelectTrigger className="w-24 h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[2025, 2026, 2027].map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button variant="outline" onClick={handleExportExcel} className="h-9 gap-1.5 text-xs border-success/40 text-success"><FileSpreadsheet className="size-4" /> Ekspor</Button>
               </div>
             </CardHeader>
             <CardContent className="overflow-x-auto p-0">
@@ -491,185 +610,69 @@ function Page() {
                   <TableRow>
                     <TableHead className="w-12">No.</TableHead>
                     <TableHead>Nama Pengangsur</TableHead>
-                    <TableHead>Pangkat / Golongan</TableHead>
+                    <TableHead>Pangkat / Gol</TableHead>
                     <TableHead>NRP / NIP</TableHead>
-                    <TableHead className="text-center">Bulan Ke</TableHead>
-                    <TableHead className="text-right">Pokok</TableHead>
-                    <TableHead className="text-right">Bunga (1%)</TableHead>
-                    <TableHead className="text-right">Total Angsuran</TableHead>
-                    <TableHead>Jatuh Tempo</TableHead>
-                    <TableHead>Tanggal Bayar</TableHead>
-                    <TableHead>No. Kwitansi</TableHead>
+                    <TableHead>Total Angsuran</TableHead>
                     <TableHead className="text-right">Aksi / Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loadingBulanan ? (
-                    <TableRow>
-                      <TableCell colSpan={12} className="py-12 text-center text-muted-foreground">
-                        <Loader2 className="mx-auto size-6 animate-spin mb-2 text-primary" />
-                        Memuat data angsuran bulanan...
+                    <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground"><Loader2 className="mx-auto size-6 animate-spin mb-2 text-primary" />Memuat data...</TableCell></TableRow>
+                  ) : rekapBulananList.map((item, idx) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="text-xs">{idx + 1}</TableCell>
+                      <TableCell className="font-semibold">{item.namaAnggota}</TableCell>
+                      <TableCell className="text-xs">{formatPangkatKorps(item.pangkat, item.korps, item.kategoriPangkat)}</TableCell>
+                      <TableCell className="font-mono text-xs">{item.nrpNip}</TableCell>
+                      <TableCell className="font-bold">{formatRp(item.total)}</TableCell>
+                      <TableCell className="text-right">
+                        {item.dibayar ? (
+                          <Badge variant="outline" className="border-success/30 bg-success/15 text-success text-[11px] font-semibold">Lunas</Badge>
+                        ) : isBendaharaOrAdmin ? (
+                          <Button size="sm" onClick={() => setDinamisLoanId(item.pinjamanId || item.pinjaman?.id)} className="h-8 text-xs bg-primary gap-1"><Calculator className="size-3.5" /> Bayar Dinamis</Button>
+                        ) : (
+                          <Badge variant="outline" className="text-[11px]">Belum Bayar</Badge>
+                        )}
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    rekapBulananList.map((item, idx) => {
-                      const formattedPangkat = formatPangkatKorps(item.pangkat, item.korps, item.kategoriPangkat);
-                      return (
-                        <TableRow key={item.id} className="hover:bg-muted/50 transition-colors">
-                          <TableCell className="text-xs text-muted-foreground">{idx + 1}</TableCell>
-                          <TableCell className="font-semibold text-foreground">{item.namaAnggota}</TableCell>
-                          <TableCell className="text-xs font-medium text-foreground">
-                            {formattedPangkat}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs font-semibold">
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(item.nrpNip);
-                                toast.success(`NRP disalin: ${item.nrpNip}`);
-                              }}
-                              className="flex items-center gap-1 text-primary hover:underline text-left"
-                              title="Klik untuk menyalin NRP"
-                            >
-                              {item.nrpNip}
-                              <Copy className="size-3 opacity-60" />
-                            </button>
-                          </TableCell>
-                          <TableCell className="text-center font-mono text-xs font-medium">{item.bulanKe}</TableCell>
-                          <TableCell className="text-right font-medium">{formatRp(item.pokok)}</TableCell>
-                          <TableCell className="text-right font-medium">{formatRp(item.bunga)}</TableCell>
-                          <TableCell className="text-right font-bold text-foreground">
-                            {formatRp(item.total)}
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {item.jatuhTempo ? new Date(item.jatuhTempo).toLocaleDateString("id-ID") : "-"}
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {item.tanggalBayar ? (
-                              <span className="text-success font-semibold">
-                                {new Date(item.tanggalBayar).toLocaleDateString("id-ID", {
-                                  day: "2-digit",
-                                  month: "short",
-                                  year: "numeric",
-                                })}
-                              </span>
-                            ) : (
-                              <span className="text-muted-foreground italic">-</span>
-                            )}
-                          </TableCell>
-                          <TableCell className="font-mono text-xs text-muted-foreground">
-                            {item.noInvoice || "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {item.dibayar ? (
-                              <Badge
-                                variant="outline"
-                                className="border-success/30 bg-success/15 text-success text-[11px] font-semibold"
-                              >
-                                Lunas
-                              </Badge>
-                            ) : isBendaharaOrAdmin ? (
-                              <Button
-                                size="sm"
-                                disabled={bayarMutation.isPending}
-                                onClick={() => bayarMutation.mutate(item.id)}
-                                className="h-8 text-xs font-semibold bg-primary hover:bg-primary/90"
-                              >
-                                {bayarMutation.isPending ? (
-                                  <Loader2 className="size-3 animate-spin mr-1" />
-                                ) : null}
-                                Catat Bayar
-                              </Button>
-                            ) : (
-                              <Badge variant="outline" className="text-[11px] text-muted-foreground">
-                                Belum Bayar
-                              </Badge>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
-                  )}
-                  {!loadingBulanan && rekapBulananList.length === 0 && (
-                    <TableRow>
-                      <TableCell colSpan={12} className="py-12 text-center text-muted-foreground">
-                        Tidak ada catatan angsuran pada periode {BULAN_NAMES[selectedBulan - 1]} {selectedTahun}.
-                      </TableCell>
-                    </TableRow>
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* ============================================================== */}
-        {/* TAB 2: DAFTAR PINJAMAN BERJALAN & DETAIL JADWAL */}
-        {/* ============================================================== */}
         <TabsContent value="berjalan" className="space-y-4">
           <Card className="shadow-card">
             <CardHeader>
               <CardTitle>Daftar Pinjaman Berjalan Seluruh Anggota</CardTitle>
-              <CardDescription>
-                Pantau sisa pokok pinjaman, tenor, dan riwayat cicilan lengkap per personel
-              </CardDescription>
+              <CardDescription>Pantau sisa pokok pinjaman, masa toleransi 2 bulan, dan bayar dinamis</CardDescription>
             </CardHeader>
-            <CardContent className="overflow-x-auto">
+            <CardContent className="overflow-x-auto p-0">
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/40">
                   <TableRow>
                     <TableHead>No. Pinjaman</TableHead>
                     <TableHead>Nama Anggota</TableHead>
-                    <TableHead>Pangkat / NRP</TableHead>
-                    <TableHead className="text-right">Plafon Awal</TableHead>
-                    <TableHead className="text-right">Sisa Pokok</TableHead>
-                    <TableHead className="text-center">Tenor</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Sisa Pokok</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loadingLoans ? (
-                    <TableRow>
-                      <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
-                        <Loader2 className="mx-auto size-6 animate-spin mb-2" />
-                        Memuat daftar pinjaman...
+                  {activeLoans.map((l) => (
+                    <TableRow key={l.id}>
+                      <TableCell className="font-mono text-xs font-semibold">{l.id.slice(0, 8).toUpperCase()}</TableCell>
+                      <TableCell className="font-medium">{formatNamaLengkapDinas(l.anggota?.nama, l.anggota?.pangkat?.nama, l.anggota?.korps?.nama, l.anggota?.pangkat?.kategori)}</TableCell>
+                      <TableCell className="font-bold text-primary">{formatRp(Number(l.sisaPokok ?? l.nominal))}</TableCell>
+                      <TableCell className="text-right flex items-center justify-end gap-1.5">
+                        {isBendaharaOrAdmin && l.status !== "LUNAS" && (
+                          <Button size="sm" onClick={() => setDinamisLoanId(l.id)} className="h-8 text-xs bg-primary gap-1"><Calculator className="size-3.5" /> Bayar</Button>
+                        )}
+                        <Button size="sm" variant="outline" onClick={() => setSelectedLoan(l)} className="h-8 text-xs"><Calendar className="mr-1 size-3.5" /> Jadwal</Button>
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    activeLoans.map((l) => (
-                      <TableRow key={l.id}>
-                        <TableCell className="font-mono text-xs font-semibold">
-                          {l.id.slice(0, 8).toUpperCase()}
-                        </TableCell>
-                        <TableCell className="font-medium">{formatNamaLengkapDinas(l.anggota?.nama, l.anggota?.pangkat?.nama, l.anggota?.korps?.nama, l.anggota?.pangkat?.kategori)}</TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
-                          NRP {l.anggota?.nrpNip || "-"}
-                        </TableCell>
-                        <TableCell className="text-right">{formatRp(Number(l.nominal))}</TableCell>
-                        <TableCell className="text-right font-bold text-primary">
-                          {formatRp(Number(l.sisaPokok ?? l.nominal))}
-                        </TableCell>
-                        <TableCell className="text-center">{l.tenorBulan} bln</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={
-                              l.status === "LUNAS"
-                                ? "border-success/30 bg-success/15 text-success"
-                                : "border-primary/30 bg-primary-soft text-primary"
-                            }
-                          >
-                            {l.status === "LUNAS" ? "Lunas" : "Berjalan"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button size="sm" variant="outline" onClick={() => setSelectedLoan(l)}>
-                            <Calendar className="mr-1 size-3.5" /> Jadwal &amp; Detail
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </CardContent>
@@ -677,75 +680,116 @@ function Page() {
         </TabsContent>
       </Tabs>
 
-      {/* Dialog Jadwal Angsuran & Pembayaran Detail */}
-      <Dialog open={!!selectedLoan} onOpenChange={(o) => !o && setSelectedLoan(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <Dialog open={!!dinamisLoanId} onOpenChange={(o) => !o && setDinamisLoanId(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Jadwal &amp; Pembayaran Angsuran</DialogTitle>
-            <DialogDescription>
-              {formatNamaLengkapDinas(selectedLoan?.anggota?.nama, selectedLoan?.anggota?.pangkat?.nama, selectedLoan?.anggota?.korps?.nama, selectedLoan?.anggota?.pangkat?.kategori)} · Plafon {formatRp(Number(selectedLoan?.nominal || 0))} · Sisa Pokok{" "}
-              {formatRp(Number(selectedLoan?.sisaPokok || 0))}
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-2 text-lg"><Calculator className="size-5 text-primary" /> Kelola Pembayaran Angsuran Dinamis</DialogTitle>
+            <DialogDescription>Alokasi pembayaran mengutamakan pelunasan bunga/jasa terlebih dahulu, sisanya mengurangi angsuran pokok.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Ke-</TableHead>
-                  <TableHead>Jatuh Tempo</TableHead>
-                  <TableHead className="text-right">Pokok</TableHead>
-                  <TableHead className="text-right">Bunga</TableHead>
-                  <TableHead className="text-right">Total Tagihan</TableHead>
-                  <TableHead>Tanggal Bayar</TableHead>
-                  <TableHead>No. Invoice</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {selectedLoan?.angsuran?.map((ang: any) => (
-                  <TableRow key={ang.id}>
-                    <TableCell className="font-semibold">{ang.bulanKe || ang.angsuranKe}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {ang.jatuhTempo ? new Date(ang.jatuhTempo).toLocaleDateString("id-ID") : "-"}
-                    </TableCell>
-                    <TableCell className="text-right">{formatRp(Number(ang.pokok || 0))}</TableCell>
-                    <TableCell className="text-right">{formatRp(Number(ang.bunga || 0))}</TableCell>
-                    <TableCell className="text-right font-bold text-foreground">
-                      {formatRp(Number(ang.total || 0))}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {ang.tanggalBayar ? (
-                        <span className="text-success font-medium">
-                          {new Date(ang.tanggalBayar).toLocaleDateString("id-ID")}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground italic">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">
-                      {ang.noInvoice || "-"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {!ang.dibayar ? (
-                        <Button
-                          size="sm"
-                          disabled={bayarMutation.isPending}
-                          className="bg-primary text-xs"
-                          onClick={() => bayarMutation.mutate(ang.id)}
-                        >
-                          Bayar
-                        </Button>
-                      ) : (
-                        <Badge variant="outline" className="border-success/30 bg-success/15 text-success text-[10px]">
-                          Lunas
-                        </Badge>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+
+          {loadingKalkulasi ? <div className="py-12 text-center text-muted-foreground"><Loader2 className="mx-auto size-6 animate-spin mb-2" /> Menghitung...</div> : kalkulasiData && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-xl border bg-muted/40 p-3.5">
+                <span className="font-bold text-sm">{formatNamaLengkapDinas(kalkulasiData.anggota?.nama, kalkulasiData.anggota?.pangkat, kalkulasiData.anggota?.korps)}</span>
+                <span className="text-xs text-muted-foreground font-mono block">NRP: {kalkulasiData.anggota?.nrpNip} · Sisa: {formatRp(kalkulasiData.sisaPokok)}</span>
+              </div>
+              <Input type="number" value={nominalBayarInput || ""} onChange={(e) => setNominalBayarInput(Number(e.target.value))} placeholder="Masukkan jumlah..." className="h-10 text-base font-bold font-mono" />
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => { setIsPelunasanDipercepat(false); setNominalBayarInput(kalkulasiData.totalKewajibanBulanIni); }}>Normal</Button>
+                <Button variant="outline" size="sm" onClick={() => { setIsPelunasanDipercepat(true); setNominalBayarInput(kalkulasiData.pelunasanDipercepat.totalBayar); }}>Pelunasan (2x Bunga)</Button>
+              </div>
+              {liveCalculation && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-3.5 space-y-2 text-xs">
+                  <div className="flex justify-between font-bold"><span>Total Bayar:</span><span>{formatRp(nominalBayarInput)}</span></div>
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <div className="p-2 bg-background border">Bunga: {formatRp(liveCalculation.porsiBunga)}</div>
+                    <div className="p-2 bg-background border">Pokok: {formatRp(liveCalculation.porsiPokok)}</div>
+                  </div>
+                </div>
+              )}
+              <Input type="date" value={tanggalBayarInput} onChange={(e) => setTanggalBayarInput(e.target.value)} />
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              disabled={bayarDinamisMutation.isPending || !nominalBayarInput || nominalBayarInput <= 0}
+              onClick={() => setConfirmDinamisOpen(true)}
+              className="bg-primary gap-2"
+            >
+              <CheckCircle2 className="size-4" /> Proses Pembayaran
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ============================================================== */}
+      {/* POPUP ALERT KONFIRMASI PEMBAYARAN ANGSURAN DINAMIS */}
+      {/* ============================================================== */}
+      <ConfirmActionDialog
+        open={confirmDinamisOpen}
+        onOpenChange={setConfirmDinamisOpen}
+        title={isPelunasanDipercepat ? "Konfirmasi Pelunasan Dipercepat (2x Bunga)" : "Konfirmasi Pembayaran Angsuran Dinamis"}
+        description={
+          isPelunasanDipercepat
+            ? "Apakah Anda yakin ingin memproses pelunasan dipercepat? Seluruh sisa kewajiban pinjaman akan ditutup dan status pinjaman otomatis dinyatakan LUNAS."
+            : "Pastikan nominal pembayaran dan alokasi dana telah diverifikasi sebelum memproses transaksi debit kas koperasi."
+        }
+        confirmText={isPelunasanDipercepat ? "Ya, Eksekusi Pelunasan" : "Ya, Proses Pembayaran"}
+        cancelText="Batal"
+        variant={isPelunasanDipercepat ? "success" : "default"}
+        isLoading={bayarDinamisMutation.isPending}
+        details={[
+          {
+            label: "Personel Pengangsur",
+            value: kalkulasiData?.anggota ? formatNamaLengkapDinas(kalkulasiData.anggota.nama, kalkulasiData.anggota.pangkat, kalkulasiData.anggota.korps) : "-",
+          },
+          {
+            label: "NRP / NIP",
+            value: kalkulasiData?.anggota?.nrpNip || "-",
+          },
+          {
+            label: "Nominal Disetorkan",
+            value: formatRp(nominalBayarInput),
+          },
+          {
+            label: "Alokasi Pelunasan Bunga",
+            value: formatRp(liveCalculation?.porsiBunga || 0),
+          },
+          {
+            label: "Alokasi Pengurangan Pokok",
+            value: formatRp(liveCalculation?.porsiPokok || 0),
+          },
+          {
+            label: "Sisa Pokok Setelah Bayar",
+            value: formatRp(liveCalculation?.sisaPokokBaru || 0),
+          },
+          {
+            label: "Tanggal Setoran",
+            value: tanggalBayarInput,
+          },
+        ]}
+        onConfirm={async () => {
+          setConfirmDinamisOpen(false);
+          bayarDinamisMutation.mutate({
+            nominalBayar: Number(nominalBayarInput),
+            isPelunasanDipercepat,
+            tanggalBayar: tanggalBayarInput,
+          });
+        }}
+      />
+
+      <Dialog open={!!receiptData} onOpenChange={(o) => !o && setReceiptData(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Kwitansi Resmi</DialogTitle></DialogHeader>
+          {receiptData && (
+            <div className="space-y-4 py-2">
+              <div className="rounded-xl border p-4 space-y-2 text-xs">
+                <div className="flex justify-between font-bold"><span>Total Disetor:</span><span>{formatRp(receiptData.nominalBayar)}</span></div>
+                <div className="flex justify-between"><span>Sisa Pokok Baru:</span><span>{formatRp(receiptData.alokasi.sisaPokokBaru)}</span></div>
+              </div>
+            </div>
+          )}
+          <DialogFooter><Button onClick={() => setReceiptData(null)}>Selesai</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
