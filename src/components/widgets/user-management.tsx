@@ -302,10 +302,10 @@ export function UserManagementWidget() {
       return matchRole && matchStatus && matchSearch;
     });
 
-    return sortPersonelByPangkat(filtered, (u) => ({
+    return sortPersonelByPangkat(filtered, (u: any) => ({
       nama: u.namaLengkap,
-      pangkat: u.anggota?.pangkat || (u as any).pangkat,
-      kategori: u.anggota?.pangkat?.kategori || (u as any).pangkat?.kategori,
+      pangkat: u.anggota?.pangkat || u.pangkat,
+      kategori: u.anggota?.pangkat?.kategori || u.pangkat?.kategori,
     }));
   }, [userList, roleFilter, statusFilter, q]);
 

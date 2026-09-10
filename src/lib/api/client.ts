@@ -1,5 +1,9 @@
-export const API_BASE_URL =
-  (import.meta.env["VITE_API_URL"] as string) || "http://localhost:3000/api";
+const rawBaseUrl =
+  (import.meta.env["VITE_URL"] as string) ||
+  (import.meta.env["VITE_API_URL"] as string) ||
+  "http://localhost:3000/api";
+
+export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, "");
 
 export interface ApiErrorResponse {
   statusCode: number;
@@ -99,7 +103,7 @@ export async function apiRequest<T = any>(
     }
     throw new ApiError(
       0,
-      err.message || "Gagal menghubungi server backend. Pastikan server aktif di port 3000."
+      err.message || "Gagal menghubungi server backend. Pastikan server backend aktif dan koneksi internet stabil."
     );
   }
 }
