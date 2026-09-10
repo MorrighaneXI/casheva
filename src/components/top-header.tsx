@@ -196,9 +196,9 @@ export function TopHeader() {
           {isAdmin ? (
             <div className="flex items-center gap-1.5">
               <Select value={role} onValueChange={(v) => setRole(v as Role)}>
-                <SelectTrigger className="h-8 w-44 text-xs font-medium bg-muted/50 border-border">
+                <SelectTrigger className="h-8 w-28 sm:w-44 text-xs font-medium bg-muted/50 border-border">
                   <Eye className="size-3 text-primary mr-1 shrink-0" />
-                  <span className="text-muted-foreground text-[10px] mr-1">Perspektif:</span>
+                  <span className="text-muted-foreground text-[10px] mr-1 hidden sm:inline">Perspektif:</span>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent align="end" className="text-xs">
@@ -214,7 +214,7 @@ export function TopHeader() {
             /* Static Role Badge for Non-Admin (Pimpinan, Kaprim, Bendahara, Juru Bayar, Anggota, Pengawas) */
             <div className="flex h-8 items-center rounded-lg border border-border bg-muted/60 px-2.5 text-xs font-semibold">
               <Shield className="size-3.5 text-primary mr-1 shrink-0" />
-              <span className="truncate max-w-[130px] sm:max-w-none">{role}</span>
+              <span className="truncate max-w-[80px] sm:max-w-none">{role}</span>
             </div>
           )}
 
