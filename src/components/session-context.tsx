@@ -4,10 +4,12 @@ import {
   useEffect,
   useMemo,
   useState,
+  useCallback,
   type ReactNode,
 } from "react";
 import { ROLES, type Role, backendRoleToFrontend, frontendRoleToBackend } from "@/lib/casheva-data";
 import { apiAuth, type LoginDto, type LoginResponse, type UserProfile } from "@/lib/api";
+import { useIdleSession } from "@/hooks/use-idle-session";
 
 export interface UserSessionData {
   id: string;
@@ -281,7 +283,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return res;
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem("casheva.token");
     localStorage.removeItem("casheva.auth");
     localStorage.removeItem("casheva.role");
@@ -289,7 +291,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("casheva.user");
     setAuthenticatedState(false);
     setUser(null);
-  };
+  }, []);
+
+  // Manajemen Sesi Keamanan: Auto logout setelah 15 menit idle
+  useIdleSession({
+    onTimeout: logout,
+    enabled: authenticated,
+    timeoutMs: 15 * 60 * 1000, // 15 menit
+    warningMs: 14 * 60 * 1000, // Peringatan di menit ke-14
+  });
 
   const setRole = (nextRole: Role) => {
     // Only Admin Koperasi can switch perspective to other roles

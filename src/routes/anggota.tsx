@@ -175,10 +175,14 @@ function AnggotaPage() {
   // Statistik Ringkas
   const stats = useMemo(() => {
     const total = anggotaList.length;
-    const patiPamen = anggotaList.filter((a) => a.pangkat?.kategori && ["PATI", "PAMEN"].includes(a.pangkat.kategori)).length;
-    const pamaBa = anggotaList.filter((a) => a.pangkat?.kategori && ["PAMA", "BINTARA", "BATA_ASN"].includes(a.pangkat.kategori)).length;
+    const pati = anggotaList.filter((a) => a.pangkat?.kategori === "PATI").length;
+    const pamen = anggotaList.filter((a) => a.pangkat?.kategori === "PAMEN").length;
+    const pama = anggotaList.filter((a) => a.pangkat?.kategori === "PAMA").length;
+    const perwira = pati + pamen + pama;
+    const bintara = anggotaList.filter((a) => a.pangkat?.kategori === "BINTARA").length;
+    const tamtama = anggotaList.filter((a) => a.pangkat?.kategori === "BATA_ASN").length;
     const pns = anggotaList.filter((a) => a.pangkat?.kategori === "PNS").length;
-    return { total, patiPamen, pamaBa, pns };
+    return { total, perwira, pati, pamen, pama, bintara, tamtama, pns };
   }, [anggotaList]);
 
   // Mutations
@@ -362,7 +366,7 @@ function AnggotaPage() {
       />
 
       {/* KPI Cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Card className="shadow-card card-interactive border-primary/20">
           <CardHeader className="pb-1">
             <CardDescription className="flex items-center justify-between">
@@ -379,26 +383,43 @@ function AnggotaPage() {
         <Card className="shadow-card card-interactive border-gold/20">
           <CardHeader className="pb-1">
             <CardDescription className="flex items-center justify-between">
-              <span>Pati &amp; Pamen</span>
+              <span>Perwira</span>
               <Award className="size-4 text-gold" />
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-extrabold text-gold">{stats.patiPamen}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Perwira Tinggi &amp; Menengah</p>
+            <p className="text-2xl font-extrabold text-gold">{stats.perwira}</p>
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+              <span className="text-xs text-muted-foreground">Pati: <strong className="text-gold/80">{stats.pati}</strong></span>
+              <span className="text-xs text-muted-foreground">Pamen: <strong className="text-gold/80">{stats.pamen}</strong></span>
+              <span className="text-xs text-muted-foreground">Pama: <strong className="text-gold/80">{stats.pama}</strong></span>
+            </div>
           </CardContent>
         </Card>
 
         <Card className="shadow-card card-interactive border-blue-500/20">
           <CardHeader className="pb-1">
             <CardDescription className="flex items-center justify-between">
-              <span>Pama &amp; Bintara</span>
+              <span>Bintara</span>
               <Shield className="size-4 text-blue-500" />
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{stats.pamaBa}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Perwira Pertama &amp; Bintara</p>
+            <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{stats.bintara}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Bintara TNI AD</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card card-interactive border-orange-500/20">
+          <CardHeader className="pb-1">
+            <CardDescription className="flex items-center justify-between">
+              <span>Tamtama</span>
+              <Shield className="size-4 text-orange-500" />
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-extrabold text-orange-600 dark:text-orange-400">{stats.tamtama}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Tamtama TNI AD</p>
           </CardContent>
         </Card>
 
