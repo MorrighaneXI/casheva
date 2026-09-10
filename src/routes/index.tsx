@@ -856,11 +856,18 @@ function JuruBayarDashboard() {
         title="Dashboard Juru Bayar (Juyar)"
         description={`Verifikasi Kelayakan Gaji & Potongan Kedinasan Personel ${satminkal}`}
         actions={
-          <Button asChild>
-            <Link to="/verifikasi">
-              <ShieldCheck className="mr-1.5 size-4" /> Buka Antrean Verifikasi
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link to="/simpanan">
+                <PiggyBank className="mr-1.5 size-4" /> Kelola Simpanan Sukarela
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/verifikasi">
+                <ShieldCheck className="mr-1.5 size-4" /> Buka Antrean Verifikasi
+              </Link>
+            </Button>
+          </div>
         }
       />
 
@@ -900,6 +907,9 @@ function JuruBayarDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Batch Simpanan Tanggal 5 Banner untuk Juru Bayar */}
+      <BatchSimpananBanner />
 
       {/* Antrean Verifikasi Table */}
       <Card className="shadow-card">

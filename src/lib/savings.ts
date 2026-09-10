@@ -15,9 +15,11 @@ export const SIMPANAN_DEFAULT = {
   wajib: 100_000,
 } as const;
 
-export const getPotonganSukarela = (golongan: Anggota["golongan"]): number => {
+export const getPotonganSukarela = (golongan?: Anggota["golongan"] | string): number => {
+  if (golongan === "Pati") return (potonganSukarela as any)["Pati"] ?? 500_000;
   if (golongan === "Pamen") return (potonganSukarela as any)["Pamen"] ?? 300_000;
   if (golongan === "Pama") return (potonganSukarela as any)["Pama"] ?? 250_000;
+  if (golongan === "Bintara") return (potonganSukarela as any)["Bintara"] ?? 200_000;
   return (potonganSukarela as any)["Ba/Ta/ASN"] ?? 150_000;
 };
 

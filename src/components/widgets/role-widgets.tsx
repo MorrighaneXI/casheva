@@ -1157,9 +1157,10 @@ export function BatchSimpananBanner() {
             <Zap className="size-4" /> Batch Auto-Generate Simpanan Sukarela Bulanan
           </p>
           <p className="mt-1 text-sm text-accent-foreground/80">
-            Jadwal potongan otomatis tanggal 5 setiap bulan · Pamen{" "}
+            Jadwal potongan otomatis tanggal 5 setiap bulan · Pati {formatRp((potonganSukarela as any)["Pati"] ?? 500_000)} · Pamen{" "}
             {formatRp((potonganSukarela as any)["Pamen"] ?? 300_000)} · Pama{" "}
-            {formatRp((potonganSukarela as any)["Pama"] ?? 250_000)} · Ba/Ta/ASN{" "}
+            {formatRp((potonganSukarela as any)["Pama"] ?? 250_000)} · Bintara{" "}
+            {formatRp((potonganSukarela as any)["Bintara"] ?? 200_000)} · Tamtama/ASN{" "}
             {formatRp((potonganSukarela as any)["Ba/Ta/ASN"] ?? 150_000)}
           </p>
         </div>
