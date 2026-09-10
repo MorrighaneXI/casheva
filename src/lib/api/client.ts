@@ -34,6 +34,14 @@ export async function apiRequest<T = any>(
     headers.set("Authorization", `Bearer ${token}`);
   }
 
+  // Anti-CSRF Security Headers
+  if (!headers.has("X-Requested-With")) {
+    headers.set("X-Requested-With", "XMLHttpRequest");
+  }
+  if (!headers.has("X-CSRF-Token")) {
+    headers.set("X-CSRF-Token", "casheva-secure-client");
+  }
+
   // Jika body bukan FormData, pasang Content-Type JSON jika belum diset
   if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");

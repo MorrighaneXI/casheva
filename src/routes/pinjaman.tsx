@@ -40,9 +40,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatRp, loanStatusTone, backendStatusToFrontend, formatPangkatKorps, formatNamaLengkapDinas } from "@/lib/casheva-data";
+import { formatRp, loanStatusTone, backendStatusToFrontend, formatPangkatKorps, formatNamaLengkapDinas, cleanNamaPersonel } from "@/lib/casheva-data";
 import { canAccessPath } from "@/lib/rbac";
-import { apiPinjaman, type Pinjaman } from "@/lib/api";
+import { apiPinjaman, apiAnggota, type Pinjaman } from "@/lib/api";
 import { DokumenViewerModal } from "@/components/dokumen-viewer-modal";
 import { Download, Layers } from "lucide-react";
 
@@ -68,17 +68,78 @@ export const Route = createFileRoute("/pinjaman")({
 type FilterStatus = "ALL" | "PROCESS" | "APPROVED" | "DISBURSED" | "PAID" | "REJECTED";
 
 function PinjamanPage() {
-  const { role, originalRole } = useSession();
+  const { user, role, originalRole } = useSession();
+  const isAnggota = role === "Anggota";
   const monitorOnly = role === "Pimpinan / Dan / Ka" || role === "Keprim";
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("ALL");
   const [selectedLoan, setSelectedLoan] = useState<Pinjaman | null>(null);
   const [docModalOpen, setDocModalOpen] = useState(false);
 
-  const { data: loanList = [], isLoading } = useQuery({
+  const { data: anggotaList = [] } = useQuery({
+    queryKey: ["anggota-list-active"],
+    queryFn: () => apiAnggota.findAll(true),
+  });
+
+  const currentMember = useMemo(() => {
+    if (!user) return null;
+    let pool = anggotaList || [];
+    if (pool.length === 0 && typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("casheva.anggota_cache");
+        if (raw) pool = JSON.parse(raw);
+      } catch {}
+    }
+
+    if (pool.length > 0) {
+      const byNrp = pool.find((a) => a.nrpNip?.toLowerCase() === user.username?.toLowerCase());
+      if (byNrp) return byNrp;
+
+      const byId = pool.find((a) => a.id === user.id);
+      if (byId) return byId;
+
+      if (user.namaLengkap) {
+        const cleanUser = cleanNamaPersonel(user.namaLengkap).toLowerCase();
+        const byName = pool.find((a) => {
+          const cleanA = cleanNamaPersonel(a.nama).toLowerCase();
+          return cleanA === cleanUser || (cleanUser.length > 3 && (cleanA.includes(cleanUser) || cleanUser.includes(cleanA)));
+        });
+        if (byName) return byName;
+      }
+    }
+    return null;
+  }, [anggotaList, user]);
+
+  const { data: rawLoanList = [], isLoading } = useQuery({
     queryKey: ["pinjaman-list"],
     queryFn: () => apiPinjaman.findAll(),
   });
+
+  // Jika login sebagai Anggota, batasi HANYA pinjaman miliknya sendiri
+  const loanList = useMemo(() => {
+    if (!isAnggota) return rawLoanList;
+    return rawLoanList.filter((l) => {
+      if (currentMember && (l.anggotaId === currentMember.id || l.anggota?.id === currentMember.id)) {
+        return true;
+      }
+      if (user?.username) {
+        const cleanUsername = user.username.toLowerCase().trim();
+        const nrpAnggota = (l.anggota?.nrpNip || "").toLowerCase().trim();
+        if (nrpAnggota === cleanUsername) return true;
+      }
+      if (user?.id && (l.anggotaId === user.id || l.anggota?.id === user.id)) {
+        return true;
+      }
+      if (user?.namaLengkap && l.anggota?.nama) {
+        const cleanUser = cleanNamaPersonel(user.namaLengkap).toLowerCase();
+        const cleanA = cleanNamaPersonel(l.anggota.nama).toLowerCase();
+        if (cleanA === cleanUser || (cleanUser.length > 3 && (cleanA.includes(cleanUser) || cleanUser.includes(cleanA)))) {
+          return true;
+        }
+      }
+      return false;
+    });
+  }, [rawLoanList, isAnggota, currentMember, user]);
 
   // Filter dengan useMemo agar ringan & cepat tanpa re-render berlebih
   const filteredRows = useMemo(() => {

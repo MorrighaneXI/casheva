@@ -62,6 +62,7 @@ import {
 } from "@/lib/casheva-data";
 import { api, apiAnggota, apiPinjaman, apiSimpanan, apiDokumen } from "@/lib/api";
 import { DokumenViewerModal } from "@/components/dokumen-viewer-modal";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Cloud, X } from "lucide-react";
 
 export const Route = createFileRoute("/pengajuan")({
@@ -119,6 +120,10 @@ function PengajuanPage() {
   const [jenisSimpanan, setJenisSimpanan] = useState<"SUKARELA" | "KHUSUS">("SUKARELA");
   const [nominalSimpanan, setNominalSimpanan] = useState(500_000);
   const [keteranganSimpanan, setKeteranganSimpanan] = useState("");
+
+  // Alert Dialog Konfirmasi Aksi
+  const [confirmLoanOpen, setConfirmLoanOpen] = useState(false);
+  const [confirmSimpananOpen, setConfirmSimpananOpen] = useState(false);
 
   const { data: anggotaList = [], isLoading: loadingAnggota } = useQuery({
     queryKey: ["anggota-list-active"],
@@ -397,7 +402,7 @@ function PengajuanPage() {
       return;
     }
 
-    createLoanMutation.mutate();
+    setConfirmLoanOpen(true);
   };
 
   const handleSubmitSimpanan = () => {
@@ -415,7 +420,7 @@ function PengajuanPage() {
       });
       return;
     }
-    setorSimpananMutation.mutate();
+    setConfirmSimpananOpen(true);
   };
 
   const openDocViewer = (docId: string = "usipa") => {
@@ -582,8 +587,26 @@ function PengajuanPage() {
                         </div>
                       </div>
 
+                      {/* WARNING CARD JIKA ANGGOTA TERKENA SANKSI BLACKLIST 2 TAHUN */}
+                      {plafondInfo?.isBlacklist && (
+                        <div className="rounded-lg border border-destructive bg-destructive/15 p-3.5 text-destructive space-y-1">
+                          <div className="flex items-center gap-2 font-bold text-sm">
+                            <ShieldAlert className="size-5 shrink-0 text-destructive" />
+                            <span>Sanksi Blacklist Pinjaman Koperasi Aktif (2 Tahun)</span>
+                          </div>
+                          <p className="text-[11px] leading-relaxed">
+                            {plafondInfo.sanksiKeterangan || "Personel tercatat menunggak pinjaman melewati batas masa toleransi 2 bulan sehingga masuk daftar pemotongan langsung juru bayar dan dikenakan penangguhan pinjaman baru selama 2 tahun."}
+                          </p>
+                          {plafondInfo.sanksiHingga && (
+                            <p className="text-[11px] font-semibold text-destructive">
+                              🔒 Penangguhan berlaku hingga: {new Date(plafondInfo.sanksiHingga).toLocaleDateString("id-ID", { dateStyle: "long" })}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {/* WARNING CARD JIKA MELEBIHI PLAFOND */}
-                      {isPlafondExceeded && (
+                      {!plafondInfo?.isBlacklist && isPlafondExceeded && (
                         <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-3.5 text-destructive space-y-1 animate-pulse">
                           <div className="flex items-center gap-2 font-bold text-sm">
                             <AlertTriangle className="size-5 shrink-0 text-destructive" />
@@ -880,14 +903,18 @@ function PengajuanPage() {
 
                   <Button
                     size="lg"
-                    disabled={!activeTargetAnggotaId || isPlafondExceeded || createLoanMutation.isPending}
+                    disabled={!activeTargetAnggotaId || isPlafondExceeded || plafondInfo?.isBlacklist || createLoanMutation.isPending}
                     onClick={handleSubmitPinjaman}
-                    className={`w-full font-semibold shadow-md ${isPlafondExceeded ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}`}
+                    className={`w-full font-semibold shadow-md ${(isPlafondExceeded || plafondInfo?.isBlacklist) ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}`}
                   >
                     {createLoanMutation.isPending ? (
                       <>
                         <Loader2 className="mr-2 size-4 animate-spin" />
                         {uploadProgressText || "Mengirimkan & Mengunggah Berkas..."}
+                      </>
+                    ) : plafondInfo?.isBlacklist ? (
+                      <>
+                        <ShieldAlert className="mr-2 size-4" /> Sanksi Blacklist 2 Tahun Aktif
                       </>
                     ) : isPlafondExceeded ? (
                       <>
@@ -1185,6 +1212,82 @@ function PengajuanPage() {
           dokumen: createdLoanRes?.dokumen || undefined,
         }}
         initialDocId={selectedDocId}
+      />
+
+      {/* ============================================================== */}
+      {/* POPUP ALERT KONFIRMASI PENGAJUAN PINJAMAN */}
+      {/* ============================================================== */}
+      <ConfirmActionDialog
+        open={confirmLoanOpen}
+        onOpenChange={setConfirmLoanOpen}
+        title="Konfirmasi Pengajuan Pinjaman USIPA"
+        description="Apakah Anda yakin ingin mengirim pengajuan pinjaman ini? Permohonan akan segera diteruskan ke Juru Bayar untuk verifikasi kemampuan potong gaji."
+        confirmText="Ya, Kirim Pengajuan"
+        cancelText="Periksa Kembali"
+        variant="default"
+        isLoading={createLoanMutation.isPending || isUploadingDocs}
+        details={[
+          {
+            label: "Personel Pemohon",
+            value: selectedAnggota ? formatNamaLengkapDinas(selectedAnggota.nama, selectedAnggota.pangkat?.nama, selectedAnggota.korps?.nama, selectedAnggota.pangkat?.kategori) : "-",
+          },
+          {
+            label: "NRP / NIP",
+            value: selectedAnggota?.nrpNip || "-",
+          },
+          {
+            label: "Plafon Pinjaman",
+            value: formatRp(amount),
+          },
+          {
+            label: "Jangka Waktu",
+            value: `${tenor} Bulan`,
+          },
+          {
+            label: "Estimasi Angsuran / Bulan",
+            value: `${formatRp(calc.totalAngsuran)} / bln`,
+          },
+          {
+            label: "Berkas Lampiran",
+            value: `${Object.keys(selectedFiles).length} Berkas Diunggah`,
+          },
+        ]}
+        onConfirm={async () => {
+          setConfirmLoanOpen(false);
+          createLoanMutation.mutate();
+        }}
+      />
+
+      {/* ============================================================== */}
+      {/* POPUP ALERT KONFIRMASI SETORAN SIMPANAN */}
+      {/* ============================================================== */}
+      <ConfirmActionDialog
+        open={confirmSimpananOpen}
+        onOpenChange={setConfirmSimpananOpen}
+        title={`Konfirmasi Setoran Simpanan ${jenisSimpanan}`}
+        description="Pastikan nominal setoran telah sesuai dengan data kas/mutasi sebelum diproses ke buku simpanan koperasi."
+        confirmText="Ya, Setor Sekarang"
+        cancelText="Batal"
+        variant="success"
+        isLoading={setorSimpananMutation.isPending}
+        details={[
+          {
+            label: "Penyetor",
+            value: selectedAnggota ? formatNamaLengkapDinas(selectedAnggota.nama, selectedAnggota.pangkat?.nama, selectedAnggota.korps?.nama, selectedAnggota.pangkat?.kategori) : "-",
+          },
+          {
+            label: "Jenis Simpanan",
+            value: `Simpanan ${jenisSimpanan}`,
+          },
+          {
+            label: "Nominal Setoran",
+            value: formatRp(nominalSimpanan),
+          },
+        ]}
+        onConfirm={async () => {
+          setConfirmSimpananOpen(false);
+          setorSimpananMutation.mutate();
+        }}
       />
     </div>
   );

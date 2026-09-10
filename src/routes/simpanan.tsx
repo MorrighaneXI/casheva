@@ -97,10 +97,38 @@ const BULAN_NAMES = [
   "Juli", "Agustus", "September", "Oktober", "November", "Desember"
 ];
 
+const SUKARELA_RATES: Record<string, number> = {
+  PATI: 500_000,
+  PAMEN: 300_000,
+  PAMA: 250_000,
+  BINTARA: 200_000,
+  BATA_ASN: 150_000,
+  PNS: 150_000,
+};
+
+const SUKARELA_RATE_LABELS: Record<string, string> = {
+  PATI: "Perwira Tinggi (Pati)",
+  PAMEN: "Perwira Menengah (Pamen)",
+  PAMA: "Perwira Pertama (Pama)",
+  BINTARA: "Bintara",
+  BATA_ASN: "Tamtama / ASN",
+  PNS: "PNS",
+};
+
+const KHUSUS_TIPE_OPTIONS = [
+  "Simpanan Qurban",
+  "Simpanan Hari Raya / THR",
+  "Simpanan Wisata",
+  "Dana Khusus Pendidikan",
+  "Dana Khusus Lainnya",
+];
+
 function SimpananPage() {
   const queryClient = useQueryClient();
   const { role, isAdmin, user } = useSession();
   const isBendaharaOrAdmin = isAdmin || role === "Bendahara" || role === "Admin Koperasi";
+  const isJuruBayar = role === "Juru Bayar";
+  const isJuruBayarOrAbove = isBendaharaOrAdmin || isJuruBayar;
 
   const [activeTab, setActiveTab] = useState<"saldo" | "upload-excel" | "bulanan" | "pengaturan">("saldo");
   const [search, setSearch] = useState("");
@@ -116,6 +144,19 @@ function SimpananPage() {
   const [setorJenis, setSetorJenis] = useState<"POKOK" | "WAJIB" | "SUKARELA" | "KHUSUS">("WAJIB");
   const [setorNominal, setSetorNominal] = useState(100_000);
   const [setorKeterangan, setSetorKeterangan] = useState("");
+
+  // === Modal Simpanan Sukarela Manual (Juru Bayar / Bendahara / Admin) ===
+  const [openSukarelaModal, setOpenSukarelaModal] = useState(false);
+  const [sukarelaAnggotaId, setSukarelaAnggotaId] = useState("");
+  const [sukarelaNominal, setSukarelaNominal] = useState(150_000);
+  const [sukarelaKeterangan, setSukarelaKeterangan] = useState("");
+
+  // === Modal Simpanan Khusus (Bendahara / Admin Only) ===
+  const [openKhususModal, setOpenKhususModal] = useState(false);
+  const [khususAnggotaId, setKhususAnggotaId] = useState("");
+  const [khususNominal, setKhususNominal] = useState(100_000);
+  const [khususTipeKeterangan, setKhususTipeKeterangan] = useState("Simpanan Qurban");
+  const [khususKeterangan, setKhususKeterangan] = useState("");
 
   // State Pengaturan Dinamis Simpanan
   const [editPokok, setEditPokok] = useState<number>(50_000);
@@ -144,6 +185,8 @@ function SimpananPage() {
   const [openConfirmUpload, setOpenConfirmUpload] = useState(false);
   const [openConfirmSetor, setOpenConfirmSetor] = useState(false);
   const [openConfirmPengaturan, setOpenConfirmPengaturan] = useState(false);
+  const [openConfirmSukarela, setOpenConfirmSukarela] = useState(false);
+  const [openConfirmKhusus, setOpenConfirmKhusus] = useState(false);
 
   // Queries
   const { data: rekapList = [], isLoading: loadingSaldo } = useQuery({
@@ -233,6 +276,65 @@ function SimpananPage() {
     },
   });
 
+  // Mutation: Simpanan Sukarela Manual (Juru Bayar / Bendahara / Admin)
+  const setorSukarelaMutation = useMutation({
+    mutationFn: () =>
+      apiSimpanan.setor({
+        anggotaId: sukarelaAnggotaId,
+        jenis: "SUKARELA",
+        nominal: sukarelaNominal,
+        keterangan: sukarelaKeterangan || `Setoran simpanan sukarela manual oleh ${role}`,
+      }),
+    onSuccess: () => {
+      const anggota = anggotaList.find((a) => a.id === sukarelaAnggotaId);
+      toast.success("Simpanan Sukarela Berhasil Dicatat!", {
+        description: `${formatRp(sukarelaNominal)} untuk ${anggota?.nama || "Anggota"} berhasil disimpan.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["simpanan-rekap"] });
+      queryClient.invalidateQueries({ queryKey: ["simpanan-rekap-bulanan"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      setOpenSukarelaModal(false);
+      setSukarelaAnggotaId("");
+      setSukarelaNominal(150_000);
+      setSukarelaKeterangan("");
+      setOpenConfirmSukarela(false);
+    },
+    onError: (err: any) => {
+      toast.error("Gagal mencatat simpanan sukarela", { description: err.message });
+      setOpenConfirmSukarela(false);
+    },
+  });
+
+  // Mutation: Simpanan Khusus (Bendahara / Admin Only)
+  const setorKhususMutation = useMutation({
+    mutationFn: () =>
+      apiSimpanan.setor({
+        anggotaId: khususAnggotaId,
+        jenis: "KHUSUS",
+        nominal: khususNominal,
+        keterangan: khususTipeKeterangan + (khususKeterangan ? ` — ${khususKeterangan}` : ""),
+      }),
+    onSuccess: () => {
+      const anggota = anggotaList.find((a) => a.id === khususAnggotaId);
+      toast.success("Simpanan Khusus Berhasil Dicatat!", {
+        description: `${khususTipeKeterangan} ${formatRp(khususNominal)} untuk ${anggota?.nama || "Anggota"} berhasil disimpan.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["simpanan-rekap"] });
+      queryClient.invalidateQueries({ queryKey: ["simpanan-rekap-bulanan"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      setOpenKhususModal(false);
+      setKhususAnggotaId("");
+      setKhususNominal(100_000);
+      setKhususTipeKeterangan("Simpanan Qurban");
+      setKhususKeterangan("");
+      setOpenConfirmKhusus(false);
+    },
+    onError: (err: any) => {
+      toast.error("Gagal mencatat simpanan khusus", { description: err.message });
+      setOpenConfirmKhusus(false);
+    },
+  });
+
   const batchGolonganMutation = useMutation({
     mutationFn: () => {
       const periodeStr = `${batchPeriodeTahun}-${String(batchPeriodeBulan).padStart(2, "0")}`;
@@ -261,6 +363,16 @@ function SimpananPage() {
       setOpenConfirmUpload(false);
     },
   });
+
+  // Auto-fill nominal saat pilih anggota di form Simpanan Sukarela
+  const handleSukarelaAnggotaChange = (anggotaId: string) => {
+    setSukarelaAnggotaId(anggotaId);
+    const anggota = anggotaList.find((a) => a.id === anggotaId);
+    if (anggota) {
+      const kat = (anggota.pangkat?.kategori || "").toUpperCase();
+      setSukarelaNominal(SUKARELA_RATES[kat] ?? 150_000);
+    }
+  };
 
   // Handler Upload & Validasi File Excel
   const handleExcelFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -831,8 +943,15 @@ function SimpananPage() {
         description="Pengelolaan simpanan pokok, wajib, sukarela, dan khusus dengan pengaturan nominal dinamis oleh Bendahara."
         actions={
           <div className="flex flex-wrap gap-2">
-            {isBendaharaOrAdmin && (
+            {isJuruBayarOrAbove && (
               <>
+                <Button
+                  variant="outline"
+                  className="gap-1.5 border-emerald-500/40 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-semibold"
+                  onClick={() => setOpenSukarelaModal(true)}
+                >
+                  <PiggyBank className="size-4" /> Input Simpanan Sukarela
+                </Button>
                 <Button
                   variant="outline"
                   disabled={massalMutation.isPending}
@@ -843,7 +962,18 @@ function SimpananPage() {
                   ) : (
                     <RefreshCw className="mr-2 size-4" />
                   )}
-                  Jalankan Batch Tgl 5 (Sukarela)
+                  Auto Potong Sukarela (Tgl 5)
+                </Button>
+              </>
+            )}
+            {isBendaharaOrAdmin && (
+              <>
+                <Button
+                  variant="outline"
+                  className="gap-1.5 border-amber-500/40 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 font-semibold"
+                  onClick={() => setOpenKhususModal(true)}
+                >
+                  <Coins className="size-4" /> Input Simpanan Khusus
                 </Button>
                 <Button onClick={() => setOpenSetorModal(true)} className="shadow-md">
                   <Plus className="mr-2 size-4" /> Catat Setoran Simpanan
@@ -1767,6 +1897,302 @@ function SimpananPage() {
                 <Save className="mr-2 size-4" />
               )}
               Iya, Simpan Perubahan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ========================= */}
+      {/* MODAL: INPUT SIMPANAN SUKARELA (Juru Bayar / Bendahara / Admin) */}
+      {/* ========================= */}
+      <Dialog
+        open={openSukarelaModal}
+        onOpenChange={(o) => {
+          setOpenSukarelaModal(o);
+          if (!o) {
+            setSukarelaAnggotaId("");
+            setSukarelaNominal(150_000);
+            setSukarelaKeterangan("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PiggyBank className="size-5 text-emerald-600" /> Input Simpanan Sukarela Manual
+            </DialogTitle>
+            <DialogDescription>
+              Catat setoran simpanan sukarela untuk anggota tertentu. Nominal otomatis terisi sesuai golongan pangkat, namun dapat diedit.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Tabel Tarif Sukarela per Golongan */}
+          <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground">Tarif Simpanan Sukarela per Golongan:</p>
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              {Object.entries(SUKARELA_RATES).map(([kat, nom]) => (
+                <div key={kat} className="flex items-center justify-between rounded-md bg-card border px-2.5 py-1.5">
+                  <span className="font-semibold text-foreground">
+                    {SUKARELA_RATE_LABELS[kat] ? SUKARELA_RATE_LABELS[kat].split(" (")[0] : kat}
+                  </span>
+                  <span className="font-bold text-primary">{formatRp(nom)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Pilih Anggota <span className="text-destructive">*</span></Label>
+              <Select value={sukarelaAnggotaId} onValueChange={handleSukarelaAnggotaChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="-- Pilih Anggota --" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {anggotaList.map((a) => {
+                    const kategori = (a.pangkat?.kategori || "").toUpperCase();
+                    const rate = SUKARELA_RATES[kategori] ?? 150_000;
+                    return (
+                      <SelectItem key={a.id} value={a.id}>
+                        {formatNamaLengkapDinas(a.nama, a.pangkat?.nama, a.korps?.nama, a.pangkat?.kategori)} (NRP: {a.nrpNip}) — {formatRp(rate)}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Info Golongan Anggota Terpilih */}
+            {sukarelaAnggotaId && (() => {
+              const selected = anggotaList.find((a) => a.id === sukarelaAnggotaId);
+              if (!selected) return null;
+              const kat = (selected.pangkat?.kategori || "").toUpperCase();
+              const golLabel = SUKARELA_RATE_LABELS[kat] || kat || "Tidak Diketahui";
+              return (
+                <Alert className="border-emerald-500/30 bg-emerald-500/10">
+                  <CheckCircle2 className="size-4 text-emerald-600" />
+                  <AlertTitle className="text-sm font-bold">{selected.nama}</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    Pangkat: <strong>{selected.pangkat?.nama || "-"}</strong> — Golongan: <strong>{golLabel}</strong> — Nominal Default: <strong>{formatRp(SUKARELA_RATES[kat] ?? 150_000)}</strong>
+                  </AlertDescription>
+                </Alert>
+              );
+            })()}
+
+            <div className="space-y-2">
+              <Label>Nominal Simpanan Sukarela</Label>
+              <Input
+                type="number"
+                min={10_000}
+                step={10_000}
+                value={sukarelaNominal}
+                onChange={(e) => setSukarelaNominal(Number(e.target.value) || 0)}
+                className="h-11 font-semibold"
+              />
+              <p className="text-xs text-muted-foreground">
+                Terbilang: <strong>{formatRp(sukarelaNominal)}</strong>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Keterangan (Opsional)</Label>
+              <Textarea
+                value={sukarelaKeterangan}
+                onChange={(e) => setSukarelaKeterangan(e.target.value)}
+                placeholder="Contoh: Potong gaji sukarela bulan September 2026"
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={!sukarelaAnggotaId || sukarelaNominal <= 0 || setorSukarelaMutation.isPending}
+              onClick={() => setOpenConfirmSukarela(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+            >
+              {setorSukarelaMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin mr-2" />
+              ) : (
+                <ArrowDownLeft className="size-4 mr-2" />
+              )}
+              Simpan Simpanan Sukarela
+            </Button>
+            <Button variant="outline" onClick={() => setOpenSukarelaModal(false)}>
+              Batal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Konfirmasi Simpanan Sukarela */}
+      <AlertDialog open={openConfirmSukarela} onOpenChange={setOpenConfirmSukarela}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-bold">
+              Konfirmasi Simpanan Sukarela?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Simpanan sukarela sebesar <strong>{formatRp(sukarelaNominal)}</strong> untuk anggota <strong>{anggotaList.find((a) => a.id === sukarelaAnggotaId)?.nama || ""}</strong> akan dicatat ke pembukuan koperasi secara realtime.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batalkan</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={setorSukarelaMutation.isPending}
+              onClick={() => setorSukarelaMutation.mutate()}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+            >
+              {setorSukarelaMutation.isPending ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <Check className="mr-2 size-4" />
+              )}
+              Ya, Simpan Sukarela
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ========================= */}
+      {/* MODAL: INPUT SIMPANAN KHUSUS (Bendahara / Admin Only) */}
+      {/* ========================= */}
+      <Dialog
+        open={openKhususModal}
+        onOpenChange={(o) => {
+          setOpenKhususModal(o);
+          if (!o) {
+            setKhususAnggotaId("");
+            setKhususNominal(100_000);
+            setKhususTipeKeterangan("Simpanan Qurban");
+            setKhususKeterangan("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Coins className="size-5 text-amber-600" /> Input Simpanan Khusus
+            </DialogTitle>
+            <DialogDescription>
+              Khusus Bendahara: Catat simpanan khusus (Qurban, Hari Raya, Wisata, dll.) untuk anggota tertentu.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Pilih Anggota <span className="text-destructive">*</span></Label>
+              <Select value={khususAnggotaId} onValueChange={setKhususAnggotaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="-- Pilih Anggota --" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {anggotaList.map((a) => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {formatNamaLengkapDinas(a.nama, a.pangkat?.nama, a.korps?.nama, a.pangkat?.kategori)} (NRP: {a.nrpNip})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Info anggota terpilih */}
+            {khususAnggotaId && (() => {
+              const selected = anggotaList.find((a) => a.id === khususAnggotaId);
+              if (!selected) return null;
+              return (
+                <Alert className="border-amber-500/30 bg-amber-500/10">
+                  <CheckCircle2 className="size-4 text-amber-600" />
+                  <AlertTitle className="text-sm font-bold">{selected.nama}</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    Pangkat: <strong>{selected.pangkat?.nama || "-"}</strong> — NRP: <strong>{selected.nrpNip}</strong>
+                  </AlertDescription>
+                </Alert>
+              );
+            })()}
+
+            <div className="space-y-2">
+              <Label>Jenis Simpanan Khusus <span className="text-destructive">*</span></Label>
+              <Select value={khususTipeKeterangan} onValueChange={setKhususTipeKeterangan}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {KHUSUS_TIPE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Nominal Simpanan Khusus <span className="text-destructive">*</span></Label>
+              <Input
+                type="number"
+                min={10_000}
+                step={10_000}
+                value={khususNominal}
+                onChange={(e) => setKhususNominal(Number(e.target.value) || 0)}
+                className="h-11 font-semibold"
+              />
+              <p className="text-xs text-muted-foreground">
+                Terbilang: <strong>{formatRp(khususNominal)}</strong>
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Catatan Tambahan (Opsional)</Label>
+              <Textarea
+                value={khususKeterangan}
+                onChange={(e) => setKhususKeterangan(e.target.value)}
+                placeholder="Contoh: Simpanan qurban tahun 2026 periode September"
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              disabled={!khususAnggotaId || khususNominal <= 0 || setorKhususMutation.isPending}
+              onClick={() => setOpenConfirmKhusus(true)}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+            >
+              {setorKhususMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin mr-2" />
+              ) : (
+                <ArrowDownLeft className="size-4 mr-2" />
+              )}
+              Simpan Simpanan Khusus
+            </Button>
+            <Button variant="outline" onClick={() => setOpenKhususModal(false)}>
+              Batal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Konfirmasi Simpanan Khusus */}
+      <AlertDialog open={openConfirmKhusus} onOpenChange={setOpenConfirmKhusus}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-bold">
+              Konfirmasi Simpanan Khusus?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{khususTipeKeterangan}</strong> sebesar <strong>{formatRp(khususNominal)}</strong> untuk anggota <strong>{anggotaList.find((a) => a.id === khususAnggotaId)?.nama || ""}</strong> akan dicatat ke pembukuan koperasi secara realtime.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batalkan</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={setorKhususMutation.isPending}
+              onClick={() => setorKhususMutation.mutate()}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold"
+            >
+              {setorKhususMutation.isPending ? (
+                <Loader2 className="mr-2 size-4 animate-spin" />
+              ) : (
+                <Check className="mr-2 size-4" />
+              )}
+              Ya, Simpan Khusus
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

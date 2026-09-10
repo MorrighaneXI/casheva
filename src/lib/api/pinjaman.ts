@@ -30,6 +30,64 @@ export interface SukuBungaPengaturan {
   sukuBungaBulanan: number;
 }
 
+export interface BayarAngsuranDinamisDto {
+  nominalBayar: number;
+  bulanKe?: number;
+  isPelunasanDipercepat?: boolean;
+  tanggalBayar?: string;
+  catatan?: string;
+}
+
+export interface JatuhTempoInfo {
+  tanggalJatuhTempo: string | null;
+  isLewatJatuhTempo: boolean;
+  toleransiHingga: string | null;
+  isMasaToleransi: boolean;
+  isLewatToleransi: boolean;
+  isBlacklist: boolean;
+  sanksiBlacklistHingga: string | null;
+  statusPeringatan: 'NORMAL' | 'MASA_TOLERANSI_2_BULAN' | 'GAGAL_BAYAR_POTONG_JURU_BAYAR' | 'LUNAS';
+  keterangan: string;
+}
+
+export interface KalkulasiDinamisResponse {
+  pinjamanId: string;
+  anggota: {
+    id: string;
+    nama: string;
+    nrpNip: string;
+    pangkat?: string;
+    korps?: string;
+  };
+  nominalAwal: number;
+  sisaPokok: number;
+  tenorBulan: number;
+  bungaPersenTahun: number;
+  bungaBulanan: number;
+  pokokBulanan: number;
+  tunggakanBunga: number;
+  nextBulanKe: number;
+  totalKewajibanBulanIni: number;
+  pelunasanDipercepat: {
+    sisaPokok: number;
+    pinaltiBunga2x: number;
+    totalBayar: number;
+  };
+  jatuhTempoInfo: JatuhTempoInfo;
+}
+
+export interface PlafondInfoResponse {
+  anggotaId: string;
+  kategoriPangkat: string;
+  maksPlafond: number;
+  totalPinjamanAktif: number;
+  sisaKuota: number;
+  isBlacklist?: boolean;
+  sanksiKeterangan?: string | null;
+  sanksiHingga?: string | null;
+  label: string;
+}
+
 export const apiPinjaman = {
   findAll: async (status?: StatusPinjaman): Promise<Pinjaman[]> => {
     const query = status ? `?status=${status}` : '';
@@ -68,14 +126,27 @@ export const apiPinjaman = {
     return api.post(`/pinjaman/angsuran/${angsuranId}/bayar`);
   },
 
-  getPlafond: async (anggotaId: string): Promise<{
-    anggotaId: string;
-    kategoriPangkat: string;
-    maksPlafond: number;
-    totalPinjamanAktif: number;
-    sisaKuota: number;
-    label: string;
+  getKalkulasiDinamis: async (pinjamanId: string): Promise<KalkulasiDinamisResponse> => {
+    return api.get<KalkulasiDinamisResponse>(`/pinjaman/${pinjamanId}/kalkulasi-dinamis`);
+  },
+
+  bayarDinamis: async (pinjamanId: string, dto: BayarAngsuranDinamisDto): Promise<{
+    message: string;
+    noInvoice: string;
+    tanggalBayar: string;
+    nominalBayar: number;
+    alokasi: {
+      porsiBunga: number;
+      porsiPokok: number;
+      sisaPokokBaru: number;
+    };
+    isLunas: boolean;
+    pinjamanId: string;
   }> => {
+    return api.post(`/pinjaman/${pinjamanId}/bayar-dinamis`, dto);
+  },
+
+  getPlafond: async (anggotaId: string): Promise<PlafondInfoResponse> => {
     return api.get(`/pinjaman/plafond/${anggotaId}`);
   },
 

@@ -137,8 +137,12 @@ export function formatPangkatKorps(
 }
 
 export const potonganSukarela: Record<string, number> = {
+  Pati: 500_000,
   Pamen: 300_000,
   Pama: 250_000,
+  Bintara: 200_000,
+  Tamtama: 150_000,
+  PNS: 150_000,
   "Ba/Ta/ASN": 150_000,
 };
 
@@ -367,7 +371,7 @@ export type Anggota = {
   nrp: string;
   nama: string;
   pangkat: string;
-  golongan: "Pamen" | "Pama" | "Ba/Ta" | "PNS";
+  golongan: "Pati" | "Pamen" | "Pama" | "Bintara" | "Tamtama" | "Ba/Ta" | "PNS";
   korps: string;
   satminkal: string;
   simpananWajib: number;

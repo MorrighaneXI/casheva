@@ -24,7 +24,16 @@ import {
   CheckCircle2,
   Clock,
   PiggyBank,
+  Lock,
+  Database,
+  Download,
+  KeyRound,
+  ShieldAlert,
+  Server,
+  FileKey2,
 } from "lucide-react";
+import { toast } from "sonner";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import {
   Area,
   AreaChart,
@@ -70,7 +79,7 @@ import {
   type Role,
 } from "@/lib/casheva-data";
 import { dashboardCta } from "@/lib/rbac";
-import { apiDashboard, apiPinjaman, apiAnggota, type Anggota } from "@/lib/api";
+import { apiDashboard, apiPinjaman, apiAnggota, apiBackup, type Anggota } from "@/lib/api";
 import {
   RekomendasiQueue,
   AccQueue,
@@ -187,6 +196,9 @@ function AdminDashboard() {
   const { satminkal, setRole } = useSession();
   const cta = dashboardCta("Admin Koperasi");
 
+  const [backupDialogOpen, setBackupDialogOpen] = useState(false);
+  const [isBackingUp, setIsBackingUp] = useState(false);
+
   const { data: summary, isLoading: loadingSummary } = useQuery({
     queryKey: ["dashboard-summary"],
     queryFn: apiDashboard.getSummary,
@@ -197,10 +209,36 @@ function AdminDashboard() {
     queryFn: () => apiDashboard.getCharts(),
   });
 
+  const { data: backupStatus, refetch: refetchBackupStatus } = useQuery({
+    queryKey: ["backup-status"],
+    queryFn: () => apiBackup.getStatus(),
+  });
+
   const { data: loansList = [], isLoading: loadingLoans } = useQuery({
     queryKey: ["pinjaman-recent"],
     queryFn: () => apiPinjaman.findAll(),
   });
+
+  const handleConfirmBackup = async () => {
+    try {
+      setIsBackingUp(true);
+      await apiBackup.downloadEncryptedFile();
+      toast.success("Cadangan Database Terenkripsi Berhasil", {
+        description:
+          "File cadangan standar militer AES-256-GCM (.casheva.enc) berhasil diunduh dan tersimpan aman.",
+      });
+      setBackupDialogOpen(false);
+      refetchBackupStatus();
+    } catch (err: any) {
+      toast.error("Gagal Mencadangkan Data", {
+        description:
+          err.message ||
+          "Terjadi kendala saat memproses cadangan database terenkripsi.",
+      });
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
 
   const countPending = loansList.filter((l) =>
     ["DIAJUKAN", "DIVERIFIKASI_JURUBAYAR", "DIREKOMENDASIKAN", "VERIFIKASI_PRIMKOP", "VERIFIKASI_JURU_BAYAR"].includes(l.status),
@@ -286,42 +324,44 @@ function AdminDashboard() {
         title="Dashboard Eksekutif Admin"
         description={`Pusat Kendali Utama Koperasi Simpan Pinjam ${satminkal} TA 2026`}
         actions={
-          cta ? (
-            <Button asChild>
-              <Link to={cta.to as "/"}>
-                {cta.label} <ArrowRight className="ml-1 size-4" />
-              </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              onClick={() => setBackupDialogOpen(true)}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 gap-1.5 shadow-sm shadow-emerald-600/20 transition-all hover:scale-[1.02]"
+            >
+              <Download className="size-4" />
+              Cadangkan Database
             </Button>
-          ) : null
+            {cta ? (
+              <Button asChild>
+                <Link to={cta.to as "/"}>
+                  {cta.label} <ArrowRight className="ml-1 size-4" />
+                </Link>
+              </Button>
+            ) : null}
+          </div>
         }
       />
 
-      {/* Quick Perspective Switching Bar */}
-      <Card className="border-primary/20 bg-card/60 backdrop-blur-sm shadow-card">
-        <CardContent className="py-3 px-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="grid size-7 place-items-center rounded-md bg-primary/10 text-primary">
-              <Eye className="size-4" />
-            </span>
-            <span className="text-xs font-semibold text-foreground">
-              Akses Cepat Perspektif Peran:
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {ROLES.filter((r) => r !== "Admin Koperasi").map((r) => (
-              <Button
-                key={r}
-                size="sm"
-                variant="outline"
-                onClick={() => setRole(r)}
-                className="h-7 text-[11px] px-2.5 font-medium hover:bg-primary-soft hover:text-primary transition-colors"
-              >
-                {r}
-              </Button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Dialog Konfirmasi Pencadangan Database Terenkripsi */}
+      <ConfirmActionDialog
+        open={backupDialogOpen}
+        onOpenChange={setBackupDialogOpen}
+        onConfirm={handleConfirmBackup}
+        isLoading={isBackingUp}
+        title="Cadangkan Database Koperasi (Terenkripsi AES-256)?"
+        description="Sistem akan mengekspor seluruh snapshot data koperasi (Anggota, Simpanan, Pinjaman, Transaksi, dan Pengaturan) yang dienkripsi menggunakan algoritma AES-256-GCM berstandar militer."
+        confirmText="Unduh Cadangan Terenkripsi"
+        cancelText="Batal"
+        variant="success"
+        icon={<Database className="size-6 text-emerald-600 dark:text-emerald-400" />}
+        details={[
+          { label: "Format File", value: ".casheva.enc (Encrypted JSON Bundle)" },
+          { label: "Algoritma Enkripsi", value: "AES-256-GCM + IV 12-byte + Auth Tag" },
+          { label: "Verifikasi Integritas", value: "SHA-256 Checksum Included" },
+          { label: "Perlindungan", value: "Anti-Ransomware & Disaster Recovery" },
+        ]}
+      />
 
       {/* Main KPI Grid */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -816,11 +856,18 @@ function JuruBayarDashboard() {
         title="Dashboard Juru Bayar (Juyar)"
         description={`Verifikasi Kelayakan Gaji & Potongan Kedinasan Personel ${satminkal}`}
         actions={
-          <Button asChild>
-            <Link to="/verifikasi">
-              <ShieldCheck className="mr-1.5 size-4" /> Buka Antrean Verifikasi
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline">
+              <Link to="/simpanan">
+                <PiggyBank className="mr-1.5 size-4" /> Kelola Simpanan Sukarela
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/verifikasi">
+                <ShieldCheck className="mr-1.5 size-4" /> Buka Antrean Verifikasi
+              </Link>
+            </Button>
+          </div>
         }
       />
 
@@ -860,6 +907,9 @@ function JuruBayarDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Batch Simpanan Tanggal 5 Banner untuk Juru Bayar */}
+      <BatchSimpananBanner />
 
       {/* Antrean Verifikasi Table */}
       <Card className="shadow-card">

@@ -7,8 +7,8 @@ import {
   EyeOff,
   Loader2,
   CheckCircle2,
-  Info,
   ShieldCheck,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -25,7 +25,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { ROLES, type Role } from "@/lib/casheva-data";
 import { cn } from "@/lib/utils";
 import { useSession } from "@/components/session-context";
 
@@ -49,17 +48,6 @@ export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
-const DEMO_CREDENTIALS: Record<Role, { username: string; password: string; deskripsi: string }> = {
-  "Admin Koperasi": { username: "admin", password: "Admin123!", deskripsi: "Administrator Koperasi" },
-  "Pimpinan / Dan / Ka": { username: "pimpinan", password: "Admin123!", deskripsi: "Kolonel Inf Heru (Dan/Ka)" },
-  Keprim: { username: "keprim", password: "Admin123!", deskripsi: "Letkol Cba Dedi Kurnia (Keprim)" },
-  Bendahara: { username: "bendahara", password: "Admin123!", deskripsi: "Lettu Cku Budi (Bendahara)" },
-  "Juru Bayar": { username: "jurubayar", password: "Admin123!", deskripsi: "Serma Agus (Juru Bayar)" },
-  "Kasir Toko": { username: "kasir", password: "Admin123!", deskripsi: "Kopda Hendra S. (Kasir Toko)" },
-  "Pengawas Koperasi": { username: "pengawas", password: "Admin123!", deskripsi: "Mayor Inf Tri (Pengawas)" },
-  Anggota: { username: "1102123401", password: "Admin123!", deskripsi: "Kolonel Inf Sigit (NRP: 1102123401)" },
-};
-
 function LoginPage() {
   const navigate = useNavigate();
   const { login, satminkal, kotama } = useSession();
@@ -80,13 +68,13 @@ function LoginPage() {
     timers.current.push(setTimeout(fn, ms));
   };
 
-  const handleLogin = async (customUsername?: string, customPassword?: string) => {
-    const u = customUsername ?? username;
-    const p = customPassword ?? password;
+  const handleLogin = async () => {
+    const u = username.trim();
+    const p = password.trim();
 
-    if (!u.trim() || !p.trim()) {
+    if (!u || !p) {
       toast.error("Data tidak lengkap", {
-        description: "Masukkan NRP/NIP dan password Anda.",
+        description: "Masukkan NRP/NIP dan password dinas Anda.",
       });
       return;
     }
@@ -106,30 +94,10 @@ function LoginPage() {
     } catch (err: any) {
       setLoading(false);
       toast.error("Gagal Masuk", {
-        description: err.message || "NRP/NIP atau password salah. Pastikan server backend aktif.",
+        description:
+          err.message || "NRP/NIP atau password salah. Pastikan server backend aktif.",
       });
     }
-  };
-
-  const typeInto = (
-    value: string,
-    setter: (v: string) => void,
-    stepMs: number,
-    onDone?: () => void,
-  ) => {
-    setter("");
-    value.split("").forEach((_, i) => {
-      track(() => setter(value.slice(0, i + 1)), stepMs * (i + 1));
-    });
-    if (onDone) track(onDone, stepMs * value.length + 80);
-  };
-
-  const quickLogin = (role: Role) => {
-    if (loading) return;
-    const creds = DEMO_CREDENTIALS[role];
-    typeInto(creds.username, setUsername, 25, () =>
-      typeInto(creds.password, setPassword, 20, () => handleLogin(creds.username, creds.password)),
-    );
   };
 
   return (
@@ -174,19 +142,20 @@ function LoginPage() {
               Sistem Informasi Koperasi Simpan Pinjam TNI AD
             </h1>
             <p className="mt-4 text-lg font-medium text-sidebar-primary">
-              Transparan, Akuntabel, dan Terintegrasi (Lomba RTI 2026)
+              Transparan, Akuntabel, dan Terintegrasi
             </p>
           </div>
 
           <p className="relative text-xs text-sidebar-foreground/60">
-            © 2026 Koperasi TNI AD · Infolahtadam IV/Diponegoro. Terhubung ke Database Neon PostgreSQL.
+            © 2026 Koperasi TNI AD · Infolahtadam IV/Diponegoro. Created by Todskyyy
           </p>
         </aside>
 
         {/* Right — form */}
         <main className="animate-in fade-in slide-in-from-bottom-8 flex items-center justify-center px-4 py-10 delay-200 duration-700 sm:px-8">
-          <div className="w-full max-w-md">
-            <div className="mb-6 flex items-center gap-3 lg:hidden">
+          <div className="w-full max-w-md space-y-4">
+            {/* Mobile Header */}
+            <div className="mb-4 flex items-center gap-3 lg:hidden">
               <img
                 src={emblem}
                 alt="Emblem koperasi TNI AD"
@@ -202,39 +171,48 @@ function LoginPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-card sm:p-8">
-              <h2 className="text-2xl font-bold text-card-foreground">
-                Selamat Datang Kembali
-              </h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Masukkan kredensial dinas Anda untuk mengakses dasbor koperasi.
-              </p>
+            {/* Login Card */}
+            <div className="rounded-2xl border border-border/80 bg-card p-6 shadow-card sm:p-8 space-y-6">
+              <div className="space-y-1.5">
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                  Selamat Datang Kembali
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Masukkan kredensial dinas Anda untuk mengakses sistem informasi koperasi.
+                </p>
+              </div>
 
               <form
-                className="mt-6 space-y-4"
+                className="space-y-4"
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleLogin();
                 }}
               >
-                <div className="space-y-2">
-                  <Label htmlFor="username">NRP / NIP (Kredensial Login)</Label>
+                {/* Field 1: NRP / NIP */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="username" className="text-xs font-semibold">
+                    NRP / NIP
+                  </Label>
                   <div className="relative">
                     <User className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="username"
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Masukkan NRP/NIP (misal: 1102123401 atau admin)"
+                      placeholder="Masukkan NRP/NIP atau username"
                       autoComplete="username"
-                      className="h-11 pl-9 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary font-mono text-sm"
+                      className="h-10 pl-9 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary font-mono text-xs"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                {/* Field 2: Password */}
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password" className="text-xs font-semibold">
+                      Kata Sandi
+                    </Label>
                     <ForgotPasswordDialog />
                   </div>
                   <div className="relative">
@@ -246,7 +224,7 @@ function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       autoComplete="current-password"
-                      className="h-11 pr-10 pl-9 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary"
+                      className="h-10 pr-10 pl-9 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary text-xs"
                     />
                     <button
                       type="button"
@@ -272,31 +250,46 @@ function LoginPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/60 px-3 py-2.5 text-xs text-muted-foreground">
-                  <Badge
-                    variant="outline"
-                    className="border-primary/30 bg-primary-soft text-primary"
-                  >
-                    Session Multi-Tenant
-                  </Badge>
-                  <span className="font-medium text-foreground">
-                    Satminkal: {satminkal}
-                  </span>
-                  <span className="opacity-40">|</span>
-                  <span className="font-medium text-foreground">
-                    Kotama: {kotama}
-                  </span>
+                {/* Session & Satminkal Info Card */}
+                <div className="rounded-xl border border-border/80 bg-muted/40 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                      <ShieldCheck className="size-3.5 text-primary" />
+                      Sesi Multi-Tenant Terintegrasi
+                    </span>
+                    <Badge
+                      variant="outline"
+                      className="border-primary/30 bg-primary-soft text-primary text-[10px] px-2 py-0 font-medium"
+                    >
+                      TNI AD
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1.5 border-t border-border/50">
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Satminkal</span>
+                      <span className="font-semibold text-foreground block truncate" title={satminkal}>
+                        {satminkal}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-muted-foreground block">Kotama</span>
+                      <span className="font-semibold text-foreground block truncate" title={kotama}>
+                        {kotama}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
+                {/* Submit Button */}
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="h-11 w-full font-semibold shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/25 active:scale-95"
+                  className="h-10 w-full font-semibold shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/25 active:scale-95 text-xs"
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Memverifikasi Hak Akses...
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Memverifikasi Kredensial...
                     </>
                   ) : (
                     "Masuk Aplikasi"
@@ -304,34 +297,12 @@ function LoginPage() {
                 </Button>
               </form>
 
-              <div className="mt-5 flex gap-2.5 rounded-lg border border-gold/30 bg-gold-soft px-3 py-2.5 text-xs leading-relaxed text-accent-foreground">
-                <Info className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>
-                  Akses sesuai kewenangan role Juknis TNI AD 2026. Password default demo:{" "}
-                  <code className="font-bold">Admin123!</code>
+              {/* Security Badge Footer inside Card */}
+              <div className="pt-3 border-t border-border/60 text-center">
+                <p className="text-[11px] text-muted-foreground flex items-center justify-center gap-1.5">
+                  <Lock className="size-3 text-emerald-600 dark:text-emerald-400" />
+                  Dilindungi oleh Tuhan Yang Maha Esa
                 </p>
-              </div>
-            </div>
-
-            <div className="mt-5 rounded-xl border border-dashed border-border bg-card/60 p-4">
-              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                Pilih Akun Cepat (Quick Login As):
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {ROLES.map((role) => (
-                  <Button
-                    key={role}
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={loading}
-                    onClick={() => quickLogin(role)}
-                    title={DEMO_CREDENTIALS[role]?.deskripsi}
-                    className="transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary-soft active:scale-95 text-xs"
-                  >
-                    {role}
-                  </Button>
-                ))}
               </div>
             </div>
           </div>

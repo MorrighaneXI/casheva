@@ -62,6 +62,8 @@ import {
   shuDistribusi,
   backendStatusToFrontend,
   loanStatusTone,
+  formatNamaLengkapDinas,
+  formatPangkatKorps,
 } from "@/lib/casheva-data";
 import {
   apiPinjaman,
@@ -71,6 +73,7 @@ import {
   type Pinjaman,
   type Angsuran,
 } from "@/lib/api";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 
 const chartTooltip = {
   background: "var(--color-popover)",
@@ -85,6 +88,7 @@ export function RekomendasiQueue({ monitorOnly = false }: { monitorOnly?: boolea
   const queryClient = useQueryClient();
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
+  const [confirmRekomId, setConfirmRekomId] = useState<string | null>(null);
 
   const { data: loanList = [], isLoading } = useQuery({
     queryKey: ["pinjaman-rekomendasi"],
@@ -194,15 +198,7 @@ export function RekomendasiQueue({ monitorOnly = false }: { monitorOnly?: boolea
                             size="sm"
                             disabled={updateStatusMutation.isPending}
                             className="bg-success text-success-foreground hover:bg-success/90"
-                            onClick={() =>
-                              updateStatusMutation.mutate({
-                                id: r.id,
-                                dto: {
-                                  status: "SETUJU_KEPRIM",
-                                  catatan: "Direkomendasikan oleh Komandan / Ka Bagian",
-                                },
-                              })
-                            }
+                            onClick={() => setConfirmRekomId(r.id)}
                           >
                             <ThumbsUp className="mr-1 size-3.5" /> Rekomendasikan
                           </Button>
@@ -267,6 +263,29 @@ export function RekomendasiQueue({ monitorOnly = false }: { monitorOnly?: boolea
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm Rekomendasikan */}
+      <ConfirmActionDialog
+        open={!!confirmRekomId}
+        onOpenChange={(o) => !o && setConfirmRekomId(null)}
+        title="Rekomendasikan Pengajuan Pinjaman?"
+        description="Pengajuan ini akan diteruskan ke Kepala Primer (Kaprim) untuk persetujuan akhir (ACC)."
+        confirmText="Ya, Rekomendasikan"
+        variant="success"
+        isLoading={updateStatusMutation.isPending}
+        onConfirm={() => {
+          if (confirmRekomId) {
+            updateStatusMutation.mutate({
+              id: confirmRekomId,
+              dto: {
+                status: "SETUJU_KEPRIM",
+                catatan: "Direkomendasikan oleh Komandan / Ka Bagian",
+              },
+            });
+            setConfirmRekomId(null);
+          }
+        }}
+      />
     </Card>
   );
 }
@@ -277,6 +296,7 @@ export function AccQueue() {
   const queryClient = useQueryClient();
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
+  const [confirmAccId, setConfirmAccId] = useState<string | null>(null);
 
   const { data: loanList = [], isLoading } = useQuery({
     queryKey: ["pinjaman-acc"],
@@ -365,15 +385,7 @@ export function AccQueue() {
                 <Button
                   size="sm"
                   disabled={accMutation.isPending}
-                  onClick={() =>
-                    accMutation.mutate({
-                      id: a.id,
-                      dto: {
-                        status: "MENUNGGU_DOKUMEN",
-                        catatan: "Disetujui dan di-ACC oleh Kepala Primer (Keprim)",
-                      },
-                    })
-                  }
+                  onClick={() => setConfirmAccId(a.id)}
                 >
                   <Check className="mr-1 size-4" /> ACC &amp; Teruskan ke Bendahara
                 </Button>
@@ -422,6 +434,29 @@ export function AccQueue() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm ACC Keprim */}
+      <ConfirmActionDialog
+        open={!!confirmAccId}
+        onOpenChange={(o) => !o && setConfirmAccId(null)}
+        title="ACC & Teruskan ke Bendahara?"
+        description="Pengajuan pinjaman ini akan disetujui oleh Kepala Primer dan diteruskan ke Bendahara untuk proses pencairan dana."
+        confirmText="Ya, ACC & Teruskan"
+        variant="success"
+        isLoading={accMutation.isPending}
+        onConfirm={() => {
+          if (confirmAccId) {
+            accMutation.mutate({
+              id: confirmAccId,
+              dto: {
+                status: "MENUNGGU_DOKUMEN",
+                catatan: "Disetujui dan di-ACC oleh Kepala Primer (Keprim)",
+              },
+            });
+            setConfirmAccId(null);
+          }
+        }}
+      />
     </Card>
   );
 }
@@ -430,6 +465,8 @@ export function AccQueue() {
 
 export function InvoiceGenerator() {
   const queryClient = useQueryClient();
+  const [confirmVerifId, setConfirmVerifId] = useState<string | null>(null);
+  const [confirmCairId, setConfirmCairId] = useState<string | null>(null);
 
   const { data: loanList = [], isLoading } = useQuery({
     queryKey: ["pinjaman-pencairan"],
@@ -524,15 +561,7 @@ export function InvoiceGenerator() {
                           size="sm"
                           variant="outline"
                           disabled={updateStatusMutation.isPending}
-                          onClick={() =>
-                            updateStatusMutation.mutate({
-                              id: p.id,
-                              dto: {
-                                status: "MENUNGGU_DOKUMEN",
-                                catatan: "Dokumen tanda tangan hierarki lengkap diunggah",
-                              },
-                            })
-                          }
+                          onClick={() => setConfirmVerifId(p.id)}
                         >
                           Verifikasi Dokumen
                         </Button>
@@ -541,7 +570,7 @@ export function InvoiceGenerator() {
                           size="sm"
                           disabled={cairkanMutation.isPending}
                           className="bg-success text-success-foreground hover:bg-success/90"
-                          onClick={() => cairkanMutation.mutate(p.id)}
+                          onClick={() => setConfirmCairId(p.id)}
                         >
                           {cairkanMutation.isPending ? (
                             <Loader2 className="size-3.5 animate-spin mr-1" />
@@ -573,6 +602,46 @@ export function InvoiceGenerator() {
           </TableBody>
         </Table>
       </CardContent>
+
+      {/* Confirm Verifikasi Dokumen */}
+      <ConfirmActionDialog
+        open={!!confirmVerifId}
+        onOpenChange={(o) => !o && setConfirmVerifId(null)}
+        title="Verifikasi Dokumen Pencairan?"
+        description="Anda mengkonfirmasi bahwa dokumen tanda tangan hierarki lengkap sudah diverifikasi dan siap untuk proses pencairan."
+        confirmText="Ya, Verifikasi Dokumen"
+        variant="default"
+        isLoading={updateStatusMutation.isPending}
+        onConfirm={() => {
+          if (confirmVerifId) {
+            updateStatusMutation.mutate({
+              id: confirmVerifId,
+              dto: {
+                status: "MENUNGGU_DOKUMEN",
+                catatan: "Dokumen tanda tangan hierarki lengkap diunggah",
+              },
+            });
+            setConfirmVerifId(null);
+          }
+        }}
+      />
+
+      {/* Confirm Cairkan Dana */}
+      <ConfirmActionDialog
+        open={!!confirmCairId}
+        onOpenChange={(o) => !o && setConfirmCairId(null)}
+        title="Cairkan Dana Pinjaman?"
+        description="Dana pinjaman akan dicairkan dan jadwal angsuran otomatis akan dibentuk di sistem. Aksi ini tidak dapat dibatalkan."
+        confirmText="Ya, Cairkan Dana"
+        variant="warning"
+        isLoading={cairkanMutation.isPending}
+        onConfirm={() => {
+          if (confirmCairId) {
+            cairkanMutation.mutate(confirmCairId);
+            setConfirmCairId(null);
+          }
+        }}
+      />
     </Card>
   );
 }
@@ -582,6 +651,7 @@ export function InvoiceGenerator() {
 export function RekapAngsuranTable() {
   const queryClient = useQueryClient();
   const [selectedLoan, setSelectedLoan] = useState<Pinjaman | null>(null);
+  const [confirmBayarId, setConfirmBayarId] = useState<string | null>(null);
 
   const { data: loanList = [], isLoading } = useQuery({
     queryKey: ["pinjaman-angsuran-all"],
@@ -749,7 +819,7 @@ export function RekapAngsuranTable() {
                           size="sm"
                           disabled={bayarMutation.isPending}
                           className="bg-primary text-xs"
-                          onClick={() => bayarMutation.mutate(ang.id)}
+                          onClick={() => setConfirmBayarId(ang.id)}
                         >
                           Bayar
                         </Button>
@@ -775,6 +845,23 @@ export function RekapAngsuranTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirm Bayar Angsuran */}
+      <ConfirmActionDialog
+        open={!!confirmBayarId}
+        onOpenChange={(o) => !o && setConfirmBayarId(null)}
+        title="Bayar Angsuran Pinjaman?"
+        description="Pembayaran angsuran akan diproses dan kwitansi otomatis diterbitkan. Pastikan jumlah yang dibayar sudah benar."
+        confirmText="Ya, Bayar Angsuran"
+        variant="warning"
+        isLoading={bayarMutation.isPending}
+        onConfirm={() => {
+          if (confirmBayarId) {
+            bayarMutation.mutate(confirmBayarId);
+            setConfirmBayarId(null);
+          }
+        }}
+      />
     </Card>
   );
 }
@@ -784,6 +871,7 @@ export function RekapAngsuranTable() {
 export function ShuBreakdown() {
   const queryClient = useQueryClient();
   const currentYear = 2026;
+  const [confirmHitungShu, setConfirmHitungShu] = useState(false);
 
   const { data: ringkasan, isLoading: loadingRingkasan } = useQuery({
     queryKey: ["keuangan-ringkasan", currentYear],
@@ -823,7 +911,7 @@ export function ShuBreakdown() {
         </div>
         <Button
           disabled={hitungMutation.isPending}
-          onClick={() => hitungMutation.mutate()}
+          onClick={() => setConfirmHitungShu(true)}
         >
           {hitungMutation.isPending ? (
             <Loader2 className="mr-2 size-4 animate-spin" />
@@ -921,6 +1009,21 @@ export function ShuBreakdown() {
           </Table>
         </div>
       </CardContent>
+
+      {/* Confirm Hitung SHU */}
+      <ConfirmActionDialog
+        open={confirmHitungShu}
+        onOpenChange={setConfirmHitungShu}
+        title="Hitung & Simpan SHU Anggota?"
+        description="Kalkulasi distribusi SHU (Jasa Modal 20% & Jasa Usaha 30%) akan diproses dan disimpan ke database. Data SHU sebelumnya akan diperbarui."
+        confirmText="Ya, Hitung & Simpan"
+        variant="warning"
+        isLoading={hitungMutation.isPending}
+        onConfirm={() => {
+          hitungMutation.mutate();
+          setConfirmHitungShu(false);
+        }}
+      />
     </Card>
   );
 }
@@ -1033,6 +1136,7 @@ export function LikuiditasChart() {
 
 export function BatchSimpananBanner() {
   const queryClient = useQueryClient();
+  const [confirmMassal, setConfirmMassal] = useState(false);
   const massalMutation = useMutation({
     mutationFn: () => apiSimpanan.sukarelaMassal(),
     onSuccess: (res) => {
@@ -1053,15 +1157,16 @@ export function BatchSimpananBanner() {
             <Zap className="size-4" /> Batch Auto-Generate Simpanan Sukarela Bulanan
           </p>
           <p className="mt-1 text-sm text-accent-foreground/80">
-            Jadwal potongan otomatis tanggal 5 setiap bulan · Pamen{" "}
+            Jadwal potongan otomatis tanggal 5 setiap bulan · Pati {formatRp((potonganSukarela as any)["Pati"] ?? 500_000)} · Pamen{" "}
             {formatRp((potonganSukarela as any)["Pamen"] ?? 300_000)} · Pama{" "}
-            {formatRp((potonganSukarela as any)["Pama"] ?? 250_000)} · Ba/Ta/ASN{" "}
+            {formatRp((potonganSukarela as any)["Pama"] ?? 250_000)} · Bintara{" "}
+            {formatRp((potonganSukarela as any)["Bintara"] ?? 200_000)} · Tamtama/ASN{" "}
             {formatRp((potonganSukarela as any)["Ba/Ta/ASN"] ?? 150_000)}
           </p>
         </div>
         <Button
           disabled={massalMutation.isPending}
-          onClick={() => massalMutation.mutate()}
+          onClick={() => setConfirmMassal(true)}
         >
           {massalMutation.isPending ? (
             <Loader2 className="size-4 animate-spin mr-2" />
@@ -1069,6 +1174,20 @@ export function BatchSimpananBanner() {
           Jalankan Potongan Otomatis Tanggal 5
         </Button>
       </CardContent>
+      {/* Confirm Simpanan Massal */}
+      <ConfirmActionDialog
+        open={confirmMassal}
+        onOpenChange={setConfirmMassal}
+        title="Jalankan Potongan Simpanan Sukarela Massal?"
+        description="Simpanan sukarela bulanan akan dipotong dari seluruh anggota aktif sesuai tarif pangkat yang berlaku. Pastikan tanggal sudah tepat."
+        confirmText="Ya, Jalankan Potongan"
+        variant="warning"
+        isLoading={massalMutation.isPending}
+        onConfirm={() => {
+          massalMutation.mutate();
+          setConfirmMassal(false);
+        }}
+      />
     </Card>
   );
 }

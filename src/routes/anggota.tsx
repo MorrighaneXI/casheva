@@ -68,6 +68,7 @@ import {
 } from "@/lib/casheva-data";
 import { apiAnggota, apiMaster, apiSimpanan, type Anggota, type Korps, type Pangkat } from "@/lib/api";
 import { exportToExcel } from "@/lib/export-excel";
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 
 export const Route = createFileRoute("/anggota")({
   head: () => ({
@@ -115,6 +116,9 @@ function AnggotaPage() {
   const [openConfirmUpdate, setOpenConfirmUpdate] = useState(false);
   const [openConfirmDelete, setOpenConfirmDelete] = useState(false);
   const [selectedAnggotaAction, setSelectedAnggotaAction] = useState<Anggota | null>(null);
+  const [openConfirmMassal, setOpenConfirmMassal] = useState(false);
+  const [openConfirmHapus, setOpenConfirmHapus] = useState(false);
+  const [selectedHapusAnggota, setSelectedHapusAnggota] = useState<Anggota | null>(null);
 
   // Queries
   const { data: anggotaList = [], isLoading } = useQuery({
@@ -171,10 +175,14 @@ function AnggotaPage() {
   // Statistik Ringkas
   const stats = useMemo(() => {
     const total = anggotaList.length;
-    const patiPamen = anggotaList.filter((a) => a.pangkat?.kategori && ["PATI", "PAMEN"].includes(a.pangkat.kategori)).length;
-    const pamaBa = anggotaList.filter((a) => a.pangkat?.kategori && ["PAMA", "BINTARA", "BATA_ASN"].includes(a.pangkat.kategori)).length;
+    const pati = anggotaList.filter((a) => a.pangkat?.kategori === "PATI").length;
+    const pamen = anggotaList.filter((a) => a.pangkat?.kategori === "PAMEN").length;
+    const pama = anggotaList.filter((a) => a.pangkat?.kategori === "PAMA").length;
+    const perwira = pati + pamen + pama;
+    const bintara = anggotaList.filter((a) => a.pangkat?.kategori === "BINTARA").length;
+    const tamtama = anggotaList.filter((a) => a.pangkat?.kategori === "BATA_ASN").length;
     const pns = anggotaList.filter((a) => a.pangkat?.kategori === "PNS").length;
-    return { total, patiPamen, pamaBa, pns };
+    return { total, perwira, pati, pamen, pama, bintara, tamtama, pns };
   }, [anggotaList]);
 
   // Mutations
@@ -259,6 +267,22 @@ function AnggotaPage() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => apiAnggota.remove(id),
+    onSuccess: (res) => {
+      toast.success("Anggota Berhasil Dihapus Permanen", {
+        description: `Data personel ${res?.nama || ""} telah dihapus dari database beserta akun login terkait.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["anggota-list"] });
+      queryClient.invalidateQueries({ queryKey: ["users-list"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["simpanan-rekap"] });
+    },
+    onError: (err: any) => {
+      toast.error("Gagal menghapus anggota", { description: err.message });
+    },
+  });
+
   const handleExportExcel = () => {
     const filename = `Data_Anggota_Koperasi_${new Date().toISOString().split("T")[0]}`;
     const headers = [
@@ -325,7 +349,7 @@ function AnggotaPage() {
             <Button
               variant="outline"
               disabled={massalMutation.isPending}
-              onClick={() => massalMutation.mutate()}
+              onClick={() => setOpenConfirmMassal(true)}
             >
               {massalMutation.isPending ? (
                 <Loader2 className="mr-2 size-4 animate-spin" />
@@ -342,7 +366,7 @@ function AnggotaPage() {
       />
 
       {/* KPI Cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Card className="shadow-card card-interactive border-primary/20">
           <CardHeader className="pb-1">
             <CardDescription className="flex items-center justify-between">
@@ -359,26 +383,43 @@ function AnggotaPage() {
         <Card className="shadow-card card-interactive border-gold/20">
           <CardHeader className="pb-1">
             <CardDescription className="flex items-center justify-between">
-              <span>Pati &amp; Pamen</span>
+              <span>Perwira</span>
               <Award className="size-4 text-gold" />
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-extrabold text-gold">{stats.patiPamen}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Perwira Tinggi &amp; Menengah</p>
+            <p className="text-2xl font-extrabold text-gold">{stats.perwira}</p>
+            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
+              <span className="text-xs text-muted-foreground">Pati: <strong className="text-gold/80">{stats.pati}</strong></span>
+              <span className="text-xs text-muted-foreground">Pamen: <strong className="text-gold/80">{stats.pamen}</strong></span>
+              <span className="text-xs text-muted-foreground">Pama: <strong className="text-gold/80">{stats.pama}</strong></span>
+            </div>
           </CardContent>
         </Card>
 
         <Card className="shadow-card card-interactive border-blue-500/20">
           <CardHeader className="pb-1">
             <CardDescription className="flex items-center justify-between">
-              <span>Pama &amp; Bintara</span>
+              <span>Bintara</span>
               <Shield className="size-4 text-blue-500" />
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{stats.pamaBa}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Perwira Pertama &amp; Bintara</p>
+            <p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{stats.bintara}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Bintara TNI AD</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card card-interactive border-orange-500/20">
+          <CardHeader className="pb-1">
+            <CardDescription className="flex items-center justify-between">
+              <span>Tamtama</span>
+              <Shield className="size-4 text-orange-500" />
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-extrabold text-orange-600 dark:text-orange-400">{stats.tamtama}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Tamtama TNI AD</p>
           </CardContent>
         </Card>
 
@@ -564,6 +605,19 @@ function AnggotaPage() {
                           ) : (
                             <UserCheck className="size-3.5 text-success" />
                           )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="size-8"
+                          title="Hapus Permanen Anggota"
+                          disabled={deleteMutation.isPending}
+                          onClick={() => {
+                            setSelectedHapusAnggota(a);
+                            setOpenConfirmHapus(true);
+                          }}
+                        >
+                          <Trash2 className="size-3.5 text-destructive" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -1044,6 +1098,53 @@ function AnggotaPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Alert Pop-up: Hapus Permanen Anggota */}
+      <ConfirmActionDialog
+        open={openConfirmHapus}
+        onOpenChange={(o) => {
+          setOpenConfirmHapus(o);
+          if (!o) setSelectedHapusAnggota(null);
+        }}
+        title="Hapus Permanen Data Anggota?"
+        description={
+          <>
+            Data personel <strong>{selectedHapusAnggota?.nama}</strong> (NRP: {selectedHapusAnggota?.nrpNip}) akan dihapus secara permanen dari database beserta akun login terkait.
+            <br />
+            <span className="text-destructive font-semibold">Aksi ini tidak dapat dibatalkan!</span>
+          </>
+        }
+        confirmText="Ya, Hapus Permanen"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+        details={[
+          { label: "Nama", value: selectedHapusAnggota?.nama || "-" },
+          { label: "NRP / NIP", value: selectedHapusAnggota?.nrpNip || "-" },
+          { label: "Status", value: selectedHapusAnggota?.isAktif ? "Aktif" : "Non-Aktif" },
+        ]}
+        onConfirm={() => {
+          if (selectedHapusAnggota) {
+            deleteMutation.mutate(selectedHapusAnggota.id);
+          }
+          setOpenConfirmHapus(false);
+          setSelectedHapusAnggota(null);
+        }}
+      />
+
+      {/* Alert Pop-up: Simpanan Sukarela Massal */}
+      <ConfirmActionDialog
+        open={openConfirmMassal}
+        onOpenChange={setOpenConfirmMassal}
+        title="Generate Simpanan Sukarela Massal?"
+        description="Potongan simpanan sukarela bulanan akan dijalankan untuk seluruh anggota aktif berdasarkan kategori pangkat (Pamen, Pama, Ba/Ta/ASN). Pastikan periode yang dipilih sudah benar."
+        confirmText="Ya, Jalankan Potongan"
+        variant="warning"
+        isLoading={massalMutation.isPending}
+        onConfirm={() => {
+          massalMutation.mutate();
+          setOpenConfirmMassal(false);
+        }}
+      />
     </div>
   );
 }

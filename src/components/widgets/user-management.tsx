@@ -8,6 +8,7 @@ import {
   Loader2,
   UserCheck,
   UserX,
+  Trash2,
   ShieldAlert,
   Shield,
   Activity,
@@ -24,6 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -100,6 +102,8 @@ export function UserManagementWidget() {
   const [newPassword, setNewPassword] = useState("Admin123!");
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [toggleStatusUser, setToggleStatusUser] = useState<UserItem | null>(null);
+  const [deleteUser, setDeleteUser] = useState<UserItem | null>(null);
+  const [openConfirmDeleteUser, setOpenConfirmDeleteUser] = useState(false);
 
   // New User Form State
   const [newNamaLengkap, setNewNamaLengkap] = useState("");
@@ -255,6 +259,25 @@ export function UserManagementWidget() {
     },
     onError: (err: any) =>
       toast.error("Gagal Reset Password", { description: err.message }),
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: string) => apiUsers.remove(id),
+    onSuccess: (res: any) => {
+      toast.success("User & Personel Berhasil Dihapus", {
+        description: `Data personel dan akun login @${deleteUser?.username || ""} (${deleteUser?.namaLengkap || ""}) berhasil dihapus dari sistem.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["users-list"] });
+      queryClient.invalidateQueries({ queryKey: ["anggota-list"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-summary"] });
+      setDeleteUser(null);
+      setOpenConfirmDeleteUser(false);
+    },
+    onError: (err: any) => {
+      toast.error("Gagal Menghapus User", {
+        description: err.message || "Terjadi kesalahan saat menghapus pengguna dari database.",
+      });
+    },
   });
 
   // Filtered rows
@@ -583,6 +606,19 @@ export function UserManagementWidget() {
                               <UserCheck className="size-3.5 text-success" />
                             )}
                           </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="size-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            title="Hapus Permanen User"
+                            disabled={deleteUserMutation.isPending}
+                            onClick={() => {
+                              setDeleteUser(u);
+                              setOpenConfirmDeleteUser(true);
+                            }}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -776,13 +812,52 @@ export function UserManagementWidget() {
                 )}
               </button>
             </div>
-            <p className="text-[11px] text-muted-foreground">
-              Kata sandi default yang direkomendasikan adalah <code>Admin123!</code>.
-            </p>
+
+            {(() => {
+              const pw = newPassword;
+              const hasUpper = /[A-Z]/.test(pw);
+              const hasLower = /[a-z]/.test(pw);
+              const hasDigit = /[0-9]/.test(pw);
+              const hasMinLen = pw.length >= 6;
+              const allValid = hasUpper && hasLower && hasDigit && hasMinLen;
+              return (
+                <div className="space-y-1 rounded-lg border bg-muted/30 p-2.5">
+                  <div className="flex items-center justify-between text-[11px] font-semibold">
+                    <span>Syarat Keamanan Password:</span>
+                    <span className={allValid ? "text-success font-bold" : "text-amber-500 font-bold"}>
+                      {allValid ? "Kuat & Valid" : "Belum Memenuhi"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1 mt-1 text-[10px]">
+                    <span className={hasMinLen ? "text-success font-medium" : "text-muted-foreground"}>
+                      {hasMinLen ? "✓" : "○"} Min. 6 Karakter
+                    </span>
+                    <span className={hasUpper ? "text-success font-medium" : "text-muted-foreground"}>
+                      {hasUpper ? "✓" : "○"} Huruf Besar (A-Z)
+                    </span>
+                    <span className={hasLower ? "text-success font-medium" : "text-muted-foreground"}>
+                      {hasLower ? "✓" : "○"} Huruf Kecil (a-z)
+                    </span>
+                    <span className={hasDigit ? "text-success font-medium" : "text-muted-foreground"}>
+                      {hasDigit ? "✓" : "○"} Angka (0-9)
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground/80 mt-1 border-t pt-1">
+                    * Sistem menolak password yang pernah digunakan sebelumnya (Riwayat Password).
+                  </p>
+                </div>
+              );
+            })()}
           </div>
           <DialogFooter>
             <Button
-              disabled={resetPasswordMutation.isPending}
+              disabled={
+                resetPasswordMutation.isPending ||
+                !/[A-Z]/.test(newPassword) ||
+                !/[a-z]/.test(newPassword) ||
+                !/[0-9]/.test(newPassword) ||
+                newPassword.length < 6
+              }
               onClick={() => resetPasswordMutation.mutate()}
             >
               {resetPasswordMutation.isPending && <Loader2 className="mr-2 size-4 animate-spin" />}
@@ -1085,6 +1160,37 @@ export function UserManagementWidget() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Alert Pop-up: Hapus Permanen User & Personel */}
+      <ConfirmActionDialog
+        open={openConfirmDeleteUser}
+        onOpenChange={(o) => {
+          setOpenConfirmDeleteUser(o);
+          if (!o) setDeleteUser(null);
+        }}
+        title="Hapus Permanen User & Personel?"
+        description={
+          <>
+            Akun login pengguna <strong>@{deleteUser?.username}</strong> ({deleteUser?.namaLengkap}) dan data personel terkait akan dihapus secara permanen dari sistem database.
+            <br />
+            <span className="text-destructive font-semibold">Tindakan ini tidak dapat dibatalkan!</span>
+          </>
+        }
+        confirmText="Ya, Hapus Permanen"
+        variant="destructive"
+        isLoading={deleteUserMutation.isPending}
+        details={[
+          { label: "NRP / Username", value: `@${deleteUser?.username || "-"}` },
+          { label: "Nama Personel", value: deleteUser?.namaLengkap || "-" },
+          { label: "Role Sistem", value: deleteUser ? backendRoleToFrontend(deleteUser.role) : "-" },
+          { label: "Status Akun", value: deleteUser?.isActive || (deleteUser as any)?.isAktif ? "Aktif" : "Non-Aktif" },
+        ]}
+        onConfirm={() => {
+          if (deleteUser) {
+            deleteUserMutation.mutate(deleteUser.id);
+          }
+        }}
+      />
     </div>
   );
 }
