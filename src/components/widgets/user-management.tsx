@@ -83,6 +83,7 @@ import {
   frontendRoleToBackend,
   formatPangkatKorps,
   cleanNamaPersonel,
+  sortPersonelByPangkat,
   type Role,
 } from "@/lib/casheva-data";
 import { apiUsers, apiMaster, apiAnggota, type UserItem } from "@/lib/api";
@@ -282,7 +283,7 @@ export function UserManagementWidget() {
 
   // Filtered rows
   const rows = useMemo(() => {
-    return userList.filter((u) => {
+    const filtered = userList.filter((u) => {
       const uiRole = backendRoleToFrontend(u.role);
       const matchRole = roleFilter === "Semua" || uiRole === roleFilter;
 
@@ -300,6 +301,12 @@ export function UserManagementWidget() {
 
       return matchRole && matchStatus && matchSearch;
     });
+
+    return sortPersonelByPangkat(filtered, (u) => ({
+      nama: u.namaLengkap,
+      pangkat: u.anggota?.pangkat || (u as any).pangkat,
+      kategori: u.anggota?.pangkat?.kategori || (u as any).pangkat?.kategori,
+    }));
   }, [userList, roleFilter, statusFilter, q]);
 
   // Statistics

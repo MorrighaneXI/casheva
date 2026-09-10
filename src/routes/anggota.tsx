@@ -65,6 +65,7 @@ import {
   formatPangkatKorps,
   cleanNamaPersonel,
   backendRoleToFrontend,
+  sortPersonelByPangkat,
 } from "@/lib/casheva-data";
 import { apiAnggota, apiMaster, apiSimpanan, type Anggota, type Korps, type Pangkat } from "@/lib/api";
 import { exportToExcel } from "@/lib/export-excel";
@@ -150,7 +151,7 @@ function AnggotaPage() {
   // Filter anggota dengan useMemo
   const filteredRows = useMemo(() => {
     const query = q.toLowerCase().trim();
-    return anggotaList.filter((a) => {
+    const filtered = anggotaList.filter((a) => {
       const matchSearch =
         !query ||
         a.nama.toLowerCase().includes(query) ||
@@ -170,6 +171,8 @@ function AnggotaPage() {
 
       return true;
     });
+
+    return sortPersonelByPangkat(filtered);
   }, [anggotaList, q, categoryFilter]);
 
   // Statistik Ringkas

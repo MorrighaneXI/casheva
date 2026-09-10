@@ -46,6 +46,7 @@ import {
   formatNamaLengkapDinas,
   formatPangkatKorps,
   cleanNamaPersonel,
+  sortPersonelByPangkat,
 } from "@/lib/casheva-data";
 import { apiAnggota, apiSimpanan, apiPinjaman, type Anggota } from "@/lib/api";
 
@@ -79,6 +80,10 @@ function GajiPage() {
     queryKey: ["anggota-list-active"],
     queryFn: () => apiAnggota.findAll(true),
   });
+
+  const sortedAnggotaList = useMemo(() => {
+    return sortPersonelByPangkat(anggotaList);
+  }, [anggotaList]);
 
   const { data: simpananList = [] } = useQuery({
     queryKey: ["simpanan-rekap"],
@@ -285,7 +290,7 @@ function GajiPage() {
                   <SelectValue placeholder="Pilih Anggota..." />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  {anggotaList.map((a) => (
+                  {sortedAnggotaList.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
                       {formatPangkatKorps(a.pangkat?.nama, a.korps?.nama)} {a.nama} ({a.nrpNip})
                     </SelectItem>

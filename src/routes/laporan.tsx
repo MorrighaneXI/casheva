@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Printer,
@@ -40,7 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatRp, formatNamaLengkapDinas, formatPangkatKorps } from "@/lib/casheva-data";
+import { formatRp, formatNamaLengkapDinas, formatPangkatKorps, sortPersonelByPangkat } from "@/lib/casheva-data";
 import {
   apiReports,
   apiKopstuk,
@@ -196,6 +196,25 @@ function LaporanPage() {
 
   const shuList = reportShu?.data || [];
   const ringkasan = reportShu?.ringkasanShu;
+
+  const sortedReportAnggota = useMemo(() => {
+    return sortPersonelByPangkat(reportAnggota);
+  }, [reportAnggota]);
+
+  const sortedSimpananList = useMemo(() => {
+    return sortPersonelByPangkat(simpananList);
+  }, [simpananList]);
+
+  const sortedPinjamanList = useMemo(() => {
+    return sortPersonelByPangkat(pinjamanList, (p) => p.anggota);
+  }, [pinjamanList]);
+
+  const sortedShuList = useMemo(() => {
+    return sortPersonelByPangkat(shuList, (r) => ({
+      nama: r.nama,
+      pangkat: r.pktCrpNrp,
+    }));
+  }, [shuList]);
 
   const totalJasaModal = shuList.reduce((s, r) => s + Number(r.jasaModal || 0), 0);
   const totalJasaUsaha = shuList.reduce((s, r) => s + Number(r.jasaUsaha || 0), 0);
@@ -359,10 +378,10 @@ function LaporanPage() {
                         </td>
                       </tr>
                     ) : (
-                      shuList.map((r, i) => (
+                      sortedShuList.map((r, i) => (
                         <tr key={r.no || i} className="hover:bg-muted/20">
                           <td className="border border-border p-2 text-center font-medium">
-                            {r.no || i + 1}
+                            {i + 1}
                           </td>
                           <td className="border border-border p-2 font-medium">{r.nama}</td>
                           <td className="border border-border p-2 text-muted-foreground">
@@ -420,7 +439,7 @@ function LaporanPage() {
                 </tr>
               </thead>
               <tbody>
-                {reportAnggota.map((a: any, i: number) => (
+                {sortedReportAnggota.map((a: any, i: number) => (
                   <tr key={a.id}>
                     <td className="border border-border p-2 text-center">{i + 1}</td>
                     <td className="border border-border p-2 font-mono">{a.nrpNip}</td>
@@ -463,7 +482,7 @@ function LaporanPage() {
                 </tr>
               </thead>
               <tbody>
-                {simpananList.map((s: any, i: number) => (
+                {sortedSimpananList.map((s: any, i: number) => (
                   <tr key={s.anggotaId || i}>
                     <td className="border border-border p-2 text-center">{i + 1}</td>
                     <td className="border border-border p-2 font-mono">{s.nrpNip}</td>
@@ -502,7 +521,7 @@ function LaporanPage() {
                 </tr>
               </thead>
               <tbody>
-                {pinjamanList.map((p: any, i: number) => (
+                {sortedPinjamanList.map((p: any, i: number) => (
                   <tr key={p.id || i}>
                     <td className="border border-border p-2 text-center">{i + 1}</td>
                     <td className="border border-border p-2 font-mono">{p.id?.slice(0, 8).toUpperCase()}</td>

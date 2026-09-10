@@ -69,7 +69,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
-import { formatRp, formatPangkatKorps, cleanNamaPersonel, formatNamaLengkapDinas } from "@/lib/casheva-data";
+import { formatRp, formatPangkatKorps, cleanNamaPersonel, formatNamaLengkapDinas, sortPersonelByPangkat } from "@/lib/casheva-data";
 import { apiAnggota, apiSimpanan, type SimpananRekapItem } from "@/lib/api";
 import { exportToCSV } from "@/lib/export-excel";
 
@@ -521,9 +521,10 @@ function SimpananPage() {
     toast.success("Template Excel berhasil diunduh: Template_Simpanan_Golongan_TNI_AD.xlsx");
   };
 
-  // Ekspor Hasil Pemotongan Terurut Berdasarkan Golongan
+  // Ekspor Hasil Pemotongan Terurut Berdasarkan Golongan & Pangkat
   const exportHasilPemotonganSimpananExcel = (rincianData?: any[]) => {
-    const dataToExport = rincianData || lastBatchResult?.rincian || [];
+    const rawData = rincianData || lastBatchResult?.rincian || [];
+    const dataToExport = sortPersonelByPangkat(rawData);
     if (dataToExport.length === 0) {
       toast.info("Tidak ada data rincian pemotongan untuk diekspor.");
       return;
@@ -600,7 +601,7 @@ function SimpananPage() {
       "Keterangan",
     ];
 
-    const rows = rekapBulananList.map((item, idx) => {
+    const rows = rekapBulananSorted.map((item, idx) => {
       const formattedRank = formatPangkatKorps(item.pangkat, item.korps, item.kategoriPangkat);
       return [
         idx + 1,
@@ -647,15 +648,30 @@ function SimpananPage() {
 
   const filteredRekap = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return rekapList;
-    return rekapList.filter(
-      (r) =>
-        r.nama.toLowerCase().includes(q) ||
-        r.nrpNip.includes(q) ||
-        (r.pangkat || "").toLowerCase().includes(q) ||
-        (r.korps || "").toLowerCase().includes(q),
-    );
+    const list = !q
+      ? rekapList
+      : rekapList.filter(
+          (r) =>
+            r.nama.toLowerCase().includes(q) ||
+            r.nrpNip.includes(q) ||
+            (r.pangkat || "").toLowerCase().includes(q) ||
+            (r.korps || "").toLowerCase().includes(q),
+        );
+    return sortPersonelByPangkat(list);
   }, [rekapList, search]);
+
+  const rekapBulananSorted = useMemo(() => {
+    return sortPersonelByPangkat(rekapBulananList, (item) => ({
+      nama: item.namaAnggota,
+      pangkat: item.pangkat,
+      korps: item.korps,
+      kategoriPangkat: item.kategoriPangkat,
+    }));
+  }, [rekapBulananList]);
+
+  const sortedAnggotaList = useMemo(() => {
+    return sortPersonelByPangkat(anggotaList);
+  }, [anggotaList]);
 
   const isAnggota = role === "Anggota";
 
@@ -1223,7 +1239,7 @@ function SimpananPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    rekapBulananList.map((item, idx) => {
+                    rekapBulananSorted.map((item, idx) => {
                       const formattedRank = formatPangkatKorps(item.pangkat, item.korps, item.kategoriPangkat);
                       return (
                         <TableRow key={item.id} className="hover:bg-muted/50 transition-colors">
@@ -1949,7 +1965,7 @@ function SimpananPage() {
                   <SelectValue placeholder="-- Pilih Anggota --" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  {anggotaList.map((a) => {
+                  {sortedAnggotaList.map((a) => {
                     const kategori = (a.pangkat?.kategori || "").toUpperCase();
                     const rate = SUKARELA_RATES[kategori] ?? 150_000;
                     return (
@@ -2086,7 +2102,7 @@ function SimpananPage() {
                   <SelectValue placeholder="-- Pilih Anggota --" />
                 </SelectTrigger>
                 <SelectContent className="max-h-60">
-                  {anggotaList.map((a) => (
+                  {sortedAnggotaList.map((a) => (
                     <SelectItem key={a.id} value={a.id}>
                       {formatNamaLengkapDinas(a.nama, a.pangkat?.nama, a.korps?.nama, a.pangkat?.kategori)} (NRP: {a.nrpNip})
                     </SelectItem>

@@ -47,7 +47,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatRp, workflowSteps, backendStatusToFrontend, loanStatusTone, formatNamaLengkapDinas, formatPangkatKorps } from "@/lib/casheva-data";
+import { formatRp, workflowSteps, backendStatusToFrontend, loanStatusTone, formatNamaLengkapDinas, formatPangkatKorps, sortPersonelByPangkat } from "@/lib/casheva-data";
 import { cn } from "@/lib/utils";
 import { apiPinjaman, type Pinjaman } from "@/lib/api";
 import { DokumenViewerModal } from "@/components/dokumen-viewer-modal";
@@ -88,9 +88,12 @@ function VerificationCenter() {
     queryFn: () => apiPinjaman.findAll(),
   });
 
-  const antreanVerifikasi = loans.filter((l) =>
-    ["DIAJUKAN", "VERIFIKASI_PRIMKOP", "VERIFIKASI_JURU_BAYAR"].includes(l.status),
-  );
+  const antreanVerifikasi = useMemo(() => {
+    const filtered = loans.filter((l) =>
+      ["DIAJUKAN", "VERIFIKASI_PRIMKOP", "VERIFIKASI_JURU_BAYAR"].includes(l.status),
+    );
+    return sortPersonelByPangkat(filtered, (l) => l.anggota);
+  }, [loans]);
 
   const selected = loans.find((r) => r.id === selectedId) ?? null;
 

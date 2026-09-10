@@ -59,6 +59,7 @@ import {
   formatNamaLengkapDinas,
   formatPangkatKorps,
   cleanNamaPersonel,
+  sortPersonelByPangkat,
 } from "@/lib/casheva-data";
 import { api, apiAnggota, apiPinjaman, apiSimpanan, apiDokumen } from "@/lib/api";
 import { DokumenViewerModal } from "@/components/dokumen-viewer-modal";
@@ -129,6 +130,10 @@ function PengajuanPage() {
     queryKey: ["anggota-list-active"],
     queryFn: () => apiAnggota.findAll(true),
   });
+
+  const sortedAnggotaList = useMemo(() => {
+    return sortPersonelByPangkat(anggotaList);
+  }, [anggotaList]);
 
   const { data: bungaData } = useQuery({
     queryKey: ["pengaturan-bunga"],
@@ -479,7 +484,7 @@ function PengajuanPage() {
                           <SelectValue placeholder="-- Pilih Personel Pemohon --" />
                         </SelectTrigger>
                         <SelectContent className="max-h-64">
-                          {anggotaList.map((a) => (
+                          {sortedAnggotaList.map((a) => (
                             <SelectItem key={a.id} value={a.id}>
                               {formatNamaLengkapDinas(a.nama, a.pangkat?.nama, a.korps?.nama, a.pangkat?.kategori)} (NRP: {a.nrpNip})
                             </SelectItem>

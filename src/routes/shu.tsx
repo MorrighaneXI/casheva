@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Calculator,
@@ -44,7 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatRp, shuDistribusi } from "@/lib/casheva-data";
+import { formatRp, shuDistribusi, sortPersonelByPangkat } from "@/lib/casheva-data";
 import { apiKeuangan, apiReports } from "@/lib/api";
 
 export const Route = createFileRoute("/shu")({
@@ -127,6 +127,12 @@ function ShuPage() {
   const shuBersih = Number(ringkasan?.shuBersih ?? 50_000_000);
 
   const shuList = reportShu?.data || [];
+  const sortedShuList = useMemo(() => {
+    return sortPersonelByPangkat(shuList, (r) => ({
+      nama: r.nama,
+      pangkat: r.pktCrpNrp,
+    }));
+  }, [shuList]);
   const totalJasaModal = shuList.reduce((s, r) => s + Number(r.jasaModal || 0), 0);
   const totalJasaUsaha = shuList.reduce((s, r) => s + Number(r.jasaUsaha || 0), 0);
   const grandTotalShu = shuList.reduce((s, r) => s + Number(r.totalShu || 0), 0);
@@ -355,9 +361,9 @@ function ShuPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    shuList.map((r, i) => (
+                    sortedShuList.map((r, i) => (
                       <TableRow key={r.no || i} className="hover:bg-muted/30">
-                        <TableCell className="text-center font-medium">{r.no || i + 1}</TableCell>
+                        <TableCell className="text-center font-medium">{i + 1}</TableCell>
                         <TableCell className="font-semibold text-foreground">{r.nama}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">{r.pktCrpNrp}</TableCell>
                         <TableCell className="text-right font-medium text-primary">

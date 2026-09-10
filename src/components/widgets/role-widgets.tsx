@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -64,6 +64,7 @@ import {
   loanStatusTone,
   formatNamaLengkapDinas,
   formatPangkatKorps,
+  sortPersonelByPangkat,
 } from "@/lib/casheva-data";
 import {
   apiPinjaman,
@@ -95,9 +96,12 @@ export function RekomendasiQueue({ monitorOnly = false }: { monitorOnly?: boolea
     queryFn: () => apiPinjaman.findAll(),
   });
 
-  const antrean = loanList.filter((l) =>
-    ["REKOMENDASI_PIMPINAN", "VERIFIKASI_JURU_BAYAR"].includes(l.status),
-  );
+  const antrean = useMemo(() => {
+    const filtered = loanList.filter((l) =>
+      ["REKOMENDASI_PIMPINAN", "VERIFIKASI_JURU_BAYAR"].includes(l.status),
+    );
+    return sortPersonelByPangkat(filtered, (l) => l.anggota);
+  }, [loanList]);
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: any }) => apiPinjaman.updateStatus(id, dto),
@@ -303,9 +307,12 @@ export function AccQueue() {
     queryFn: () => apiPinjaman.findAll(),
   });
 
-  const antrean = loanList.filter((l) =>
-    ["SETUJU_KEPRIM", "REKOMENDASI_PIMPINAN"].includes(l.status),
-  );
+  const antrean = useMemo(() => {
+    const filtered = loanList.filter((l) =>
+      ["SETUJU_KEPRIM", "REKOMENDASI_PIMPINAN"].includes(l.status),
+    );
+    return sortPersonelByPangkat(filtered, (l) => l.anggota);
+  }, [loanList]);
 
   const accMutation = useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: any }) => apiPinjaman.updateStatus(id, dto),
@@ -473,9 +480,12 @@ export function InvoiceGenerator() {
     queryFn: () => apiPinjaman.findAll(),
   });
 
-  const antreanPencairan = loanList.filter((l) =>
-    ["SETUJU_KAPRIM", "MENUNGGU_DOKUMEN", "DICAIRKAN"].includes(l.status),
-  );
+  const antreanPencairan = useMemo(() => {
+    const filtered = loanList.filter((l) =>
+      ["SETUJU_KAPRIM", "MENUNGGU_DOKUMEN", "DICAIRKAN"].includes(l.status),
+    );
+    return sortPersonelByPangkat(filtered, (l) => l.anggota);
+  }, [loanList]);
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: any }) => apiPinjaman.updateStatus(id, dto),
@@ -658,9 +668,12 @@ export function RekapAngsuranTable() {
     queryFn: () => apiPinjaman.findAll(),
   });
 
-  const activeLoans = loanList.filter((l) =>
-    ["DICAIRKAN", "LUNAS"].includes(l.status),
-  );
+  const activeLoans = useMemo(() => {
+    const filtered = loanList.filter((l) =>
+      ["DICAIRKAN", "LUNAS"].includes(l.status),
+    );
+    return sortPersonelByPangkat(filtered, (l) => l.anggota);
+  }, [loanList]);
 
   const bayarMutation = useMutation({
     mutationFn: (angsuranId: string) => apiPinjaman.bayarAngsuran(angsuranId),

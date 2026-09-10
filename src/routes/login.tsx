@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import emblem from "@/assets/casheva-emblem.png";
+import emblem from "@/assets/primkop-kartika.png";
+import cashevaLogo from "@/assets/casheva-emblem.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,8 +52,8 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
   const navigate = useNavigate();
   const { login, satminkal, kotama } = useSession();
-  const [username, setUsername] = useState("admin");
-  const [password, setPassword] = useState("Admin123!");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -121,7 +122,7 @@ function LoginPage() {
 
           <div className="relative flex items-center gap-3 text-sidebar-foreground">
             <div className="grid size-8 place-items-center rounded-lg bg-sidebar-accent/60 p-1">
-              <img src={emblem} alt="Logo Casheva Koperasi Kartika" className="size-full object-contain" />
+              <img src={cashevaLogo} alt="Logo Casheva" className="size-full object-contain" />
             </div>
             <span className="text-sm font-semibold tracking-[0.2em] uppercase">
               Casheva
@@ -184,6 +185,7 @@ function LoginPage() {
 
               <form
                 className="space-y-4"
+                autoComplete="off"
                 onSubmit={(e) => {
                   e.preventDefault();
                   handleLogin();
@@ -201,7 +203,7 @@ function LoginPage() {
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="Masukkan NRP/NIP atau username"
-                      autoComplete="username"
+                      autoComplete="off"
                       className="h-10 pl-9 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary font-mono text-xs"
                     />
                   </div>
@@ -223,7 +225,7 @@ function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      autoComplete="current-password"
+                      autoComplete="new-password"
                       className="h-10 pr-10 pl-9 transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary text-xs"
                     />
                     <button

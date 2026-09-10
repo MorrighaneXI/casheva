@@ -40,7 +40,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatRp, loanStatusTone, backendStatusToFrontend, formatPangkatKorps, formatNamaLengkapDinas, cleanNamaPersonel } from "@/lib/casheva-data";
+import { formatRp, loanStatusTone, backendStatusToFrontend, formatPangkatKorps, formatNamaLengkapDinas, cleanNamaPersonel, sortPersonelByPangkat } from "@/lib/casheva-data";
 import { canAccessPath } from "@/lib/rbac";
 import { apiPinjaman, apiAnggota, type Pinjaman } from "@/lib/api";
 import { DokumenViewerModal } from "@/components/dokumen-viewer-modal";
@@ -144,7 +144,7 @@ function PinjamanPage() {
   // Filter dengan useMemo agar ringan & cepat tanpa re-render berlebih
   const filteredRows = useMemo(() => {
     const query = q.toLowerCase().trim();
-    return loanList.filter((l) => {
+    const filtered = loanList.filter((l) => {
       const nama = (l.anggota?.nama || "").toLowerCase();
       const nrp = l.anggota?.nrpNip || "";
       const id = (l.id || "").toLowerCase();
@@ -166,6 +166,7 @@ function PinjamanPage() {
 
       return true;
     });
+    return sortPersonelByPangkat(filtered, (l) => l.anggota);
   }, [loanList, q, statusFilter]);
 
   // Statistik Ringkas

@@ -191,6 +191,164 @@ export function formatNamaLengkapDinas(
   return `${pkt} ${cleanNama}`.trim();
 }
 
+/**
+ * Menghitung bobot numerik hierarki pangkat personel militer TNI AD dan PNS/ASN
+ * Dari yang tertinggi (Jenderal: 940) sampai terendah (PNS I/A: 110, PPPK: 100).
+ */
+export function getPangkatRankWeight(
+  pangkatInput?: any,
+  kategoriInput?: string | null,
+  namaPersonelInput?: string | null,
+): number {
+  // 1. Jika pangkatInput objek dengan kodePkt numerik resmi TNI AD
+  if (typeof pangkatInput === "object" && pangkatInput !== null) {
+    if (typeof pangkatInput.kodePkt === "number" && !isNaN(pangkatInput.kodePkt)) {
+      return pangkatInput.kodePkt * 10;
+    }
+  }
+
+  // 2. Jika pangkatInput numerik langsung
+  if (typeof pangkatInput === "number" && !isNaN(pangkatInput)) {
+    return pangkatInput * 10;
+  }
+
+  // 3. Ekstrak string pangkat dan gabungkan petunjuk teks
+  const strPangkat = typeof pangkatInput === "string" ? pangkatInput.trim() : (pangkatInput?.nama || "");
+  const strKategori = (kategoriInput || (typeof pangkatInput === "object" ? pangkatInput?.kategori : "") || "").toUpperCase();
+  const strNama = typeof namaPersonelInput === "string" ? namaPersonelInput.trim() : "";
+
+  const combined = `${strPangkat} ${strNama}`.trim();
+  if (!combined && strKategori) {
+    if (strKategori === "PATI") return 900;
+    if (strKategori === "PAMEN") return 800;
+    if (strKategori === "PAMA") return 700;
+    if (strKategori === "BINTARA") return 600;
+    if (strKategori === "BATA_ASN" || strKategori === "TAMTAMA") return 500;
+    if (strKategori === "PNS") return 200;
+  }
+
+  // Hierarki Pangkat Berdasarkan Pola Regex (Urutan pemeriksaan dari tertinggi ke terendah)
+  // Perwira Tinggi (Pati)
+  if (/\b(?:Jenderal|Jendral|Jend)\b/i.test(combined)) return 940;
+  if (/\b(?:Letjen|Letnan\s+Jenderal|Letnan\s+Jendral)\b/i.test(combined)) return 930;
+  if (/\b(?:Mayjen|Mayor\s+Jenderal|Mayor\s+Jendral)\b/i.test(combined)) return 920;
+  if (/\b(?:Brigjen|Brigadir\s+Jenderal|Brigadir\s+Jendral)\b/i.test(combined)) return 910;
+
+  // Perwira Menengah (Pamen)
+  // Catatan: Cek Letkol sebelum Kolonel
+  if (/\b(?:Letkol|Letnan\s+Kolonel)\b/i.test(combined)) return 820;
+  if (/\bKolonel\b/i.test(combined)) return 830;
+  // Catatan: Cek Sersan Mayor sebelum Mayor (agar Serma tidak tertukar Mayor)
+  if (/\b(?:Serma|Sersan\s+Mayor)\b/i.test(combined)) return 640;
+  if (/\bMayor\b/i.test(combined) && !/\b(?:Jenderal|Jendral)\b/i.test(combined)) return 810;
+
+  // Perwira Pertama (Pama)
+  if (/\b(?:Kapten|Kapt)\b/i.test(combined)) return 730;
+  if (/\b(?:Lettu|Letnan\s+Satu)\b/i.test(combined)) return 720;
+  if (/\b(?:Letda|Letnan\s+Dua)\b/i.test(combined)) return 710;
+
+  // Bintara
+  if (/\b(?:Peltu|Pembantu\s+Letnan\s+Satu)\b/i.test(combined)) return 660;
+  if (/\b(?:Pelda|Pembantu\s+Letnan\s+Dua)\b/i.test(combined)) return 650;
+  if (/\b(?:Serka|Sersan\s+Kepala)\b/i.test(combined)) return 630;
+  if (/\b(?:Sertu|Sersan\s+Satu)\b/i.test(combined)) return 620;
+  if (/\b(?:Serda|Sersan\s+Dua)\b/i.test(combined)) return 610;
+
+  // Tamtama
+  if (/\b(?:Kopka|Kopral\s+Kepala)\b/i.test(combined)) return 560;
+  if (/\b(?:Koptu|Kopral\s+Satu)\b/i.test(combined)) return 550;
+  if (/\b(?:Kopda|Kopral\s+Dua)\b/i.test(combined)) return 540;
+  if (/\b(?:Praka|Prajurit\s+Kepala)\b/i.test(combined)) return 530;
+  if (/\b(?:Pratu|Prajurit\s+Satu)\b/i.test(combined)) return 520;
+  if (/\b(?:Prada|Prajurit\s+Dua)\b/i.test(combined)) return 510;
+
+  // PNS / ASN Golongan IV
+  if (/\b(?:PNS\s+IV[\s\/-]*E|Pembina\s+Utama(?!\s+M))\b/i.test(combined)) return 450;
+  if (/\b(?:PNS\s+IV[\s\/-]*D|Pembina\s+Utama\s+Madya)\b/i.test(combined)) return 440;
+  if (/\b(?:PNS\s+IV[\s\/-]*C|Pembina\s+Utama\s+Muda)\b/i.test(combined)) return 430;
+  if (/\b(?:PNS\s+IV[\s\/-]*B|Pembina\s+T(?:k|ingkat)\s+I)\b/i.test(combined)) return 420;
+  if (/\b(?:PNS\s+IV[\s\/-]*A|Pembina\b)/i.test(combined)) return 410;
+
+  // PNS / ASN Golongan III
+  if (/\b(?:PNS\s+III[\s\/-]*D|Penata\s+T(?:k|ingkat)\s+I)\b/i.test(combined)) return 340;
+  if (/\b(?:PNS\s+III[\s\/-]*C|Penata\b)/i.test(combined)) return 330;
+  if (/\b(?:PNS\s+III[\s\/-]*B|Penata\s+Muda\s+T(?:k|ingkat)\s+I)\b/i.test(combined)) return 320;
+  if (/\b(?:PNS\s+III[\s\/-]*A|Penata\s+Muda\b)/i.test(combined)) return 310;
+
+  // PNS / ASN Golongan II
+  if (/\b(?:PNS\s+II[\s\/-]*D|Pengatur\s+T(?:k|ingkat)\s+I)\b/i.test(combined)) return 240;
+  if (/\b(?:PNS\s+II[\s\/-]*C|Pengatur\b)/i.test(combined)) return 230;
+  if (/\b(?:PNS\s+II[\s\/-]*B|Pengatur\s+Muda\s+T(?:k|ingkat)\s+I)\b/i.test(combined)) return 220;
+  if (/\b(?:PNS\s+II[\s\/-]*A|Pengatur\s+Muda\b)/i.test(combined)) return 210;
+
+  // PNS / ASN Golongan I
+  if (/\b(?:PNS\s+I[\s\/-]*D|Juru\s+T(?:k|ingkat)\s+I)\b/i.test(combined)) return 140;
+  if (/\b(?:PNS\s+I[\s\/-]*C|Juru\b)/i.test(combined)) return 130;
+  if (/\b(?:PNS\s+I[\s\/-]*B|Juru\s+Muda\s+T(?:k|ingkat)\s+I)\b/i.test(combined)) return 120;
+  if (/\b(?:PNS\s+I[\s\/-]*A|Juru\s+Muda\b)/i.test(combined)) return 110;
+
+  // PPPK & PNS Umum
+  if (/\bPPPK\b/i.test(combined)) return 100;
+  if (/\b(?:PNS|ASN)\b/i.test(combined)) return 200;
+
+  // Fallback berdasarkan kategori jika ada
+  if (strKategori.includes("PATI")) return 900;
+  if (strKategori.includes("PAMEN")) return 800;
+  if (strKategori.includes("PAMA")) return 700;
+  if (strKategori.includes("BINTARA")) return 600;
+  if (strKategori.includes("BATA") || strKategori.includes("TAMTAMA")) return 500;
+  if (strKategori.includes("PNS") || strKategori.includes("ASN")) return 200;
+
+  return 0;
+}
+
+/**
+ * Komparator untuk mengurutkan personel dari pangkat tertinggi ke terendah.
+ * Jika pangkat sama, urutkan nama secara alfabetis (A-Z).
+ */
+export function comparePersonelByPangkat(a: any, b: any): number {
+  const getPkt = (x: any) => x?.pangkat ?? x?.anggota?.pangkat ?? x?.pinjaman?.anggota?.pangkat;
+  const getKat = (x: any) =>
+    x?.kategoriPangkat ??
+    x?.kategori ??
+    x?.pangkat?.kategori ??
+    x?.anggota?.pangkat?.kategori ??
+    x?.pinjaman?.anggota?.pangkat?.kategori;
+  const getNm = (x: any) =>
+    x?.nama ??
+    x?.namaLengkap ??
+    x?.namaAnggota ??
+    x?.anggota?.nama ??
+    x?.pinjaman?.anggota?.nama ??
+    "";
+
+  const weightA = getPangkatRankWeight(getPkt(a), getKat(a), getNm(a));
+  const weightB = getPangkatRankWeight(getPkt(b), getKat(b), getNm(b));
+
+  if (weightB !== weightA) {
+    return weightB - weightA; // Tertinggi dulu (descending)
+  }
+
+  const nameA = cleanNamaPersonel(getNm(a));
+  const nameB = cleanNamaPersonel(getNm(b));
+  return nameA.localeCompare(nameB, "id-ID");
+}
+
+/**
+ * Mengurutkan array objek personel/pinjaman/simpanan berdasarkan pangkat tertinggi ke terendah.
+ */
+export function sortPersonelByPangkat<T>(
+  items: T[],
+  extractPersonel?: (item: T) => any,
+): T[] {
+  if (!Array.isArray(items) || items.length <= 1) return items ? [...items] : [];
+  return [...items].sort((a, b) => {
+    const targetA = extractPersonel ? extractPersonel(a) : a;
+    const targetB = extractPersonel ? extractPersonel(b) : b;
+    return comparePersonelByPangkat(targetA, targetB);
+  });
+}
+
 export type LoanStatus =
   | "Pending"
   | "Verified Primkop"

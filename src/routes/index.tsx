@@ -74,6 +74,7 @@ import {
   formatPangkatKorps,
   backendStatusToFrontend,
   loanStatusTone,
+  sortPersonelByPangkat,
   trenData as defaultTrenData,
   ROLES,
   type Role,
@@ -218,6 +219,10 @@ function AdminDashboard() {
     queryKey: ["pinjaman-recent"],
     queryFn: () => apiPinjaman.findAll(),
   });
+
+  const sortedLoansList = useMemo(() => {
+    return sortPersonelByPangkat(loansList, (l) => l.anggota);
+  }, [loansList]);
 
   const handleConfirmBackup = async () => {
     try {
@@ -523,7 +528,7 @@ function AdminDashboard() {
                   </TableCell>
                 </TableRow>
               ) : (
-                loansList.slice(0, 6).map((l) => {
+                sortedLoansList.slice(0, 6).map((l) => {
                   const uiStatus = backendStatusToFrontend(l.status);
                   return (
                     <TableRow key={l.id}>
@@ -846,9 +851,12 @@ function JuruBayarDashboard() {
     queryFn: () => apiPinjaman.findAll(),
   });
 
-  const antreanVerif = loanList.filter((l) =>
-    ["DIAJUKAN", "VERIFIKASI_PRIMKOP", "VERIFIKASI_JURU_BAYAR"].includes(l.status),
-  );
+  const antreanVerif = useMemo(() => {
+    const filtered = loanList.filter((l) =>
+      ["DIAJUKAN", "VERIFIKASI_PRIMKOP", "VERIFIKASI_JURU_BAYAR"].includes(l.status),
+    );
+    return sortPersonelByPangkat(filtered, (l) => l.anggota);
+  }, [loanList]);
 
   return (
     <div className="space-y-6">

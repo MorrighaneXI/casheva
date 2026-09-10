@@ -66,7 +66,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { formatRp, formatPangkatKorps, formatNamaLengkapDinas, cleanNamaPersonel } from "@/lib/casheva-data";
+import { formatRp, formatPangkatKorps, formatNamaLengkapDinas, cleanNamaPersonel, sortPersonelByPangkat } from "@/lib/casheva-data";
 import { apiPinjaman, apiAnggota, type Pinjaman, type KalkulasiDinamisResponse, type BayarAngsuranDinamisDto } from "@/lib/api";
 import { exportToCSV } from "@/lib/export-excel";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
@@ -194,9 +194,21 @@ function Page() {
     };
   }, [kalkulasiData, nominalBayarInput, isPelunasanDipercepat]);
 
-  const activeLoans = loanList.filter((l) =>
-    ["DICAIRKAN", "LUNAS"].includes(l.status),
-  );
+  const rekapBulananSorted = useMemo(() => {
+    return sortPersonelByPangkat(rekapBulananList, (item) => ({
+      nama: item.namaAnggota,
+      pangkat: item.pangkat,
+      korps: item.korps,
+      kategoriPangkat: item.kategoriPangkat,
+    }));
+  }, [rekapBulananList]);
+
+  const activeLoans = useMemo(() => {
+    const filtered = loanList.filter((l) =>
+      ["DICAIRKAN", "LUNAS"].includes(l.status),
+    );
+    return sortPersonelByPangkat(filtered, (l) => l.anggota);
+  }, [loanList]);
 
   // Mutations
   const bayarMutation = useMutation({
@@ -267,7 +279,7 @@ function Page() {
       "Status Pembayaran",
     ];
 
-    const rows = rekapBulananList.map((item, idx) => {
+    const rows = rekapBulananSorted.map((item, idx) => {
       const formattedRank = formatPangkatKorps(item.pangkat, item.korps, item.kategoriPangkat);
       return [
         idx + 1,
@@ -619,7 +631,7 @@ function Page() {
                 <TableBody>
                   {loadingBulanan ? (
                     <TableRow><TableCell colSpan={6} className="py-12 text-center text-muted-foreground"><Loader2 className="mx-auto size-6 animate-spin mb-2 text-primary" />Memuat data...</TableCell></TableRow>
-                  ) : rekapBulananList.map((item, idx) => (
+                  ) : rekapBulananSorted.map((item, idx) => (
                     <TableRow key={item.id}>
                       <TableCell className="text-xs">{idx + 1}</TableCell>
                       <TableCell className="font-semibold">{item.namaAnggota}</TableCell>

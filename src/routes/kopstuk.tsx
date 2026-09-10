@@ -136,7 +136,7 @@ function KopstukPage() {
               <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4">
                 {showLogo && (
                   <div className="grid size-14 shrink-0 place-items-center rounded-lg bg-card p-1">
-                    <img src={logoKoperasi} alt="Logo Koperasi Kartika" className="size-full object-contain" />
+                    <img src={logoKoperasi} alt="Logo Casheva" className="size-full object-contain" />
                   </div>
                 )}
                 <div className="min-w-0 text-center">
