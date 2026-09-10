@@ -150,7 +150,7 @@ function PengajuanPage() {
       try {
         const raw = localStorage.getItem("casheva.anggota_cache");
         if (raw) pool = JSON.parse(raw);
-      } catch {}
+      } catch { }
     }
 
     if (pool.length > 0 && user) {
@@ -708,7 +708,7 @@ function PengajuanPage() {
 
               {/* 3. Berkas Persyaratan */}
               <Card className="shadow-card border-primary/20">
-                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
                   <div>
                     <CardTitle className="text-base flex items-center gap-2">
                       <FileText className="size-5 text-primary" />
@@ -722,7 +722,7 @@ function PengajuanPage() {
                     size="sm"
                     variant="outline"
                     onClick={() => openDocViewer("usipa")}
-                    className="gap-1.5 text-xs shrink-0 shadow-sm border-primary/30"
+                    className="gap-1.5 text-xs shrink-0 shadow-sm border-primary/30 w-full sm:w-auto justify-center"
                   >
                     <Layers className="size-3.5 text-primary" /> Buka Arsip Lengkap
                   </Button>
@@ -740,11 +740,10 @@ function PengajuanPage() {
                       return (
                         <div
                           key={doc.id}
-                          className={`rounded-xl border p-3 text-xs transition-all ${
-                            file
+                          className={`rounded-xl border p-3 text-xs transition-all ${file
                               ? "bg-success/5 border-success/40 shadow-xs"
                               : "bg-muted/20 hover:bg-muted/40 border-border"
-                          }`}
+                            }`}
                         >
                           {/* Hidden File Input */}
                           <input

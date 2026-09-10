@@ -1045,7 +1045,9 @@ function SimpananPage() {
 
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-6">
         <TabsList
-          className={`grid w-full ${isBendaharaOrAdmin ? "max-w-3xl grid-cols-4" : "max-w-md grid-cols-2"}`}
+          className={`grid w-full h-auto p-1 gap-1 ${
+            isBendaharaOrAdmin ? "max-w-3xl grid-cols-2 sm:grid-cols-4" : "max-w-md grid-cols-2"
+          }`}
         >
           <TabsTrigger value="saldo">Rekap Saldo Anggota</TabsTrigger>
           <TabsTrigger value="bulanan">Rekap Mutasi Bulanan</TabsTrigger>

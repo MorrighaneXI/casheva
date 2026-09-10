@@ -526,7 +526,7 @@ export function InvoiceGenerator() {
             <TableRow>
               <TableHead>No. Pengajuan</TableHead>
               <TableHead>Nama Anggota</TableHead>
-              <TableHead>Pangkat / Satminkal</TableHead>
+              <TableHead>Pangkat / Korp / Satminkal</TableHead>
               <TableHead className="text-right">Nominal Plafon</TableHead>
               <TableHead className="text-center">Tenor</TableHead>
               <TableHead>Status Berkas</TableHead>
@@ -554,7 +554,12 @@ export function InvoiceGenerator() {
                     </TableCell>
                     <TableCell className="font-medium">{p.anggota?.nama || "Anggota"}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {p.anggota?.pangkat?.nama || ""} / {p.anggota?.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}
+                      {formatPangkatKorps(
+                        p.anggota?.pangkat?.nama,
+                        p.anggota?.korps?.nama,
+                        p.anggota?.pangkat?.kategori,
+                      )}{" "}
+                      / {p.anggota?.satminkal?.nama || "INFOLAHTADAM IV/DIPONEGORO"}
                     </TableCell>
                     <TableCell className="text-right font-semibold">
                       {formatRp(Number(p.nominal))}

@@ -161,7 +161,7 @@ function RootComponent() {
               <AppSidebar />
               <div className="flex min-w-0 flex-1 flex-col">
                 <TopHeader />
-                <main className="flex-1 p-4 sm:p-6">
+                <main className="flex-1 p-3 sm:p-6 max-w-full overflow-x-hidden">
                   {/* Required: nested routes render here. */}
                   <Outlet />
                 </main>

@@ -113,56 +113,10 @@ export const Route = createFileRoute("/")({
 });
 
 function DashboardPage() {
-  const { role, isAdmin, setRole } = useSession();
+  const { role } = useSession();
 
   return (
     <div className="space-y-6">
-      {/* Admin Perspective Notice Banner (Only shown if Admin is viewing another role's perspective) */}
-      {isAdmin && role !== "Admin Koperasi" && (
-        <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl border border-primary/30 bg-primary-soft/50 shadow-sm backdrop-blur-sm animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center gap-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <Eye className="size-4" />
-            </span>
-            <div>
-              <p className="text-xs font-bold text-primary flex items-center gap-1.5">
-                Mode Perspektif Aktif: <span className="text-foreground">{role}</span>
-                <Badge variant="secondary" className="text-[10px] bg-primary-soft text-primary font-semibold">
-                  Akses Admin Penuh
-                </Badge>
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                Anda login sebagai Admin Koperasi dan saat ini melihat antarmuka perspektif <strong>{role}</strong>.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Select
-              value={role}
-              onValueChange={(v) => setRole(v as Role)}
-            >
-              <SelectTrigger className="h-8 w-[160px] text-xs font-semibold bg-background border-primary/25">
-                <SelectValue placeholder="Ganti peran" />
-              </SelectTrigger>
-              <SelectContent>
-                {ROLES.map((r) => (
-                  <SelectItem key={r} value={r} className="text-xs">
-                    {r}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setRole("Admin Koperasi")}
-              className="h-8 text-xs font-semibold"
-            >
-              <RotateCcw className="size-3.5 mr-1" /> Reset ke Admin
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* Render Role-Specific Dashboard */}
       {(() => {
@@ -1178,7 +1132,7 @@ function AnggotaDashboard() {
       </div>
 
       {/* Rincian Simpanan Saya */}
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Simpanan Pokok", value: totalSimpananPokok, color: "text-primary" },
           { label: "Simpanan Wajib", value: totalSimpananWajib, color: "text-success" },
@@ -1332,7 +1286,7 @@ function PengawasDashboard() {
       />
 
       {/* Pengawas KPIs */}
-      <div className="grid gap-4 sm:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="shadow-card">
           <CardHeader className="pb-2">
             <CardDescription>Alokasi Cadangan Koperasi</CardDescription>

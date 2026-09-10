@@ -170,6 +170,12 @@
   ::-webkit-scrollbar-thumb:hover {
     background: oklch(0.5 0.02 250 / 0.4);
   }
+
+  /* Smooth touch scrolling for iOS & Android table containers */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
 }
 
 /* Micro-Animations & Dynamic Utilities */
