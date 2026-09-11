@@ -19,6 +19,7 @@ import {
   Eye,
   Layers,
   ArrowRight,
+  Coins,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -101,6 +102,7 @@ function PengajuanPage() {
   // Role bendahara (atau admin) dapat memilih anggota lain
   // Role anggota HANYA dapat mengajukan untuk dirinya sendiri tanpa fitur dropdown pilih anggota
   const canSelectAnggota = role === "Bendahara" || role === "Admin Koperasi";
+  const canRecordSimpanan = role === "Bendahara" || role === "Admin Koperasi" || role === "Juru Bayar";
 
   const [activeTab, setActiveTab] = useState<"pinjaman" | "simpanan">("pinjaman");
   const [selectedAnggotaId, setSelectedAnggotaId] = useState("");
@@ -446,7 +448,7 @@ function PengajuanPage() {
             <Wallet className="size-4" /> Pengajuan Pinjaman
           </TabsTrigger>
           <TabsTrigger value="simpanan" className="gap-2">
-            <PiggyBank className="size-4" /> Simpanan Khusus / Sukarela
+            <PiggyBank className="size-4" /> {canRecordSimpanan ? "Catat Simpanan" : "Info Simpanan"}
           </TabsTrigger>
         </TabsList>
 
@@ -942,117 +944,167 @@ function PengajuanPage() {
         <TabsContent value="simpanan" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
-              <Card className="shadow-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PiggyBank className="size-5 text-primary" />
-                    Formulir Simpanan Khusus &amp; Sukarela
-                  </CardTitle>
-                  <CardDescription>
-                    Simpanan Khusus (Hari Raya / Qurban / Kegiatan Khusus) dan Simpanan Sukarela bersifat opsional berdasarkan persetujuan Bendahara dan Anggota.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  {canSelectAnggota ? (
+              {canRecordSimpanan ? (
+                <Card className="shadow-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <PiggyBank className="size-5 text-primary" />
+                      Formulir Catat Simpanan Khusus &amp; Sukarela
+                    </CardTitle>
+                    <CardDescription>
+                      Pencatatan setoran simpanan sukarela dan simpanan khusus anggota ke buku kas koperasi oleh {role}.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    {canSelectAnggota ? (
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1.5 font-semibold">
+                          Pilih Anggota Penyetor
+                        </Label>
+                        <Select value={selectedAnggotaId} onValueChange={setSelectedAnggotaId}>
+                          <SelectTrigger className="h-11">
+                            <SelectValue placeholder="-- Pilih Anggota Penyetor --" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-64">
+                            {anggotaList.map((a) => (
+                              <SelectItem key={a.id} value={a.id}>
+                                {formatNamaLengkapDinas(a.nama, a.pangkat?.nama, a.korps?.nama, a.pangkat?.kategori)} (NRP: {a.nrpNip})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : selectedAnggota ? (
+                      <div className="rounded-xl border border-primary/25 bg-primary-soft/40 p-3.5 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-3">
+                          <div className="grid size-9 place-items-center rounded-lg bg-primary/20 text-primary shrink-0">
+                            <UserCheck className="size-4" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-foreground">
+                              {formatNamaLengkapDinas(
+                                selectedAnggota.nama,
+                                selectedAnggota.pangkat?.nama,
+                                selectedAnggota.korps?.nama,
+                                selectedAnggota.pangkat?.kategori
+                              )}
+                            </div>
+                            <div className="text-muted-foreground font-mono text-[11px]">
+                              NRP: {selectedAnggota.nrpNip} · {selectedAnggota.satminkal?.nama || user?.satminkal || "INFOLAHTADAM IV/DIPONEGORO"}
+                            </div>
+                          </div>
+                        </div>
+                        <Badge variant="outline" className="border-success/40 bg-success/10 text-success text-[10px] font-semibold shrink-0">
+                          Penyetor
+                        </Badge>
+                      </div>
+                    ) : null}
+
                     <div className="space-y-2">
-                      <Label className="flex items-center gap-1.5 font-semibold">
-                        Pilih Anggota Penyetor
-                      </Label>
-                      <Select value={selectedAnggotaId} onValueChange={setSelectedAnggotaId}>
+                      <Label>Jenis Simpanan</Label>
+                      <Select value={jenisSimpanan} onValueChange={(v: any) => setJenisSimpanan(v)}>
                         <SelectTrigger className="h-11">
-                          <SelectValue placeholder="-- Pilih Anggota Penyetor --" />
+                          <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="max-h-64">
-                          {anggotaList.map((a) => (
-                            <SelectItem key={a.id} value={a.id}>
-                              {formatNamaLengkapDinas(a.nama, a.pangkat?.nama, a.korps?.nama, a.pangkat?.kategori)} (NRP: {a.nrpNip})
-                            </SelectItem>
-                          ))}
+                        <SelectContent>
+                          <SelectItem value="SUKARELA">Simpanan Sukarela (Tabungan Bebas)</SelectItem>
+                          <SelectItem value="KHUSUS">Simpanan Khusus (Qurban / Hari Raya / Kegiatan Khusus)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  ) : selectedAnggota ? (
-                    <div className="rounded-xl border border-primary/25 bg-primary-soft/40 p-3.5 flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-3">
-                        <div className="grid size-9 place-items-center rounded-lg bg-primary/20 text-primary shrink-0">
-                          <UserCheck className="size-4" />
-                        </div>
-                        <div>
-                          <div className="font-bold text-foreground">
-                            {formatNamaLengkapDinas(
-                              selectedAnggota.nama,
-                              selectedAnggota.pangkat?.nama,
-                              selectedAnggota.korps?.nama,
-                              selectedAnggota.pangkat?.kategori
-                            )}
-                          </div>
-                          <div className="text-muted-foreground font-mono text-[11px]">
-                            NRP: {selectedAnggota.nrpNip} · {selectedAnggota.satminkal?.nama || user?.satminkal || "INFOLAHTADAM IV/DIPONEGORO"}
-                          </div>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="border-success/40 bg-success/10 text-success text-[10px] font-semibold shrink-0">
-                        Penyetor Mandiri
+
+                    <div className="space-y-2">
+                      <Label>Nominal Setoran</Label>
+                      <Input
+                        type="number"
+                        min={10_000}
+                        step={50_000}
+                        value={nominalSimpanan}
+                        onChange={(e) => setNominalSimpanan(Number(e.target.value) || 0)}
+                        className="h-11 text-base font-semibold"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Terbilang: {formatRp(nominalSimpanan)}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Keterangan / Keperluan Simpanan</Label>
+                      <Textarea
+                        value={keteranganSimpanan}
+                        onChange={(e) => setKeteranganSimpanan(e.target.value)}
+                        placeholder="Contoh: Tabungan Qurban 1448 H / Simpanan Idul Fitri / Sukarela Tambahan"
+                        rows={3}
+                      />
+                    </div>
+
+                    <Button
+                      size="lg"
+                      disabled={!activeTargetAnggotaId || setorSimpananMutation.isPending}
+                      onClick={handleSubmitSimpanan}
+                      className="w-full font-semibold"
+                    >
+                      {setorSimpananMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 size-4 animate-spin" /> Menyimpan...
+                        </>
+                      ) : (
+                        <>
+                          <PiggyBank className="mr-2 size-4" /> Catat Setoran Simpanan
+                        </>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="shadow-card border-primary/20">
+                  <CardHeader>
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <CardTitle className="flex items-center gap-2">
+                        <PiggyBank className="size-5 text-primary" />
+                        Ketentuan Setoran Simpanan Anggota
+                      </CardTitle>
+                      <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary text-xs font-semibold">
+                        SOP Koperasi
                       </Badge>
                     </div>
-                  ) : null}
+                    <CardDescription>
+                      Pencatatan setoran simpanan sukarela dan simpanan khusus dilakukan secara terpusat oleh Bendahara atau Juru Bayar Satminkal demi transparansi dan akuntabilitas pembukuan kas.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-5">
+                    <div className="rounded-xl border border-primary/20 bg-primary-soft/30 p-4 space-y-3">
+                      <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
+                        <Info className="size-4 text-primary" />
+                        Mekanisme Penyetoran Simpanan Anggota:
+                      </h4>
+                      <div className="grid gap-3 sm:grid-cols-2 text-xs">
+                        <div className="rounded-lg border bg-background/90 p-3.5 space-y-1.5 shadow-sm">
+                          <span className="font-bold text-foreground block text-xs">1. Potong Gaji Bulanan (Juru Bayar)</span>
+                          <p className="text-muted-foreground leading-relaxed text-[11px]">
+                            Koordinasikan pendaftaran/perubahan nominal simpanan sukarela rutin kepada Juru Bayar Satminkal Anda agar dipotong langsung dari daftar gaji dinas setiap bulan.
+                          </p>
+                        </div>
+                        <div className="rounded-lg border bg-background/90 p-3.5 space-y-1.5 shadow-sm">
+                          <span className="font-bold text-foreground block text-xs">2. Setor Tunai / Transfer (Bendahara)</span>
+                          <p className="text-muted-foreground leading-relaxed text-[11px]">
+                            Lakukan penyetoran langsung di loket kasir koperasi atau transfer rekening dinas koperasi, kemudian konfirmasikan bukti transfer kepada Bendahara untuk dibukukan.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
 
-                  <div className="space-y-2">
-                    <Label>Jenis Simpanan</Label>
-                    <Select value={jenisSimpanan} onValueChange={(v: any) => setJenisSimpanan(v)}>
-                      <SelectTrigger className="h-11">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="SUKARELA">Simpanan Sukarela (Tabungan Bebas)</SelectItem>
-                        <SelectItem value="KHUSUS">Simpanan Khusus (Qurban / Hari Raya / Kegiatan Khusus)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Nominal Setoran</Label>
-                    <Input
-                      type="number"
-                      min={10_000}
-                      step={50_000}
-                      value={nominalSimpanan}
-                      onChange={(e) => setNominalSimpanan(Number(e.target.value) || 0)}
-                      className="h-11 text-base font-semibold"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Terbilang: {formatRp(nominalSimpanan)}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Keterangan / Keperluan Simpanan</Label>
-                    <Textarea
-                      value={keteranganSimpanan}
-                      onChange={(e) => setKeteranganSimpanan(e.target.value)}
-                      placeholder="Contoh: Tabungan Qurban 1448 H / Simpanan Idul Fitri / Sukarela Tambahan"
-                      rows={3}
-                    />
-                  </div>
-
-                  <Button
-                    size="lg"
-                    disabled={!activeTargetAnggotaId || setorSimpananMutation.isPending}
-                    onClick={handleSubmitSimpanan}
-                    className="w-full font-semibold"
-                  >
-                    {setorSimpananMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 size-4 animate-spin" /> Menyimpan...
-                      </>
-                    ) : (
-                      <>
-                        <PiggyBank className="mr-2 size-4" /> Setor Simpanan
-                      </>
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
+                    <div className="pt-1">
+                      <Button asChild className="font-semibold gap-2 shadow-sm">
+                        <Link to="/simpanan">
+                          <Coins className="size-4" /> Lihat Saldo &amp; Riwayat Mutasi Simpanan
+                          <ArrowRight className="size-4 ml-1" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             <div className="space-y-6">
