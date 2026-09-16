@@ -194,7 +194,7 @@ export function PosWidget() {
         hour: "2-digit",
         minute: "2-digit",
       }),
-      kasirNama: "Serda Yoga Pratama",
+      kasirNama: "Kopda Hendra Setiawan",
       pelangganNama: selectedAnggota ? `${selectedAnggota.pangkat} ${selectedAnggota.nama}` : (namaPembeliUmum || "Pembeli Umum"),
       pelangganNrp: selectedAnggota?.nrp || "-",
       metodeBayar,
@@ -717,9 +717,10 @@ export function PosWidget() {
           {lastInvoice && (
             <div className="space-y-3 pt-2 text-foreground/90">
               <div className="text-center space-y-0.5 border-b border-dashed border-border pb-2.5">
-                <p className="font-extrabold text-sm uppercase">PRIMKOPAD INFOLAHTADAM IV</p>
-                <p className="text-[10px] text-muted-foreground">Jl. Perintis Kemerdekaan No. 1, Semarang</p>
-                <p className="text-[10px] text-muted-foreground">Telp: (024) 747-1234</p>
+                <p className="font-extrabold text-sm uppercase">PRIMKOPKAR INFOLAHTADAM IV/DIP</p>
+                <p className="text-[10px] text-muted-foreground">INFOLAHTADAM IV/DIPONEGORO</p>
+                <p className="text-[10px] text-muted-foreground">Jl. Perintis Kemerdekaan, Watugong, Semarang</p>
+                <p className="text-[10px] text-muted-foreground">Telp: (024) 7472249</p>
               </div>
 
               <div className="text-[11px] space-y-0.5 border-b border-dashed border-border pb-2.5">

@@ -20,10 +20,14 @@ import { toast } from "sonner";
 import {
   masterProdukList,
   kategoriProdukList,
+  pesananOnlineList,
   formatRp,
   hitungCicilanBarang,
   type Produk,
+  type PesananOnline,
 } from "@/lib/casheva-data";
+import { useSession } from "@/components/session-context";
+import { apiPesanan } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +39,7 @@ type CartItem = {
 };
 
 export function KatalogBelanjaWidget() {
+  const { user } = useSession();
   const [search, setSearch] = useState("");
   const [selectedKategori, setSelectedKategori] = useState("ALL");
   const [filterFastConsume, setFilterFastConsume] = useState(false);
@@ -107,10 +112,63 @@ export function KatalogBelanjaWidget() {
     setIsSimulasiOpen(true);
   };
 
-  const handleBuatPesanan = () => {
+  const handleBuatPesanan = async () => {
     if (cart.length === 0) return;
 
-    const nomorPesanan = `ORD-${Date.now().toString().slice(-8)}`;
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const nomorPesanan = `ORD-${dateStr}-${randomSuffix}`;
+    const subtotal = cart.reduce((acc, i) => acc + i.produk.hargaJual * i.jumlah, 0);
+    const ongkir = tipePengambilan === "DELIVERY_CEPAT" ? 5000 : 0;
+
+    const newOrder: PesananOnline = {
+      id: nomorPesanan,
+      nomorPesanan,
+      anggotaNama: user?.namaLengkap || "Kapten Cpm Indra, S.Kom.",
+      anggotaNrp: user?.username || "1122334455",
+      tipe: tipePengambilan,
+      lokasi: tipePengambilan === "DELIVERY_CEPAT" ? lokasiBarak || "Barak Remaja" : "Meja Piket Penjagaan",
+      petugasPiket: tipePengambilan === "TITIP_PIKET_SATUAN" ? petugasPiket : null,
+      noHp: noHp || "081299887766",
+      totalBelanja: subtotal,
+      ongkir,
+      totalTagihan: subtotal + ongkir,
+      status: "MENUNGGU_KONFIRMASI",
+      estimasiMenit: 30,
+      menitBerjalan: 1,
+      isTerlambatSla: false,
+      kompensasiDiskon: 0,
+      items: cart.map((i) => ({
+        nama: i.produk.nama,
+        jumlah: i.jumlah,
+        harga: i.produk.hargaJual,
+      })),
+      waktuPesan: new Date().toLocaleDateString("id-ID", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+
+    pesananOnlineList.unshift(newOrder);
+
+    try {
+      await apiPesanan.create({
+        tipePengambilan,
+        lokasiTujuan: lokasiBarak,
+        namaPetugasPiket: petugasPiket,
+        noHpPenerima: noHp,
+        metodeBayar: metodeBayar as any,
+        items: cart.map((i) => ({
+          produkId: i.produk.id,
+          jumlah: i.jumlah,
+        })),
+      });
+    } catch {
+      // Ignore if offline
+    }
 
     toast.success(`Pesanan ${nomorPesanan} Berhasil Dibuat!`, {
       description:

@@ -71,8 +71,8 @@ const DEMO_TRANSAKSI: TransaksiItem[] = [
     id: "TRX-001",
     nomorStruk: "STR-20260907-001",
     tanggal: "2026-09-07 09:30:15",
-    kasir: "Kopda Hendra S.",
-    pelanggan: "Serka Bambang Prasetyo",
+    kasir: "Kopda Hendra Setiawan",
+    pelanggan: "Kolonel Cke Bambang Kuswanto",
     tipePelanggan: "Anggota",
     items: [
       { nama: "Beras Rojolele Super 5kg", qty: 2, satuan: "Sak", harga: 72000, subtotal: 144000 },
@@ -92,8 +92,8 @@ const DEMO_TRANSAKSI: TransaksiItem[] = [
     id: "TRX-002",
     nomorStruk: "STR-20260907-002",
     tanggal: "2026-09-07 09:45:00",
-    kasir: "Kopda Hendra S.",
-    pelanggan: "Praka Eko Susanto",
+    kasir: "Kopda Hendra Setiawan",
+    pelanggan: "Kapten Cpm Indra , S.Kom.",
     tipePelanggan: "Anggota",
     items: [
       { nama: "Sepatu PDL Loreng Jatah", qty: 1, satuan: "Pasang", harga: 385000, subtotal: 385000 },
@@ -112,8 +112,8 @@ const DEMO_TRANSAKSI: TransaksiItem[] = [
     id: "TRX-003",
     nomorStruk: "STR-20260907-003",
     tanggal: "2026-09-07 10:05:42",
-    kasir: "Kopda Hendra S.",
-    pelanggan: "Ibu Nurul (Persit)",
+    kasir: "Kopda Hendra Setiawan",
+    pelanggan: "Ny. Putri Rahayu (Persit)",
     tipePelanggan: "Anggota",
     items: [
       { nama: "Indomie Goreng Special", qty: 10, satuan: "Pcs", harga: 3100, subtotal: 31000 },
@@ -133,9 +133,9 @@ const DEMO_TRANSAKSI: TransaksiItem[] = [
     id: "TRX-004",
     nomorStruk: "STR-20260907-004",
     tanggal: "2026-09-07 10:18:20",
-    kasir: "Kopda Hendra S.",
-    pelanggan: "Warga Komplek / Umum",
-    tipePelanggan: "Umum",
+    kasir: "Kopda Hendra Setiawan",
+    pelanggan: "Kolonel Inf Sigit Suhendro",
+    tipePelanggan: "Anggota",
     items: [
       { nama: "Minyak Goreng Bimoli 2L", qty: 1, satuan: "Pouch", harga: 38000, subtotal: 38000 },
       { nama: "Kopi Kapal Api Special Mix 10s", qty: 2, satuan: "Renteng", harga: 16000, subtotal: 32000 },
@@ -147,6 +147,26 @@ const DEMO_TRANSAKSI: TransaksiItem[] = [
     metodeBayar: "TUNAI",
     bayar: 100000,
     kembalian: 30000,
+    status: "LUNAS",
+  },
+  {
+    id: "TRX-005",
+    nomorStruk: "STR-20260907-005",
+    tanggal: "2026-09-07 11:05:10",
+    kasir: "Kopda Hendra Setiawan",
+    pelanggan: "Warga Komplek / Umum",
+    tipePelanggan: "Umum",
+    items: [
+      { nama: "Gula Pasir Gulaku 1kg", qty: 2, satuan: "Bungkus", harga: 17500, subtotal: 35000 },
+      { nama: "Teh Celup Sosro 30s", qty: 1, satuan: "Kotak", harga: 8500, subtotal: 8500 },
+    ],
+    totalItem: 3,
+    totalBelanja: 43500,
+    diskon: 0,
+    totalAkhir: 43500,
+    metodeBayar: "TUNAI",
+    bayar: 50000,
+    kembalian: 6500,
     status: "LUNAS",
   },
 ];
@@ -409,10 +429,10 @@ export function TokoTransaksiWidget() {
               {/* Thermal Receipt Paper Layout */}
               <div className="rounded-md border border-dashed p-4 font-mono text-xs bg-muted/20 space-y-2">
                 <div className="text-center space-y-0.5 border-b border-dashed pb-2">
-                  <div className="font-bold text-sm">PRIMKOPPOL / KOPERASI TNI AD</div>
-                  <div className="text-[10px] text-muted-foreground">KODIM 0733 / BS SEMARANG</div>
-                  <div className="text-[10px] text-muted-foreground">Jl. Pemuda No. 123, Semarang</div>
-                  <div className="text-[10px] text-muted-foreground">Telp: (024) 8412345</div>
+                  <div className="font-bold text-sm">PRIMKOPKAR INFOLAHTADAM IV/DIP</div>
+                  <div className="text-[10px] text-muted-foreground">INFOLAHTADAM IV/DIPONEGORO</div>
+                  <div className="text-[10px] text-muted-foreground">Jl. Perintis Kemerdekaan, Watugong, Semarang</div>
+                  <div className="text-[10px] text-muted-foreground">Telp: (024) 7472249</div>
                 </div>
 
                 <div className="flex justify-between text-[11px]">
