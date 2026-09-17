@@ -102,16 +102,15 @@ export function formatPangkatKorps(
   const c = korps && korps.trim() !== '-' && korps.trim() !== 'NONE' ? korps.trim() : '';
   const kat = (kategori || '').toUpperCase();
 
-  // 1. PATI (Perwira Tinggi) -> Selalu diakhiri "TNI", tidak memakai singkatan korps
+  // 1. PATI (Perwira Tinggi) -> Selalu diakhiri "TNI", korps diganti menjadi "TNI"
   const isPati =
     kat === 'PATI' ||
     ['Brigjen', 'Mayjen', 'Letjen', 'Jenderal', 'Brigadir Jenderal', 'Mayor Jenderal', 'Letnan Jenderal'].some((pat) =>
-      p.toLowerCase().startsWith(pat.toLowerCase()),
+      p.toLowerCase().startsWith(pat.toLowerCase()) || p.toLowerCase().includes(pat.toLowerCase()),
     );
 
   if (isPati) {
-    p = p.replace(/\s+(Inf|Kav|Arm|Arh|Czi|Cpm|Cba|Ckm|Cpl|Cke|Chk|Caj|Cku|Ctp|Cpn)\b/gi, '').trim();
-    if (p.includes('TNI')) return p;
+    p = p.replace(/\s+(Inf|Kav|Arm|Arh|Czi|Cpm|Cba|Ckm|Cpl|Cke|Chk|Caj|Cku|Ctp|Cpn|TNI)\b/gi, '').trim();
     return `${p} TNI`;
   }
 
@@ -134,6 +133,32 @@ export function formatPangkatKorps(
   // 3. BA / TA / PNS -> HANYA pangkat saja, hilangkan korps jika ada
   p = p.replace(/\s+(Inf|Kav|Arm|Arh|Czi|Cpm|Cba|Ckm|Cpl|Cke|Chk|Caj|Cku|Ctp|Cpn|TNI)\b/gi, '').trim();
   return p;
+}
+
+export function formatPktCrpNrpFull(
+  pangkat?: string | null,
+  korps?: string | null,
+  kategori?: string | null,
+  nrpNip?: string | null,
+  rawPktCrpNrp?: string | null,
+): string {
+  if (rawPktCrpNrp && rawPktCrpNrp.trim() !== '-' && rawPktCrpNrp.trim() !== '') {
+    const formatted = rawPktCrpNrp.trim();
+    if (['Brigjen', 'Mayjen', 'Letjen', 'Jenderal'].some((pat) => formatted.toLowerCase().includes(pat.toLowerCase()))) {
+      const parts = formatted.split('/');
+      const firstPart = parts[0] || '';
+      const left = firstPart.replace(/\s+(Inf|Kav|Arm|Arh|Czi|Cpm|Cba|Ckm|Cpl|Cke|Chk|Caj|Cku|Ctp|Cpn|TNI)\b/gi, '').trim();
+      const right = parts.slice(1).join('/').trim();
+      return right ? `${left} TNI / ${right}` : `${left} TNI`;
+    }
+    return formatted;
+  }
+
+  const pFmt = formatPangkatKorps(pangkat, korps, kategori);
+  if (pFmt && pFmt !== '-') {
+    return nrpNip ? `${pFmt} / ${nrpNip}` : pFmt;
+  }
+  return nrpNip ? `- / ${nrpNip}` : '-';
 }
 
 export const potonganSukarela: Record<string, number> = {
@@ -926,8 +951,8 @@ export type PesananOnline = {
   anggotaNrp: string;
   tipe: "AMBIL_SENDIRI" | "TITIP_PIKET_SATUAN" | "DELIVERY_CEPAT";
   lokasi: string;
-  petugasPiket?: string;
-  noHp: string;
+  petugasPiket?: string | null | undefined;
+  noHp?: string | null | undefined;
   totalBelanja: number;
   ongkir: number;
   totalTagihan: number;
@@ -1009,6 +1034,29 @@ export const pesananOnlineList: PesananOnline[] = [
       { nama: "Kopi Hitam Prajurit Sachet", jumlah: 1, harga: 15000 },
     ],
     waktuPesan: "06 Agu 2026 11:20",
+  },
+  {
+    id: "ORD-004",
+    nomorPesanan: "ORD-20260806-0004",
+    anggotaNama: "Kapten Cpm Indra, S.Kom.",
+    anggotaNrp: "1122334455",
+    tipe: "DELIVERY_CEPAT",
+    lokasi: "Rumah Dinas Perwira Blok A No. 05",
+    noHp: "081299887766",
+    totalBelanja: 125000,
+    ongkir: 5000,
+    totalTagihan: 130000,
+    status: "SEDANG_DIANTAR",
+    estimasiMenit: 30,
+    menitBerjalan: 12,
+    isTerlambatSla: false,
+    kompensasiDiskon: 0,
+    items: [
+      { nama: "Beras Premium Koperasi 5 Kg", jumlah: 1, harga: 74000 },
+      { nama: "Kopi Hitam Prajurit Sachet", jumlah: 2, harga: 15000 },
+      { nama: "[UMKM] Keripik Tempe Renyah", jumlah: 1, harga: 15000 },
+    ],
+    waktuPesan: "06 Agu 2026 14:30",
   },
 ];
 
