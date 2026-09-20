@@ -356,7 +356,7 @@ function Page() {
         />
 
         {/* Ringkasan Personal */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4">
           <Card className="shadow-card">
             <CardHeader className="pb-2">
               <CardDescription>Total Pinjaman Saya</CardDescription>
@@ -553,7 +553,7 @@ function Page() {
       />
 
       <Tabs defaultValue="rekap" className="space-y-4">
-        <TabsList className="bg-muted/80 p-1">
+        <TabsList className="bg-muted/80 p-1 h-auto flex flex-wrap gap-1">
           <TabsTrigger value="rekap" className="gap-2 text-xs">
             <Receipt className="size-4" /> Rekap Bulanan Periode
           </TabsTrigger>
@@ -563,7 +563,7 @@ function Page() {
         </TabsList>
 
         <TabsContent value="rekap" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
             <Card className="shadow-card">
               <CardHeader className="pb-2">
                 <CardDescription>Total Tagihan Periode {BULAN_NAMES[selectedBulan - 1]}</CardDescription>

@@ -323,7 +323,7 @@ function JuyarDetail({ item, onBack }: { item: Pinjaman; onBack: () => void }) {
       </div>
 
       <Card className="shadow-card border-primary/20">
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3">
           <div>
             <CardTitle className="text-base flex items-center gap-2">
               <FileText className="size-5 text-primary" />

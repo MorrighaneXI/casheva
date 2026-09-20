@@ -500,27 +500,27 @@ export function TransaksiWidget() {
           {/* Submenu Tabs List */}
           <div className="mt-4">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 h-auto p-1 bg-muted/60">
-                <TabsTrigger value="semua" className="text-xs py-2">
+              <TabsList className="flex flex-wrap sm:inline-flex w-full overflow-x-auto justify-start p-1.5 gap-1.5 h-auto max-w-full bg-muted/70 rounded-xl">
+                <TabsTrigger value="semua" className="text-xs py-2 px-3">
                   Semua ({allTransactions.length})
                 </TabsTrigger>
-                <TabsTrigger value="simpanan" className="text-xs py-2">
-                  <PiggyBank className="size-3 mr-1" /> Simpanan
+                <TabsTrigger value="simpanan" className="text-xs py-2 px-3">
+                  <PiggyBank className="size-3.5 mr-1" /> Simpanan
                 </TabsTrigger>
-                <TabsTrigger value="pinjaman" className="text-xs py-2">
-                  <HandCoins className="size-3 mr-1" /> Pinjaman
+                <TabsTrigger value="pinjaman" className="text-xs py-2 px-3">
+                  <HandCoins className="size-3.5 mr-1" /> Pinjaman
                 </TabsTrigger>
-                <TabsTrigger value="angsuran" className="text-xs py-2">
-                  <Receipt className="size-3 mr-1" /> Angsuran
+                <TabsTrigger value="angsuran" className="text-xs py-2 px-3">
+                  <Receipt className="size-3.5 mr-1" /> Angsuran
                 </TabsTrigger>
-                <TabsTrigger value="pos" className="text-xs py-2">
-                  <ShoppingCart className="size-3 mr-1" /> POS Toko
+                <TabsTrigger value="pos" className="text-xs py-2 px-3">
+                  <ShoppingCart className="size-3.5 mr-1" /> POS Toko
                 </TabsTrigger>
-                <TabsTrigger value="gadai" className="text-xs py-2">
-                  <Gem className="size-3 mr-1" /> Gadai
+                <TabsTrigger value="gadai" className="text-xs py-2 px-3">
+                  <Gem className="size-3.5 mr-1" /> Gadai
                 </TabsTrigger>
-                <TabsTrigger value="supplier" className="text-xs py-2">
-                  <Truck className="size-3 mr-1" /> Supplier
+                <TabsTrigger value="supplier" className="text-xs py-2 px-3">
+                  <Truck className="size-3.5 mr-1" /> Supplier
                 </TabsTrigger>
               </TabsList>
             </Tabs>

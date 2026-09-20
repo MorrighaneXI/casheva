@@ -220,9 +220,9 @@ export function PosWidget() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 md:grid-cols-12 lg:grid-cols-12 gap-6 items-start">
         {/* KOLOM KIRI: GRID KATALOG & SCANNER (8 cols) */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className="md:col-span-8 lg:col-span-8 space-y-4">
           {/* Header Barcode Search Bar */}
           <div className="rounded-2xl border border-sidebar-border/80 bg-card p-4 shadow-card">
             <div className="flex flex-col sm:flex-row gap-3 items-stretch">
@@ -280,7 +280,7 @@ export function PosWidget() {
           </div>
 
           {/* Product Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3.5">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5">
             {filteredProduk.map((prod) => {
               const hargaDiskon = prod.isPromo
                 ? prod.hargaJual - (prod.hargaJual * prod.diskonPersen) / 100
@@ -367,7 +367,7 @@ export function PosWidget() {
         </div>
 
         {/* KOLOM KANAN: KERANJANG & CHECKOUT (4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
+        <div className="md:col-span-4 lg:col-span-4 space-y-4">
           <div className="rounded-2xl border border-sidebar-border/80 bg-card p-4 shadow-card flex flex-col h-full min-h-[580px]">
             {/* Cart Header */}
             <div className="flex items-center justify-between pb-3 border-b border-border">

@@ -219,26 +219,26 @@ function ShuPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex flex-wrap w-full">
-          <TabsTrigger value="distribusi">
-            <PieChart className="mr-1 size-4" /> Distribusi Alokasi AD/ART
+        <TabsList className="flex flex-wrap sm:inline-flex w-full overflow-x-auto justify-start p-1.5 gap-1.5 h-auto max-w-full bg-muted/70 rounded-xl">
+          <TabsTrigger value="distribusi" className="text-xs py-2 px-3">
+            <PieChart className="mr-1.5 size-3.5" /> Distribusi Alokasi AD/ART
           </TabsTrigger>
-          <TabsTrigger value="anggota">
-            <Users className="mr-1 size-4" /> Rincian Pembagian per Anggota
+          <TabsTrigger value="anggota" className="text-xs py-2 px-3">
+            <Users className="mr-1.5 size-3.5" /> Rincian Pembagian per Anggota
           </TabsTrigger>
-          <TabsTrigger value="pendapatan">
-            <TrendingUp className="mr-1 size-4" /> Pos Pendapatan
+          <TabsTrigger value="pendapatan" className="text-xs py-2 px-3">
+            <TrendingUp className="mr-1.5 size-3.5" /> Pos Pendapatan
           </TabsTrigger>
-          <TabsTrigger value="biaya">
-            <TrendingDown className="mr-1 size-4" /> Pos Biaya Operasional
+          <TabsTrigger value="biaya" className="text-xs py-2 px-3">
+            <TrendingDown className="mr-1.5 size-3.5" /> Pos Biaya Operasional
           </TabsTrigger>
         </TabsList>
 
         {/* TAB 1: Distribusi Alokasi */}
         <TabsContent value="distribusi" className="mt-4 space-y-6">
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* 5 Pos Cards */}
-            <div className="lg:col-span-2 space-y-4">
+            <div className="md:col-span-2 lg:col-span-2 space-y-4">
               <Card className="shadow-card">
                 <CardHeader>
                   <CardTitle>Persentase &amp; Nominal Alokasi SHU</CardTitle>

@@ -369,7 +369,7 @@ function AnggotaPage() {
       />
 
       {/* KPI Cards */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card className="shadow-card card-interactive border-primary/20">
           <CardHeader className="pb-1">
             <CardDescription className="flex items-center justify-between">

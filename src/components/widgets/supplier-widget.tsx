@@ -175,7 +175,7 @@ export function SupplierWidget() {
   return (
     <div className="space-y-6">
       {/* 3 Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <div className="rounded-2xl border border-border/80 bg-card p-4 shadow-card">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Mitra Supplier</p>
           <p className="text-2xl font-black text-foreground mt-1">{suppliers.length} Supplier</p>

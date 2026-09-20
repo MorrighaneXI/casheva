@@ -76,7 +76,7 @@ export function PoinUndianWidget() {
   return (
     <div className="space-y-6">
       {/* 3 Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {/* Card 1: Poin Belanja */}
         <div className="rounded-2xl border border-gold/40 bg-gradient-to-br from-gold/15 to-transparent p-5 shadow-card flex flex-col justify-between">
           <div>

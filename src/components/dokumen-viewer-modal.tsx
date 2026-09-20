@@ -447,8 +447,8 @@ export function DokumenViewerModal({
 
           {/* Mode Switcher Tabs jika ada berkas terunggah */}
           {filePath && (
-            <div className="flex items-center justify-between pt-2">
-              <div className="flex gap-1.5 p-1 bg-background rounded-lg border text-xs">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
+              <div className="flex flex-wrap gap-1.5 p-1 bg-background rounded-lg border text-xs">
                 <button
                   onClick={() => setViewMode("uploaded")}
                   className={`px-3 py-1 rounded-md transition-all font-medium flex items-center gap-1.5 ${

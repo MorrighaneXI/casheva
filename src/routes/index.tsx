@@ -323,7 +323,7 @@ function AdminDashboard() {
       />
 
       {/* Main KPI Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpiItems.map((kpi) => (
           <Card key={kpi.label} className="shadow-card card-interactive">
             <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 pb-2">
@@ -350,7 +350,7 @@ function AdminDashboard() {
       </div>
 
       {/* Status Counters */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {statusKpis.map((kpi) => (
           <Card key={kpi.label} className="shadow-card card-interactive">
             <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 pb-2">
@@ -368,8 +368,8 @@ function AdminDashboard() {
       </div>
 
       {/* Analytics Charts */}
-      <div className="grid gap-4 lg:grid-cols-5">
-        <Card className="shadow-card lg:col-span-3">
+      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <Card className="shadow-card md:col-span-2 lg:col-span-3">
           <CardHeader>
             <CardTitle>Tren Simpanan vs Pinjaman</CardTitle>
             <CardDescription>Dalam juta rupiah, Jan – Des 2026</CardDescription>
@@ -564,7 +564,7 @@ function PimpinanDashboard() {
       />
 
       {/* Pimpinan KPIs */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Card className="shadow-card">
           <CardHeader className="pb-2">
             <CardDescription>Menunggu Rekomendasi Dan/Ka</CardDescription>
@@ -604,7 +604,7 @@ function PimpinanDashboard() {
       <RekomendasiQueue monitorOnly={false} />
 
       {/* Satuan Trends */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         <PengajuanSatuanChart />
         <Card className="shadow-card">
           <CardHeader>
@@ -671,7 +671,7 @@ function KeprimDashboard() {
       />
 
       {/* Keprim KPIs */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Card className="shadow-card">
           <CardHeader className="pb-2">
             <CardDescription>Berkas Menunggu ACC Keprim</CardDescription>
@@ -746,7 +746,7 @@ function BendaharaDashboard() {
       />
 
       {/* Bendahara KPIs */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Card className="shadow-card">
           <CardHeader className="pb-2">
             <CardDescription>Pinjaman Siap Dicairkan</CardDescription>
@@ -834,7 +834,7 @@ function JuruBayarDashboard() {
       />
 
       {/* Juyar KPIs */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Card className="shadow-card">
           <CardHeader className="pb-2">
             <CardDescription>Menunggu Verifikasi Gaji</CardDescription>
@@ -1108,7 +1108,7 @@ function AnggotaDashboard() {
       />
 
       {/* KPI Finansial Personal */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpiItems.map((kpi) => (
           <Card key={kpi.label} className="shadow-card card-interactive">
             <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 pb-2">
@@ -1222,7 +1222,7 @@ function AnggotaDashboard() {
       </Card>
 
       {/* Quick Action Buttons */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Button asChild variant="outline" className="h-auto justify-start gap-3 p-4">
           <Link to="/pengajuan">
             <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-primary-soft text-primary">

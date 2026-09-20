@@ -285,7 +285,7 @@ function GajiPage() {
                 value={activeAnggota?.id || ""}
                 onValueChange={(val) => setSelectedAnggotaId(val)}
               >
-                <SelectTrigger className="w-[240px] bg-background">
+                <SelectTrigger className="w-full sm:w-[240px] bg-background">
                   <UserCheck className="size-4 mr-2 text-primary" />
                   <SelectValue placeholder="Pilih Anggota..." />
                 </SelectTrigger>
@@ -314,7 +314,7 @@ function GajiPage() {
       />
 
       {/* Ringkasan Kartu Penghasilan */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Card className="shadow-card card-interactive border-primary/20">
           <CardHeader className="pb-2">
             <CardDescription>Gaji Bruto</CardDescription>
@@ -365,7 +365,7 @@ function GajiPage() {
       </div>
 
       {/* Rincian Komponen Pendapatan & Potongan */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         {/* Komponen Pendapatan */}
         <Card className="shadow-card">
           <CardHeader>

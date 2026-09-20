@@ -205,8 +205,8 @@ export function GadaiWidget() {
 
       {/* TAB 1: KALKULATOR TAKSIRAN */}
       {activeTab === "SIMULATOR" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div className="lg:col-span-7 rounded-2xl border border-border bg-card p-5 shadow-card space-y-4 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-12 lg:grid-cols-12 gap-6 items-start">
+          <div className="md:col-span-7 lg:col-span-7 rounded-2xl border border-border bg-card p-5 shadow-card space-y-4 text-xs">
             <h3 className="text-sm font-bold text-foreground">Parameter Simulasi Penaksiran</h3>
 
             {/* Kategori Toggle */}
@@ -308,7 +308,7 @@ export function GadaiWidget() {
           </div>
 
           {/* Result Card */}
-          <div className="lg:col-span-5 rounded-2xl border border-primary/20 bg-primary/5 p-5 shadow-card space-y-4">
+          <div className="md:col-span-5 lg:col-span-5 rounded-2xl border border-primary/20 bg-primary/5 p-5 shadow-card space-y-4">
             <div className="flex items-center justify-between pb-2 border-b border-primary/20">
               <span className="text-xs font-bold text-primary uppercase tracking-wider">Hasil Taksiran Resmi</span>
               <Badge className="bg-emerald-600 text-white text-[10px] font-bold">LTV 70-85%</Badge>
