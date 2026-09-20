@@ -601,7 +601,7 @@ function LaporanPage() {
               <Users className="mr-1.5 size-3.5" /> Lampiran II (Anggota)
             </TabsTrigger>
             <TabsTrigger value="lampiran3" className="text-xs py-2 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-semibold">
-              <FileText className="mr-1.5 size-3.5" /> Lampiran III (Brosur 1M-100M)
+              <FileText className="mr-1.5 size-3.5" /> Lampiran III (Brosur)
             </TabsTrigger>
             <TabsTrigger value="lampiran4" className="text-xs py-2 px-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-semibold">
               <BookOpen className="mr-1.5 size-3.5" /> Lampiran IV (Simpanan)
@@ -635,17 +635,15 @@ function LaporanPage() {
               <button
                 type="button"
                 onClick={() => setOrientation("landscape")}
-                className={`text-xs px-3 py-1 rounded-md font-bold transition-colors flex items-center gap-1.5 ${
-                  orientation === "landscape"
+                className={`text-xs px-3 py-1 rounded-md font-bold transition-colors flex items-center gap-1.5 ${orientation === "landscape"
                     ? "bg-primary text-primary-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
+                  }`}
               >
                 Landscape
                 {RECOMMENDED_ORIENTATION[activeTab] === "landscape" && (
-                  <span className={`text-[9px] px-1 py-0.2 rounded font-medium ${
-                    orientation === "landscape" ? "bg-white/20 text-white" : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                  }`}>
+                  <span className={`text-[9px] px-1 py-0.2 rounded font-medium ${orientation === "landscape" ? "bg-white/20 text-white" : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                    }`}>
                     Rekomendasi
                   </span>
                 )}
@@ -653,17 +651,15 @@ function LaporanPage() {
               <button
                 type="button"
                 onClick={() => setOrientation("portrait")}
-                className={`text-xs px-3 py-1 rounded-md font-bold transition-colors flex items-center gap-1.5 ${
-                  orientation === "portrait"
+                className={`text-xs px-3 py-1 rounded-md font-bold transition-colors flex items-center gap-1.5 ${orientation === "portrait"
                     ? "bg-primary text-primary-foreground shadow-xs"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
+                  }`}
               >
                 Portrait
                 {RECOMMENDED_ORIENTATION[activeTab] === "portrait" && (
-                  <span className={`text-[9px] px-1 py-0.2 rounded font-medium ${
-                    orientation === "portrait" ? "bg-white/20 text-white" : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                  }`}>
+                  <span className={`text-[9px] px-1 py-0.2 rounded font-medium ${orientation === "portrait" ? "bg-white/20 text-white" : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
+                    }`}>
                     Rekomendasi
                   </span>
                 )}
@@ -792,9 +788,8 @@ function LaporanPage() {
 
       {/* PRINT CONTAINER / SHEET */}
       <div
-        className={`print-document-container bg-white text-black rounded-xl shadow-lg border border-border mx-auto font-sans transition-all duration-200 ${
-          orientation === "landscape" ? "max-w-[297mm]" : "max-w-[210mm]"
-        }`}
+        className={`print-document-container bg-white text-black rounded-xl shadow-lg border border-border mx-auto font-sans transition-all duration-200 ${orientation === "landscape" ? "max-w-[297mm]" : "max-w-[210mm]"
+          }`}
         style={{
           paddingTop: `${activeMargin.top}cm`,
           paddingBottom: `${activeMargin.bottom}cm`,
@@ -1594,14 +1589,23 @@ function LaporanPage() {
                     ))
                   )}
                   {/* FOOTER JUMLAH */}
-                  <tr className="font-bold text-center bg-transparent">
-                    <td className="border border-black px-2 py-1 text-center" colSpan={3}>JUMLAH</td>
-                    <td className="border border-black px-2 py-1 text-right">{formatAngkaDot((reportShu as any)?.totalSimpanan || 0)}</td>
-                    <td className="border border-black px-2 py-1 text-right">{formatAngkaDot((reportShu as any)?.totalPinjaman || 0)}</td>
-                    <td className="border border-black px-2 py-1 text-right">{formatAngkaDot((reportShu as any)?.totalShuModal || 0)}</td>
-                    <td className="border border-black px-2 py-1 text-right">{formatAngkaDot((reportShu as any)?.totalShuUsaha || 0)}</td>
-                    <td className="border border-black px-2 py-1 text-right font-extrabold">{formatAngkaDot((reportShu as any)?.totalShu || 0)}</td>
-                  </tr>
+                  {(() => {
+                    const totSimpanan = shuList.reduce((s: number, r: any) => s + (r.simpanan || 1050000), 0);
+                    const totPinjaman = shuList.reduce((s: number, r: any) => s + (r.pinjaman || 10000000), 0);
+                    const totShuModal = shuList.reduce((s: number, r: any) => s + (r.shuModal || r.jasaModal || 150000), 0);
+                    const totShuUsaha = shuList.reduce((s: number, r: any) => s + (r.shuUsaha || r.jasaUsaha || 250000), 0);
+                    const totTotalShu = shuList.reduce((s: number, r: any) => s + (r.totalShu || r.total || 400000), 0);
+                    return (
+                      <tr className="font-bold text-center bg-transparent">
+                        <td className="border border-black px-2 py-1 text-center" colSpan={3}>JUMLAH</td>
+                        <td className="border border-black px-2 py-1 text-right">{formatAngkaDot(totSimpanan)}</td>
+                        <td className="border border-black px-2 py-1 text-right">{formatAngkaDot(totPinjaman)}</td>
+                        <td className="border border-black px-2 py-1 text-right">{formatAngkaDot(totShuModal)}</td>
+                        <td className="border border-black px-2 py-1 text-right">{formatAngkaDot(totShuUsaha)}</td>
+                        <td className="border border-black px-2 py-1 text-right font-extrabold">{formatAngkaDot(totTotalShu)}</td>
+                      </tr>
+                    );
+                  })()}
                 </tbody>
               </table>
             </div>
@@ -1638,7 +1642,7 @@ function LaporanPage() {
             {/* Kopstuk Kanan Per Lampiran */}
             <div className="space-y-4">
               <p className="text-xs font-bold uppercase tracking-wider text-primary">Kopstuk Kanan Masing-Masing Lampiran</p>
-              
+
               {Object.keys(DEFAULT_LAMPIRAN_KOPSTUK).map((lampKey) => {
                 const cfg = lampiranKopstuk[lampKey] || DEFAULT_LAMPIRAN_KOPSTUK[lampKey];
                 const label = lampKey.replace("lampiran", "Lampiran ");
