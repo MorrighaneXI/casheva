@@ -443,11 +443,11 @@ function PengajuanPage() {
       />
 
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-6">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
-          <TabsTrigger value="pinjaman" className="gap-2">
+        <TabsList className="h-auto flex flex-wrap gap-1 w-full max-w-md p-1">
+          <TabsTrigger value="pinjaman" className="gap-2 flex-1 min-w-[140px]">
             <Wallet className="size-4" /> Pengajuan Pinjaman
           </TabsTrigger>
-          <TabsTrigger value="simpanan" className="gap-2">
+          <TabsTrigger value="simpanan" className="gap-2 flex-1 min-w-[140px]">
             <PiggyBank className="size-4" /> {canRecordSimpanan ? "Catat Simpanan" : "Info Simpanan"}
           </TabsTrigger>
         </TabsList>
@@ -456,7 +456,7 @@ function PengajuanPage() {
         {/* TAB 1: PENGAJUAN PINJAMAN */}
         {/* ============================================================== */}
         <TabsContent value="pinjaman" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
             {/* Left 2 Cols: Form Input */}
             <div className="space-y-6 lg:col-span-2">
               {/* 1. Data Personel Pemohon */}
@@ -942,7 +942,7 @@ function PengajuanPage() {
         {/* TAB 2: PENGAJUAN SIMPANAN KHUSUS & SUKARELA */}
         {/* ============================================================== */}
         <TabsContent value="simpanan" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
             <div className="space-y-6 lg:col-span-2">
               {canRecordSimpanan ? (
                 <Card className="shadow-card">

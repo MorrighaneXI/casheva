@@ -18,7 +18,7 @@ export type Kpi = {
 
 export function KpiGrid({ items }: { items: Kpi[] }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {items.map((kpi) => (
         <Card key={kpi.label} className="shadow-card">
           <CardHeader className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 pb-2">

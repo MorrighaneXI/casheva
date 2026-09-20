@@ -716,7 +716,7 @@ function SimpananPage() {
         />
 
         {/* Ringkasan Saldo Personal */}
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="shadow-card card-interactive border-primary/20">
             <CardHeader className="pb-2">
               <CardDescription className="flex items-center gap-1.5">
@@ -958,25 +958,26 @@ function SimpananPage() {
         title="Transaksi & Rekap Simpanan Koperasi"
         description="Pengelolaan simpanan pokok, wajib, sukarela, dan khusus dengan pengaturan nominal dinamis oleh Bendahara."
         actions={
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full lg:w-auto">
             {isJuruBayarOrAbove && (
               <>
                 <Button
                   variant="outline"
-                  className="gap-1.5 border-emerald-500/40 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-semibold"
+                  className="w-full justify-center gap-1.5 border-emerald-500/40 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-semibold shadow-sm h-9 text-xs sm:text-sm px-3.5 rounded-xl"
                   onClick={() => setOpenSukarelaModal(true)}
                 >
-                  <PiggyBank className="size-4" /> Input Simpanan Sukarela
+                  <PiggyBank className="size-4 shrink-0" /> Input Simpanan Sukarela
                 </Button>
                 <Button
                   variant="outline"
+                  className="w-full justify-center gap-1.5 font-medium shadow-sm h-9 text-xs sm:text-sm px-3.5 rounded-xl"
                   disabled={massalMutation.isPending}
                   onClick={() => massalMutation.mutate()}
                 >
                   {massalMutation.isPending ? (
-                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    <Loader2 className="mr-1.5 size-4 animate-spin shrink-0" />
                   ) : (
-                    <RefreshCw className="mr-2 size-4" />
+                    <RefreshCw className="mr-1.5 size-4 shrink-0" />
                   )}
                   Auto Potong Sukarela (Tgl 5)
                 </Button>
@@ -986,13 +987,16 @@ function SimpananPage() {
               <>
                 <Button
                   variant="outline"
-                  className="gap-1.5 border-amber-500/40 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 font-semibold"
+                  className="w-full justify-center gap-1.5 border-amber-500/40 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 font-semibold shadow-sm h-9 text-xs sm:text-sm px-3.5 rounded-xl"
                   onClick={() => setOpenKhususModal(true)}
                 >
-                  <Coins className="size-4" /> Input Simpanan Khusus
+                  <Coins className="size-4 shrink-0" /> Input Simpanan Khusus
                 </Button>
-                <Button onClick={() => setOpenSetorModal(true)} className="shadow-md">
-                  <Plus className="mr-2 size-4" /> Catat Setoran Simpanan
+                <Button
+                  onClick={() => setOpenSetorModal(true)}
+                  className="w-full justify-center gap-1.5 shadow-md h-9 text-xs sm:text-sm px-3.5 font-bold rounded-xl"
+                >
+                  <Plus className="size-4 shrink-0" /> Catat Setoran Simpanan
                 </Button>
               </>
             )}
@@ -1001,7 +1005,7 @@ function SimpananPage() {
       />
 
       {/* Summary Cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         <Card className="shadow-card card-interactive border-primary/20">
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-1.5">

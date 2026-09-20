@@ -153,7 +153,7 @@ export function PesananAntarWidget() {
   return (
     <div className="space-y-6">
       {/* 3 Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 shadow-card">
           <p className="text-xs font-semibold text-primary uppercase tracking-wider flex items-center gap-1.5">
             <Truck className="size-3.5" /> {isStaff ? "Pesanan Sedang Diantar" : "Pesanan Saya Sedang Diantar"}
