@@ -18,7 +18,7 @@ export function SatminkalFilter({
   showAllOption = true,
   disabled = false,
 }: SatminkalFilterProps) {
-  const { isKotamaAdmin, isGuestMode } = useSession();
+  const { isKotamaAdmin, isGuestMode, kotamaId } = useSession();
   const [list, setList] = useState<SatminkalSummaryItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -28,7 +28,7 @@ export function SatminkalFilter({
     async function load() {
       try {
         setLoading(true);
-        const data = await apiKotama.getSatminkalList();
+        const data = await apiKotama.getSatminkalList(kotamaId);
         if (isMounted) {
           setList(data || []);
         }
@@ -44,7 +44,7 @@ export function SatminkalFilter({
     return () => {
       isMounted = false;
     };
-  }, [isKotamaAdmin, isGuestMode]);
+  }, [isKotamaAdmin, isGuestMode, kotamaId]);
 
   // If not Kotama Admin and not in Guest Mode, don't show the multi-satminkal filter
   if (!isKotamaAdmin && !isGuestMode) {

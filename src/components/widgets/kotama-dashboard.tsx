@@ -101,7 +101,7 @@ export function KotamaDashboardView() {
     refetch: refetchSatminkal,
   } = useQuery({
     queryKey: ["kotama-satminkal-list", kotamaId],
-    queryFn: () => apiKotama.getSatminkalList(),
+    queryFn: () => apiKotama.getSatminkalList(kotamaId),
     refetchInterval: 10000,
   });
 
@@ -143,7 +143,9 @@ export function KotamaDashboardView() {
     }
   };
 
-  const filteredSatminkal = satminkalList.filter((s) => {
+  const satminkalDataSource = satminkalList.length > 0 ? satminkalList : (summary?.satminkals || []);
+
+  const filteredSatminkal = satminkalDataSource.filter((s) => {
     const q = searchTerm.toLowerCase();
     return (
       s.nama.toLowerCase().includes(q) ||
@@ -558,13 +560,13 @@ export function KotamaDashboardView() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-semibold text-xs">
-                        {sat.totalAnggota ?? 20} Personel
+                        {sat.totalAnggota ?? 0} Personel
                       </TableCell>
                       <TableCell className="text-right font-semibold text-xs text-primary font-mono">
                         {formatRp(sat.totalSimpanan ?? 0)}
                       </TableCell>
                       <TableCell className="text-right font-semibold text-xs text-accent-foreground font-mono">
-                        {formatRp(sat.totalPinjaman ?? 0)}
+                        {formatRp(sat.pinjamanBerjalan ?? sat.totalPinjaman ?? 0)}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge variant="outline" className="bg-primary-soft text-primary border-primary/20 text-[10px] font-semibold">

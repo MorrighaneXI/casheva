@@ -59,7 +59,7 @@ export const Route = createFileRoute("/satminkal")({
 function SatminkalPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const { isKotamaAdmin, kotama, startMonitoring, isGuestMode } = useSession();
+  const { isKotamaAdmin, kotama, kotamaId, startMonitoring, isGuestMode } = useSession();
   const [searchTerm, setSearchTerm] = useState("");
 
   // Dialog state
@@ -88,8 +88,8 @@ function SatminkalPage() {
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["kotama-satminkal-list"],
-    queryFn: () => apiKotama.getSatminkalList(),
+    queryKey: ["kotama-satminkal-list", kotamaId],
+    queryFn: () => apiKotama.getSatminkalList(kotamaId),
   });
 
   // Create Satminkal Mutation
@@ -297,13 +297,13 @@ function SatminkalPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right text-xs font-semibold">
-                        {sat.totalAnggota ?? 20} Org
+                        {sat.totalAnggota ?? 0} Org
                       </TableCell>
                       <TableCell className="text-right text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
                         {formatRp(sat.totalSimpanan ?? 0)}
                       </TableCell>
                       <TableCell className="text-right text-xs font-bold text-amber-600 dark:text-amber-400 font-mono">
-                        {formatRp(sat.totalPinjaman ?? 0)}
+                        {formatRp(sat.pinjamanBerjalan ?? sat.totalPinjaman ?? 0)}
                       </TableCell>
                       <TableCell className="text-center">
                         <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-[10px] font-semibold">

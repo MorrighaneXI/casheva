@@ -46,6 +46,33 @@ export async function apiRequest<T = any>(
     headers.set("X-CSRF-Token", "casheva-secure-client");
   }
 
+  // Dynamic Guest Monitoring Header for Admin Kotama -> Satminkal / Super Admin -> Kotama
+  if (typeof window !== "undefined") {
+    const rawMonitoring = localStorage.getItem("casheva.guest_monitoring");
+    if (rawMonitoring && !headers.has("satminkal-id")) {
+      try {
+        const mon = JSON.parse(rawMonitoring);
+        if (mon && (mon.id || mon.satminkalId)) {
+          headers.set("satminkal-id", mon.id || mon.satminkalId);
+        }
+      } catch {
+        // ignore parse error
+      }
+    }
+
+    const rawKotamaMonitoring = localStorage.getItem("casheva.guest_monitoring_kotama");
+    if (rawKotamaMonitoring && !headers.has("kotama-id")) {
+      try {
+        const monKotama = JSON.parse(rawKotamaMonitoring);
+        if (monKotama && (monKotama.id || monKotama.kotamaId)) {
+          headers.set("kotama-id", monKotama.id || monKotama.kotamaId);
+        }
+      } catch {
+        // ignore parse error
+      }
+    }
+  }
+
   // Jika body bukan FormData, pasang Content-Type JSON jika belum diset
   if (options.body && !(options.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
