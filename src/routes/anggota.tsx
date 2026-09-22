@@ -70,17 +70,18 @@ import {
 import { apiAnggota, apiMaster, apiSimpanan, type Anggota, type Korps, type Pangkat } from "@/lib/api";
 import { exportToExcel } from "@/lib/export-excel";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { useSession } from "@/components/session-context";
 
 export const Route = createFileRoute("/anggota")({
   head: () => ({
     meta: [
-      { title: "Data Anggota & Simpanan — Casheva Koperasi TNI AD" },
+      { title: "Data Anggota & Simpanan — SISKOPAD Sistem Koperasi TNI AD" },
       {
         name: "description",
         content:
           "Master data anggota koperasi TNI AD lengkap dengan NRP, pangkat, korps, satminkal, dan posisi simpanan.",
       },
-      { property: "og:title", content: "Data Anggota & Simpanan — Casheva" },
+      { property: "og:title", content: "Data Anggota & Simpanan — SISKOPAD" },
       {
         property: "og:description",
         content: "Kelola master data anggota dan simpanan koperasi TNI AD.",
@@ -94,6 +95,7 @@ type CategoryFilter = "ALL" | "PATI" | "PAMEN" | "PAMA" | "BINTARA" | "PNS";
 
 function AnggotaPage() {
   const queryClient = useQueryClient();
+  const { satminkal: sessionSatminkal } = useSession();
   const [q, setQ] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("ALL");
   const [edit, setEdit] = useState<Anggota | null>(null);
@@ -477,9 +479,8 @@ function AnggotaPage() {
                   variant={categoryFilter === tab.key ? "default" : "outline"}
                   size="sm"
                   onClick={() => setCategoryFilter(tab.key as CategoryFilter)}
-                  className={`h-8 text-xs px-2.5 transition-all ${
-                    categoryFilter === tab.key ? "shadow-sm font-semibold" : "text-muted-foreground"
-                  }`}
+                  className={`h-8 text-xs px-2.5 transition-all ${categoryFilter === tab.key ? "shadow-sm font-semibold" : "text-muted-foreground"
+                    }`}
                 >
                   {tab.label}
                 </Button>
@@ -792,9 +793,9 @@ function AnggotaPage() {
             <div className="space-y-1.5">
               <Label>Satuan</Label>
               <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs font-semibold text-foreground">
-                INFOLAHTADAM IV/DIP
+                {sessionSatminkal || "Satminkal Pangkalan"}
               </div>
-              <p className="text-[10px] text-muted-foreground">Satuan tetap — seluruh personel terdaftar di INFOLAHTADAM IV/DIP</p>
+              <p className="text-[10px] text-muted-foreground">Satuan pendaftaran anggota otomatis sesuai pangkalan Satminkal Anda</p>
             </div>
 
             <div className="space-y-1.5">

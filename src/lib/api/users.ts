@@ -30,13 +30,33 @@ export interface UpdateUserDto {
   phone?: string | undefined;
 }
 
+const USERS_CACHE_KEY = 'casheva.users_cache';
+
 export const apiUsers = {
   findAll: async (): Promise<UserItem[]> => {
-    return api.get<UserItem[]>('/users');
+    try {
+      const data = await api.get<UserItem[]>('/users');
+      if (Array.isArray(data) && data.length > 0) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(data));
+        }
+      }
+      return data;
+    } catch (err) {
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem(USERS_CACHE_KEY);
+        if (cached) {
+          try {
+            return JSON.parse(cached);
+          } catch {}
+        }
+      }
+      throw err;
+    }
   },
 
   list: async (): Promise<UserItem[]> => {
-    return api.get<UserItem[]>('/users');
+    return apiUsers.findAll();
   },
 
   findOne: async (id: string): Promise<UserItem> => {

@@ -6,9 +6,9 @@ import { LikuiditasChart } from "@/components/widgets/role-widgets";
 export const Route = createFileRoute("/likuiditas")({
   head: () => ({
     meta: [
-      { title: "Monitoring Likuiditas Kas — Casheva Koperasi TNI AD" },
+      { title: "Monitoring Likuiditas Kas — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Pemantauan kas tersedia terhadap pencairan pinjaman." },
-      { property: "og:title", content: "Monitoring Likuiditas Kas — Casheva" },
+      { property: "og:title", content: "Monitoring Likuiditas Kas — SISKOPAD" },
       { property: "og:description", content: "Pemantauan kas tersedia terhadap pencairan pinjaman." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

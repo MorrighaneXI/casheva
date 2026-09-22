@@ -50,7 +50,7 @@ import { apiKeuangan, apiReports } from "@/lib/api";
 export const Route = createFileRoute("/shu")({
   head: () => ({
     meta: [
-      { title: "Pengawasan SHU — Casheva Koperasi TNI AD" },
+      { title: "Pengawasan SHU — SISKOPAD Sistem Koperasi TNI AD" },
       {
         name: "description",
         content:

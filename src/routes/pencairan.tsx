@@ -16,9 +16,9 @@ import { api } from "@/lib/api/client";
 export const Route = createFileRoute("/pencairan")({
   head: () => ({
     meta: [
-      { title: "Pencairan & Invoice — Casheva Koperasi TNI AD" },
+      { title: "Pencairan & Invoice — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Generator kwitansi dan penomoran invoice otomatis." },
-      { property: "og:title", content: "Pencairan & Invoice — Casheva" },
+      { property: "og:title", content: "Pencairan & Invoice — SISKOPAD" },
       { property: "og:description", content: "Generator kwitansi dan penomoran invoice otomatis." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

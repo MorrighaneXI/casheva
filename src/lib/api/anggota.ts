@@ -42,25 +42,19 @@ function saveLocalAnggotaCache(list: Anggota[]) {
 }
 
 export const apiAnggota = {
-  findAll: async (hanyaAktif?: boolean): Promise<Anggota[]> => {
-    const localCache = getLocalAnggotaCache();
+  findAll: async (hanyaAktif?: boolean, satminkalId?: string): Promise<Anggota[]> => {
     try {
-      const query = hanyaAktif !== undefined ? `?hanyaAktif=${hanyaAktif}` : '';
-      const serverList = await api.get<Anggota[]>(`/anggota${query}`);
-      
-      // Merge server list with local created members if any
-      const map = new Map<string, Anggota>();
-      serverList.forEach((a) => map.set(a.nrpNip, a));
-      localCache.forEach((a) => {
-        if (!map.has(a.nrpNip)) {
-          map.set(a.nrpNip, a);
-        }
-      });
-      const merged = Array.from(map.values());
-      saveLocalAnggotaCache(merged);
-      return merged;
+      const params = new URLSearchParams();
+      if (hanyaAktif !== undefined) params.set('hanyaAktif', String(hanyaAktif));
+      if (satminkalId) params.set('satminkalId', satminkalId);
+      const qs = params.toString() ? `?${params.toString()}` : '';
+      const serverList = await api.get<Anggota[]>(`/anggota${qs}`);
+      // Save server response as cache for offline use (replaces stale data)
+      saveLocalAnggotaCache(serverList);
+      return serverList;
     } catch {
-      // Fallback to local cache if offline
+      // Fallback to local cache only if backend is unreachable
+      const localCache = getLocalAnggotaCache();
       return hanyaAktif ? localCache.filter((a) => a.isAktif) : localCache;
     }
   },
@@ -83,22 +77,31 @@ export const apiAnggota = {
       created = await api.post<Anggota>('/anggota', dto);
     } catch {
       // Create locally if backend unreachable
+      let sessionUser: any = null;
+      try {
+        const raw = typeof window !== 'undefined' ? localStorage.getItem('casheva.user') : null;
+        if (raw) sessionUser = JSON.parse(raw);
+      } catch {}
+      const satId = sessionUser?.satminkalId || 'satminkal-1';
+      const satNama = sessionUser?.satminkal || 'INFOLAHTADAM IV/DIPONEGORO';
+      const kotId = sessionUser?.kotamaId || 'kotama-1';
+
       created = {
         id: `ang-${Date.now()}`,
         nama: dto.nama,
         nrpNip: dto.nrpNip,
         pangkatId: dto.pangkatId,
         korpsId: dto.korpsId,
-        satminkalId: 'satminkal-1',
+        satminkalId: satId,
         isAktif: true,
         tmtAnggota: dto.tmtAnggota || new Date().toISOString(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         satminkal: {
-          id: 'satminkal-1',
-          kode: 'INFOLAHTA',
-          nama: 'INFOLAHTADAM IV/DIPONEGORO',
-          kotamaId: 'kotama-1',
+          id: satId,
+          kode: satNama.split(' ')[0] || 'SAT',
+          nama: satNama,
+          kotamaId: kotId,
         },
       };
     }

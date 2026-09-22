@@ -5,7 +5,7 @@ import { TransaksiWidget } from "@/components/widgets/transaksi-widget";
 export const Route = createFileRoute("/transaksi")({
   head: () => ({
     meta: [
-      { title: "Rekapitulasi Semua Transaksi & Ekspor Excel — Casheva Koperasi TNI AD" },
+      { title: "Rekapitulasi Semua Transaksi & Ekspor Excel — SISKOPAD Sistem Koperasi TNI AD" },
       {
         name: "description",
         content:

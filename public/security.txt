@@ -1,0 +1,14 @@
+# ==============================================================================
+# SISKOPAD (Sistem Koperasi TNI Angkatan Darat) - Security Policy
+# Canonical RFC 9116 Vulnerability Disclosure Policy
+# ==============================================================================
+
+Contact: mailto:cyber-security@tni-ad.mil.id
+Contact: mailto:siskopad-security@tni-ad.mil.id
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: id, en
+Canonical: https://siskopad.tni-ad.mil.id/.well-known/security.txt
+Policy: https://siskopad.tni-ad.mil.id/security-policy
+Acknowledgments: https://siskopad.tni-ad.mil.id/hall-of-fame
+Hiring: https://tniad.mil.id/karir
+Encryption: https://siskopad.tni-ad.mil.id/pgp-key.asc

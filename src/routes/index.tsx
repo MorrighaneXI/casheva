@@ -92,17 +92,19 @@ import {
   BatchSimpananBanner,
   ApprovalTrailTimeline,
 } from "@/components/widgets/role-widgets";
+import { KotamaDashboardView } from "@/components/widgets/kotama-dashboard";
+import { SuperAdminDashboardView } from "@/components/widgets/super-admin-dashboard";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Casheva Koperasi TNI AD" },
+      { title: "Dashboard — SISKOPAD Sistem Koperasi TNI AD" },
       {
         name: "description",
         content:
           "Dasbor terintegrasi pengelolaan simpanan, pinjaman berjenjang, dan SHU Koperasi Simpan Pinjam TNI AD.",
       },
-      { property: "og:title", content: "Dashboard — Casheva" },
+      { property: "og:title", content: "Dashboard — SISKOPAD" },
       {
         property: "og:description",
         content: "KPI koperasi TNI AD: anggota, simpanan, pinjaman, dan SHU.",
@@ -113,14 +115,27 @@ export const Route = createFileRoute("/")({
 });
 
 function DashboardPage() {
-  const { role } = useSession();
+  const { role, isGuestMode, monitoringKotama, monitoringSatminkal } = useSession();
 
   return (
     <div className="space-y-6">
 
       {/* Render Role-Specific Dashboard */}
       {(() => {
+        // If in Guest Mode for Kotama (Super Admin -> Kotama), show Kotama Dashboard
+        if (isGuestMode && monitoringKotama) {
+          return <KotamaDashboardView />;
+        }
+        // If in Guest Mode for Satminkal (Kotama -> Satminkal), show Satminkal Admin Dashboard
+        if (isGuestMode && monitoringSatminkal) {
+          return <AdminDashboard />;
+        }
+
         switch (role) {
+          case "Super Admin":
+            return <SuperAdminDashboardView />;
+          case "Admin Kotama":
+            return <KotamaDashboardView />;
           case "Admin Koperasi":
             return <AdminDashboard />;
           case "Pimpinan / Dan / Ka":
@@ -181,10 +196,10 @@ function AdminDashboard() {
   const handleConfirmBackup = async () => {
     try {
       setIsBackingUp(true);
-      await apiBackup.downloadEncryptedFile();
+      const filename = await apiBackup.downloadEncryptedFile();
       toast.success("Cadangan Database Terenkripsi Berhasil", {
         description:
-          "File cadangan standar militer AES-256-GCM (.casheva.enc) berhasil diunduh dan tersimpan aman.",
+          `File cadangan data Satminkal (${filename}) berhasil diunduh dan tersimpan aman (AES-256-GCM).`,
       });
       setBackupDialogOpen(false);
       refetchBackupStatus();
@@ -315,7 +330,7 @@ function AdminDashboard() {
         variant="success"
         icon={<Database className="size-6 text-emerald-600 dark:text-emerald-400" />}
         details={[
-          { label: "Format File", value: ".casheva.enc (Encrypted JSON Bundle)" },
+          { label: "Format File", value: ".siskopad.enc (Encrypted JSON Bundle)" },
           { label: "Algoritma Enkripsi", value: "AES-256-GCM + IV 12-byte + Auth Tag" },
           { label: "Verifikasi Integritas", value: "SHA-256 Checksum Included" },
           { label: "Perlindungan", value: "Anti-Ransomware & Disaster Recovery" },

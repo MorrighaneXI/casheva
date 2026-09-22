@@ -6,9 +6,9 @@ import { ApprovalTrailTimeline } from "@/components/widgets/role-widgets";
 export const Route = createFileRoute("/audit-flow")({
   head: () => ({
     meta: [
-      { title: "Audit Flow Approval — Casheva Koperasi TNI AD" },
+      { title: "Audit Flow Approval — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Transparansi alur persetujuan berjenjang pengajuan pinjaman." },
-      { property: "og:title", content: "Audit Flow Approval — Casheva" },
+      { property: "og:title", content: "Audit Flow Approval — SISKOPAD" },
       { property: "og:description", content: "Transparansi alur persetujuan berjenjang pengajuan pinjaman." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

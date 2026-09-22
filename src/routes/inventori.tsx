@@ -5,9 +5,9 @@ import { InventoriWidget } from "@/components/widgets/inventori-widget";
 export const Route = createFileRoute("/inventori")({
   head: () => ({
     meta: [
-      { title: "Katalog & Stok Barang Toko — Casheva Koperasi TNI AD" },
+      { title: "Katalog & Stok Barang Toko — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Manajemen inventori barang, multi-satuan Box ke Pcs, HPP modal, dan stock opname." },
-      { property: "og:title", content: "Katalog & Stok Barang Toko — Casheva" },
+      { property: "og:title", content: "Katalog & Stok Barang Toko — SISKOPAD" },
       { property: "og:description", content: "Manajemen inventori barang toko koperasi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

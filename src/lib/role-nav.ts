@@ -28,6 +28,8 @@ import {
   Clock,
   ShoppingBag,
   ArrowLeftRight,
+  Building2,
+  Layers,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/casheva-data";
@@ -45,6 +47,86 @@ export type NavGroup = {
 };
 
 export const roleNavGrouped: Record<Role, NavGroup[]> = {
+  "Super Admin": [
+    {
+      groupTitle: "Utama",
+      items: [
+        { title: "Dashboard", url: "/", icon: LayoutDashboard },
+        { title: "Monitoring Kotama", url: "/monitoring-kotama", icon: Building2 },
+      ],
+    },
+    {
+      groupTitle: "Master dan Pengaturan",
+      items: [
+        { title: "Manajemen User & Anggota", url: "/users", icon: Users },
+        { title: "Kelola Jajaran", url: "/kelola-jajaran", icon: Layers },
+        { title: "Data Anggota Koperasi", url: "/anggota", icon: UsersRound },
+        { title: "Master Data TNI AD", url: "/master-data", icon: Database },
+        { title: "Kopstuk & TTD", url: "/kopstuk", icon: Stamp },
+        { title: "Audit Logs", url: "/audit", icon: ScrollText },
+      ],
+    },
+  ],
+
+  "Admin Kotama": [
+    {
+      groupTitle: "Utama",
+      items: [
+        { title: "Dashboard", url: "/", icon: LayoutDashboard },
+        { title: "Satminkal", url: "/satminkal", icon: Database },
+      ],
+    },
+    {
+      groupTitle: "Simpan Pinjam",
+      items: [
+        { title: "Simpanan Anggota", url: "/simpanan", icon: PiggyBank },
+        { title: "Rekap Angsuran", url: "/angsuran", icon: ListChecks },
+      ],
+    },
+    {
+      groupTitle: "Unit Toko dan Usaha",
+      items: [
+        { title: "Katalog & Stok Barang", url: "/inventori", icon: Boxes },
+        { title: "Kasir POS Toko", url: "/pos", icon: ShoppingCart },
+        { title: "Supplier & Pengadaan", url: "/supplier", icon: Truck },
+        { title: "Pesanan Antar & Piket", url: "/pesanan-antar", icon: Clock },
+        { title: "Marketplace Anggota", url: "/marketplace-anggota", icon: Store },
+        { title: "Unit Gadai & Lelang", url: "/gadai", icon: Gem },
+        { title: "Poin & Undian RAT", url: "/poin-undian", icon: Gift },
+      ],
+    },
+    {
+      groupTitle: "Rekap Transaksi",
+      items: [
+        { title: "Semua Transaksi", url: "/transaksi", icon: ArrowLeftRight },
+        { title: "Riwayat Transaksi Toko", url: "/toko-transaksi", icon: ShoppingBag },
+        { title: "Laporan Keuangan Toko", url: "/laporan-toko", icon: FileBarChart },
+      ],
+    },
+    {
+      groupTitle: "Pengawasan",
+      items: [
+        { title: "Likuiditas KAS", url: "/likuiditas", icon: Wallet },
+        { title: "Pengawasan SHU", url: "/shu", icon: Calculator },
+      ],
+    },
+    {
+      groupTitle: "Laporan",
+      items: [
+        { title: "Laporan Keuangan", url: "/laporan", icon: FileBarChart },
+      ],
+    },
+    {
+      groupTitle: "Master dan Pengaturan",
+      items: [
+        { title: "Data Anggota Koperasi", url: "/anggota", icon: UsersRound },
+        { title: "Master Data TNI AD", url: "/master-data", icon: Database },
+        { title: "Kopstuk & TTD", url: "/kopstuk", icon: Stamp },
+        { title: "Audit Logs", url: "/audit", icon: ScrollText },
+      ],
+    },
+  ],
+
   "Admin Koperasi": [
     {
       groupTitle: "Utama",

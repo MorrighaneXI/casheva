@@ -134,25 +134,32 @@ export interface ReportRekapKwitansiBulananResponse {
 }
 
 export const apiReports = {
-  getReportAnggota: async (): Promise<ReportAnggotaResponse> => {
-    return api.get<ReportAnggotaResponse>('/reports/anggota');
+  getReportAnggota: async (satminkalId?: string): Promise<ReportAnggotaResponse> => {
+    const q = satminkalId ? `?satminkalId=${satminkalId}` : '';
+    return api.get<ReportAnggotaResponse>(`/reports/anggota${q}`);
   },
 
-  getAnggota: async (): Promise<any> => {
-    return api.get('/reports/anggota');
+  getAnggota: async (satminkalId?: string): Promise<any> => {
+    const q = satminkalId ? `?satminkalId=${satminkalId}` : '';
+    return api.get(`/reports/anggota${q}`);
   },
 
-  getBrosurPinjaman: async (): Promise<any> => {
-    return api.get('/reports/brosur-pinjaman');
+  getBrosurPinjaman: async (satminkalId?: string): Promise<any> => {
+    const q = satminkalId ? `?satminkalId=${satminkalId}` : '';
+    return api.get(`/reports/brosur-pinjaman${q}`);
   },
 
-  getRekapSimpanan: async (): Promise<ReportRekapSimpananResponse> => {
-    return api.get<ReportRekapSimpananResponse>('/reports/rekap-simpanan');
+  getRekapSimpanan: async (satminkalId?: string): Promise<ReportRekapSimpananResponse> => {
+    const q = satminkalId ? `?satminkalId=${satminkalId}` : '';
+    return api.get<ReportRekapSimpananResponse>(`/reports/rekap-simpanan${q}`);
   },
 
-  getPinjamanAnggota: async (tahun?: number): Promise<ReportPinjamanAnggotaResponse> => {
-    const query = tahun ? `?tahun=${tahun}` : '';
-    return api.get<ReportPinjamanAnggotaResponse>(`/reports/pinjaman-anggota${query}`);
+  getPinjamanAnggota: async (tahun?: number, satminkalId?: string): Promise<ReportPinjamanAnggotaResponse> => {
+    const params = new URLSearchParams();
+    if (tahun) params.set('tahun', String(tahun));
+    if (satminkalId) params.set('satminkalId', satminkalId);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return api.get<ReportPinjamanAnggotaResponse>(`/reports/pinjaman-anggota${qs}`);
   },
 
   getAkadKredit: async (pinjamanId: string): Promise<ReportAkadKreditResponse> => {
@@ -165,16 +172,19 @@ export const apiReports = {
 
   getRekapKwitansiBulanan: async (
     tahun?: number,
-    bulan?: number
+    bulan?: number,
+    satminkalId?: string
   ): Promise<ReportRekapKwitansiBulananResponse> => {
     const params = new URLSearchParams();
     if (tahun) params.set('tahun', String(tahun));
     if (bulan) params.set('bulan', String(bulan));
+    if (satminkalId) params.set('satminkalId', satminkalId);
     const qs = params.toString() ? `?${params.toString()}` : '';
     return api.get<ReportRekapKwitansiBulananResponse>(`/reports/rekap-kwitansi-bulanan${qs}`);
   },
 
-  getShuAnggota: async (tahun: number): Promise<ReportShuAnggotaResponse> => {
-    return api.get<ReportShuAnggotaResponse>(`/reports/shu-anggota/${tahun}`);
+  getShuAnggota: async (tahun: number, satminkalId?: string): Promise<ReportShuAnggotaResponse> => {
+    const q = satminkalId ? `?satminkalId=${satminkalId}` : '';
+    return api.get<ReportShuAnggotaResponse>(`/reports/shu-anggota/${tahun}${q}`);
   },
 };

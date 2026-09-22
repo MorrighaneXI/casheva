@@ -89,9 +89,12 @@ export interface PlafondInfoResponse {
 }
 
 export const apiPinjaman = {
-  findAll: async (status?: StatusPinjaman): Promise<Pinjaman[]> => {
-    const query = status ? `?status=${status}` : '';
-    return api.get<Pinjaman[]>(`/pinjaman${query}`);
+  findAll: async (status?: StatusPinjaman, satminkalId?: string): Promise<Pinjaman[]> => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (satminkalId) params.append('satminkalId', satminkalId);
+    const qs = params.toString();
+    return api.get<Pinjaman[]>(`/pinjaman${qs ? `?${qs}` : ''}`);
   },
 
   findOne: async (id: string): Promise<Pinjaman> => {
@@ -150,7 +153,8 @@ export const apiPinjaman = {
     return api.get(`/pinjaman/plafond/${anggotaId}`);
   },
 
-  getRekapAngsuranBulanan: async (bulan: number, tahun: number): Promise<any[]> => {
-    return api.get<any[]>(`/pinjaman/rekap-angsuran-bulanan?bulan=${bulan}&tahun=${tahun}`);
+  getRekapAngsuranBulanan: async (bulan: number, tahun: number, satminkalId?: string): Promise<any[]> => {
+    const q = satminkalId ? `&satminkalId=${satminkalId}` : '';
+    return api.get<any[]>(`/pinjaman/rekap-angsuran-bulanan?bulan=${bulan}&tahun=${tahun}${q}`);
   },
 };

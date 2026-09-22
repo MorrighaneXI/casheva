@@ -5,9 +5,9 @@ import { LaporanTokoWidget } from "@/components/widgets/laporan-toko-widget";
 export const Route = createFileRoute("/laporan-toko")({
   head: () => ({
     meta: [
-      { title: "Laporan Keuangan Toko — Casheva Koperasi TNI AD" },
+      { title: "Laporan Keuangan Toko — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Analisis omset, HPP, laba kotor, dan performa penjualan unit toko koperasi TNI AD." },
-      { property: "og:title", content: "Laporan Toko — Casheva" },
+      { property: "og:title", content: "Laporan Toko — SISKOPAD" },
       { property: "og:description", content: "Laporan Laba Rugi & Penjualan Unit Toko Koperasi TNI AD." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
