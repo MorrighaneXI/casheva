@@ -132,8 +132,9 @@ export const apiKotama = {
     return apiFetch<KotamaChartsResponse>(`/kotama/dashboard/charts${qs}`);
   },
 
-  getSatminkalList: (): Promise<KotamaSatminkalStat[]> => {
-    return apiFetch<KotamaSatminkalStat[]>('/kotama/satminkal');
+  getSatminkalList: (kotamaId?: string): Promise<KotamaSatminkalStat[]> => {
+    const q = kotamaId ? `?kotamaId=${encodeURIComponent(kotamaId)}` : '';
+    return apiFetch<KotamaSatminkalStat[]>(`/kotama/satminkal${q}`);
   },
 
   createSatminkal: (dto: CreateKotamaSatminkalDto): Promise<{ message: string; satminkal: any; admin?: any }> => {
