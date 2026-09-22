@@ -18,8 +18,9 @@ export interface SimpananMassalResponse {
 }
 
 export const apiSimpanan = {
-  getRekap: async (): Promise<SimpananRekapItem[]> => {
-    return api.get<SimpananRekapItem[]>('/simpanan/rekap');
+  getRekap: async (satminkalId?: string): Promise<SimpananRekapItem[]> => {
+    const q = satminkalId ? `?satminkalId=${satminkalId}` : '';
+    return api.get<SimpananRekapItem[]>(`/simpanan/rekap${q}`);
   },
 
   getByAnggota: async (anggotaId: string): Promise<SimpananRecord[]> => {
@@ -51,8 +52,9 @@ export const apiSimpanan = {
     return api.patch('/simpanan/pengaturan', dto);
   },
 
-  getRekapBulanan: async (bulan: number, tahun: number): Promise<any[]> => {
-    return api.get<any[]>(`/simpanan/rekap-bulanan?bulan=${bulan}&tahun=${tahun}`);
+  getRekapBulanan: async (bulan: number, tahun: number, satminkalId?: string): Promise<any[]> => {
+    const q = satminkalId ? `&satminkalId=${satminkalId}` : '';
+    return api.get<any[]>(`/simpanan/rekap-bulanan?bulan=${bulan}&tahun=${tahun}${q}`);
   },
 
   setor: async (dto: {

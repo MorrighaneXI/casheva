@@ -5,9 +5,9 @@ import { PesananAntarWidget } from "@/components/widgets/pesanan-antar-widget";
 export const Route = createFileRoute("/pesanan-antar")({
   head: () => ({
     meta: [
-      { title: "Pesanan Antar & Piket — Casheva Koperasi TNI AD" },
+      { title: "Pesanan Antar & Piket — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Monitoring pengantaran pesanan fast delivery barak/rumdis dan serah terima titip piket pos jaga." },
-      { property: "og:title", content: "Pesanan Antar & Piket — Casheva" },
+      { property: "og:title", content: "Pesanan Antar & Piket — SISKOPAD" },
       { property: "og:description", content: "Layanan Fast Delivery & Titip Piket Hari Libur Koperasi TNI AD." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

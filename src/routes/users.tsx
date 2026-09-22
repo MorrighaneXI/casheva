@@ -6,7 +6,7 @@ import { UserManagementWidget, ActiveSessionsWidget } from "@/components/widgets
 export const Route = createFileRoute("/users")({
   head: () => ({
     meta: [
-      { title: "Manajemen User & Data Anggota — Casheva Koperasi TNI AD" },
+      { title: "Manajemen User & Data Anggota — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Pengelolaan terpadu akun login pengguna, data personel anggota, peran dinamis, dan aktivitas realtime." },
       { property: "og:title", content: "Manajemen User & Data Anggota — Casheva" },
       { property: "og:description", content: "Kelola akun, peran dinamis, dan status realtime pengguna Casheva." },

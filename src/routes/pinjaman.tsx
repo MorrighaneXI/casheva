@@ -49,13 +49,13 @@ import { Download, Layers } from "lucide-react";
 export const Route = createFileRoute("/pinjaman")({
   head: () => ({
     meta: [
-      { title: "Riwayat Pinjaman — Casheva Koperasi TNI AD" },
+      { title: "Riwayat Pinjaman — SISKOPAD Sistem Koperasi TNI AD" },
       {
         name: "description",
         content:
           "Daftar seluruh pengajuan pinjaman anggota koperasi TNI AD beserta status persetujuan berjenjang dan alur pencairan.",
       },
-      { property: "og:title", content: "Riwayat Pinjaman — Casheva" },
+      { property: "og:title", content: "Riwayat Pinjaman — SISKOPAD" },
       {
         property: "og:description",
         content: "Pantau seluruh pengajuan pinjaman anggota koperasi TNI AD secara real-time.",
@@ -88,7 +88,7 @@ function PinjamanPage() {
       try {
         const raw = localStorage.getItem("casheva.anggota_cache");
         if (raw) pool = JSON.parse(raw);
-      } catch {}
+      } catch { }
     }
 
     if (pool.length > 0) {
@@ -190,10 +190,10 @@ function PinjamanPage() {
   const detailTo = canAccessPath(role, "/acc", originalRole)
     ? "/acc"
     : canAccessPath(role, "/rekomendasi", originalRole)
-    ? "/rekomendasi"
-    : canAccessPath(role, "/verifikasi", originalRole)
-    ? "/verifikasi"
-    : "/pinjaman";
+      ? "/rekomendasi"
+      : canAccessPath(role, "/verifikasi", originalRole)
+        ? "/verifikasi"
+        : "/pinjaman";
 
   return (
     <div className="space-y-6">
@@ -309,9 +309,8 @@ function PinjamanPage() {
                   variant={statusFilter === tab.key ? "default" : "outline"}
                   size="sm"
                   onClick={() => setStatusFilter(tab.key as FilterStatus)}
-                  className={`h-8 text-xs px-2.5 transition-all ${
-                    statusFilter === tab.key ? "shadow-sm font-semibold" : "text-muted-foreground"
-                  }`}
+                  className={`h-8 text-xs px-2.5 transition-all ${statusFilter === tab.key ? "shadow-sm font-semibold" : "text-muted-foreground"
+                    }`}
                 >
                   {tab.label}
                 </Button>

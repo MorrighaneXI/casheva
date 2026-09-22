@@ -1,6 +1,8 @@
 import type { BackendRole, StatusPinjaman } from './api/types';
 
 export type Role =
+  | "Super Admin"
+  | "Admin Kotama"
   | "Admin Koperasi"
   | "Pimpinan / Dan / Ka"
   | "Keprim"
@@ -11,6 +13,8 @@ export type Role =
   | "Pengawas Koperasi";
 
 export const ROLES: Role[] = [
+  "Super Admin",
+  "Admin Kotama",
   "Admin Koperasi",
   "Pimpinan / Dan / Ka",
   "Keprim",
@@ -22,6 +26,8 @@ export const ROLES: Role[] = [
 ];
 
 export const roleShort: Record<Role, string> = {
+  "Super Admin": "Super Admin",
+  "Admin Kotama": "Kotama",
   "Admin Koperasi": "Admin",
   "Pimpinan / Dan / Ka": "Dan/Ka",
   Keprim: "Keprim",
@@ -34,6 +40,11 @@ export const roleShort: Record<Role, string> = {
 
 export function backendRoleToFrontend(role: BackendRole | string): Role {
   switch (role) {
+    case 'SUPER_ADMIN':
+      return 'Super Admin';
+    case 'ADMIN_KOTAMA':
+      return 'Admin Kotama';
+    case 'ADMIN_SATMINKAL':
     case 'ADMIN_KOPERASI':
       return 'Admin Koperasi';
     case 'PIMPINAN':
@@ -58,6 +69,10 @@ export function backendRoleToFrontend(role: BackendRole | string): Role {
 
 export function frontendRoleToBackend(role: Role | string): BackendRole {
   switch (role) {
+    case 'Super Admin':
+      return 'SUPER_ADMIN';
+    case 'Admin Kotama':
+      return 'ADMIN_KOTAMA';
     case 'Admin Koperasi':
       return 'ADMIN_KOPERASI';
     case 'Pimpinan / Dan / Ka':
@@ -332,19 +347,41 @@ export function getPangkatRankWeight(
  * Jika pangkat sama, urutkan nama secara alfabetis (A-Z).
  */
 export function comparePersonelByPangkat(a: any, b: any): number {
-  const getPkt = (x: any) => x?.pangkat ?? x?.anggota?.pangkat ?? x?.pinjaman?.anggota?.pangkat;
+  const getPkt = (x: any) =>
+    x?.pangkatObj ??
+    x?.pangkat ??
+    x?.pangkatNama ??
+    x?.pktCrpNrp ??
+    x?.pangkatKorpsNrp ??
+    x?.anggota?.pangkatObj ??
+    x?.anggota?.pangkat ??
+    x?.anggota?.pangkatNama ??
+    x?.anggota?.pktCrpNrp ??
+    x?.anggota?.pangkatKorpsNrp ??
+    x?.pinjaman?.anggota?.pangkatObj ??
+    x?.pinjaman?.anggota?.pangkat ??
+    x?.pinjaman?.anggota?.pangkatNama ??
+    x?.pinjaman?.anggota?.pktCrpNrp ??
+    x?.pinjaman?.anggota?.pangkatKorpsNrp;
   const getKat = (x: any) =>
     x?.kategoriPangkat ??
     x?.kategori ??
     x?.pangkat?.kategori ??
+    x?.pangkatObj?.kategori ??
+    x?.anggota?.kategoriPangkat ??
     x?.anggota?.pangkat?.kategori ??
-    x?.pinjaman?.anggota?.pangkat?.kategori;
+    x?.anggota?.pangkatObj?.kategori ??
+    x?.pinjaman?.anggota?.kategoriPangkat ??
+    x?.pinjaman?.anggota?.pangkat?.kategori ??
+    x?.pinjaman?.anggota?.pangkatObj?.kategori;
   const getNm = (x: any) =>
     x?.nama ??
     x?.namaLengkap ??
     x?.namaAnggota ??
     x?.anggota?.nama ??
+    x?.anggota?.namaLengkap ??
     x?.pinjaman?.anggota?.nama ??
+    x?.pinjaman?.anggota?.namaLengkap ??
     "";
 
   const weightA = getPangkatRankWeight(getPkt(a), getKat(a), getNm(a));

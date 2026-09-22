@@ -5,9 +5,9 @@ import { MarketplaceWidget } from "@/components/widgets/marketplace-widget";
 export const Route = createFileRoute("/marketplace-anggota")({
   head: () => ({
     meta: [
-      { title: "Marketplace UMKM Anggota & Persit — Casheva Koperasi TNI AD" },
+      { title: "Marketplace UMKM Anggota & Persit — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Etalase produk UMKM prajurit dan Persit dengan sistem kurasi serta validasi pengurus koperasi." },
-      { property: "og:title", content: "Marketplace Anggota — Casheva" },
+      { property: "og:title", content: "Marketplace Anggota — SISKOPAD" },
       { property: "og:description", content: "Marketplace Titip Jual Produk UMKM Anggota & Persit Koperasi TNI AD." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

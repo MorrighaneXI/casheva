@@ -31,6 +31,10 @@ export function useLiveNotifications(currentRole?: Role) {
     enabled: currentRole === "Admin Koperasi",
   });
 
+  // 3. Active monitoring check is satminkal-specific, so we skip it globally
+  // (it's called per-satminkal in the satminkal route when needed)
+  const activeMonitoringSessions: { id: string; satminkalId?: string; kotamaNama?: string; adminKotamaNama?: string }[] = [];
+
   // Real-time Queue Calculations
   const verifikasiCount = loanList.filter((l) =>
     ["DIAJUKAN", "VERIFIKASI_PRIMKOP", "VERIFIKASI_JURU_BAYAR"].includes(l.status),
@@ -170,6 +174,23 @@ export function useLiveNotifications(currentRole?: Role) {
         type: "action",
       });
     }
+  } else if (currentRole === "Admin Kotama") {
+    // No active monitoring sessions at global level — handled per-satminkal
+  }
+
+  // Check if current satminkal is being monitored by Admin Kotama
+  if (activeMonitoringSessions.length > 0 && currentRole !== "Admin Kotama") {
+    activeMonitoringSessions.forEach((mon) => {
+      notifications.push({
+        id: `satminkal-monitored-${mon.id}`,
+        title: `🔴 Pengawasan Kotama Aktif: ${mon.kotamaNama || "Admin Kotama"}`,
+        description: `Satminkal sedang dalam pengawasan/monitoring oleh ${mon.adminKotamaNama || "Admin Kotama"}.`,
+        time: "Pengawasan Aktif",
+        url: "/",
+        unread: true,
+        type: "warning",
+      });
+    });
   }
 
   // Common informative system notification

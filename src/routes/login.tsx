@@ -32,13 +32,13 @@ import { useSession } from "@/components/session-context";
 export const Route = createFileRoute("/login")({
   head: () => ({
     meta: [
-      { title: "Masuk — Casheva Koperasi Simpan Pinjam TNI AD" },
+      { title: "Masuk — SISKOPAD Sistem Koperasi TNI AD" },
       {
         name: "description",
         content:
-          "Halaman masuk Casheva, sistem informasi koperasi simpan pinjam TNI AD yang transparan, akuntabel, dan terintegrasi.",
+          "Halaman masuk SISKOPAD, sistem informasi koperasi TNI AD yang transparan, akuntabel, dan terintegrasi.",
       },
-      { property: "og:title", content: "Masuk — Casheva Koperasi TNI AD" },
+      { property: "og:title", content: "Masuk — SISKOPAD Sistem Koperasi TNI AD" },
       {
         property: "og:description",
         content:
@@ -121,26 +121,20 @@ function LoginPage() {
           />
 
           <div className="relative flex items-center gap-3 text-sidebar-foreground">
-            <div className="grid size-8 place-items-center rounded-lg bg-sidebar-accent/60 p-1">
-              <img src={cashevaLogo} alt="Logo Casheva" className="size-full object-contain" />
-            </div>
-            <span className="text-sm font-semibold tracking-[0.2em] uppercase">
-              Casheva
-            </span>
           </div>
 
           <div className="relative max-w-lg">
             <div className="animate-in zoom-in-95 fade-in mb-8 inline-flex rounded-3xl bg-sidebar-accent/60 p-5 shadow-[0_0_60px_-12px] shadow-gold/40 delay-150 duration-700">
               <img
                 src={emblem}
-                alt="Emblem Koperasi Kartika Infolahtadam IV/Diponegoro"
+                alt="Emblem Koperasi Kartika TNI AD"
                 width={512}
                 height={512}
-                className="h-28 w-28 object-contain drop-shadow-[0_0_18px_rgba(217,119,6,0.35)]"
+                className="h-32 w-32 object-contain drop-shadow-[0_0_18px_rgba(217,119,6,0.35)]"
               />
             </div>
             <h1 className="text-3xl leading-tight font-extrabold text-sidebar-foreground xl:text-4xl">
-              Sistem Informasi Koperasi Simpan Pinjam TNI AD
+              SISKOPAD - Sistem Koperasi TNI Angkatan Darat
             </h1>
             <p className="mt-4 text-lg font-medium text-sidebar-primary">
               Transparan, Akuntabel, dan Terintegrasi
@@ -148,7 +142,7 @@ function LoginPage() {
           </div>
 
           <p className="relative text-xs text-sidebar-foreground/60">
-            © 2026 Koperasi TNI AD · Infolahtadam IV/Diponegoro. Created by Todskyyy
+            © 2026 Koperasi TNI AD. Infolahtadam IV/Dip
           </p>
         </aside>
 
@@ -165,9 +159,9 @@ function LoginPage() {
                 className="h-12 w-12 object-contain"
               />
               <div>
-                <p className="text-sm font-bold text-foreground">Casheva</p>
+                <p className="text-sm font-bold text-foreground">SISKOPAD</p>
                 <p className="text-xs text-muted-foreground">
-                  Koperasi Simpan Pinjam TNI AD
+                  Sistem Koperasi TNI Angkatan Darat
                 </p>
               </div>
             </div>
@@ -253,7 +247,7 @@ function LoginPage() {
                 </div>
 
                 {/* Session & Satminkal Info Card */}
-                <div className="rounded-xl border border-border/80 bg-muted/40 p-3 space-y-2">
+                {/* <div className="rounded-xl border border-border/80 bg-muted/40 p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
                       <ShieldCheck className="size-3.5 text-primary" />
@@ -280,7 +274,7 @@ function LoginPage() {
                       </span>
                     </div>
                   </div>
-                </div>
+                </div> */}
 
                 {/* Submit Button */}
                 <Button

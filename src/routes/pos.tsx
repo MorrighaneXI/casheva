@@ -5,7 +5,7 @@ import { PosWidget } from "@/components/widgets/pos-widget";
 export const Route = createFileRoute("/pos")({
   head: () => ({
     meta: [
-      { title: "Kasir POS Toko — Casheva Koperasi TNI AD" },
+      { title: "Kasir POS Toko — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Point of Sale Kasir Toko Koperasi TNI AD dengan barcode scanner dan kalkulator kembalian." },
       { property: "og:title", content: "Kasir POS Toko — Casheva" },
       { property: "og:description", content: "Point of Sale Kasir Toko Koperasi TNI AD." },

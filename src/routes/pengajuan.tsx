@@ -70,13 +70,13 @@ import { Cloud, X } from "lucide-react";
 export const Route = createFileRoute("/pengajuan")({
   head: () => ({
     meta: [
-      { title: "Pengajuan Pinjaman & Simpanan — Casheva Koperasi TNI AD" },
+      { title: "Pengajuan Pinjaman & Simpanan — SISKOPAD Sistem Koperasi TNI AD" },
       {
         name: "description",
         content:
           "Ajukan pinjaman dan simpanan khusus/sukarela dengan validasi plafond kategori pangkat TNI AD.",
       },
-      { property: "og:title", content: "Pengajuan — Casheva" },
+      { property: "og:title", content: "Pengajuan — SISKOPAD" },
       {
         property: "og:description",
         content: "Formulir pengajuan pinjaman dan simpanan koperasi TNI AD.",
@@ -743,8 +743,8 @@ function PengajuanPage() {
                         <div
                           key={doc.id}
                           className={`rounded-xl border p-3 text-xs transition-all ${file
-                              ? "bg-success/5 border-success/40 shadow-xs"
-                              : "bg-muted/20 hover:bg-muted/40 border-border"
+                            ? "bg-success/5 border-success/40 shadow-xs"
+                            : "bg-muted/20 hover:bg-muted/40 border-border"
                             }`}
                         >
                           {/* Hidden File Input */}

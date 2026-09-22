@@ -127,11 +127,11 @@ function KopstukPage() {
     }
 
     if (kopstuk) {
-      if (kopstuk.baris1 || kopstuk.namaSatuan) setBaris1(kopstuk.baris1 || kopstuk.namaSatuan);
-      if (kopstuk.baris2 || kopstuk.namaBalak) setBaris2(kopstuk.baris2 || kopstuk.namaBalak);
-      if (kopstuk.baris3 || kopstuk.alamat) setBaris3(kopstuk.baris3 || kopstuk.alamat);
+      if (kopstuk.namaSatuan || kopstuk.baris1) setBaris1(kopstuk.namaSatuan || kopstuk.baris1);
+      if (kopstuk.namaBalak || kopstuk.baris2) setBaris2(kopstuk.namaBalak || kopstuk.baris2);
+      if (kopstuk.alamat || kopstuk.baris3) setBaris3(kopstuk.alamat || kopstuk.baris3);
       if (typeof kopstuk.garisGanda === "boolean") setGarisGanda(kopstuk.garisGanda);
-      if (kopstuk.logoUrl && !savedLogo) {
+      if (kopstuk.logoUrl) {
         setSelectedLogo(kopstuk.logoUrl);
       }
     }
@@ -290,7 +290,7 @@ function KopstukPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {Object.keys(DEFAULT_LAMPIRAN_KOPSTUK).map((lampKey) => {
-                const cfg = lampiranKopstuk[lampKey] || DEFAULT_LAMPIRAN_KOPSTUK[lampKey];
+                const cfg = lampiranKopstuk[lampKey] || DEFAULT_LAMPIRAN_KOPSTUK[lampKey] || { line1: "", line2: "" };
                 const label = lampKey.replace("lampiran", "Lampiran ");
                 return (
                   <div key={lampKey} className="p-3 bg-muted/20 rounded-xl border border-border space-y-2">
@@ -299,7 +299,7 @@ function KopstukPage() {
                       <div className="space-y-1">
                         <Label className="text-[11px]">Baris 1:</Label>
                         <Input
-                          value={cfg.line1}
+                          value={cfg?.line1 ?? ""}
                           onChange={(e) => handleUpdateLampiranKopstuk(lampKey, "line1", e.target.value)}
                           className="h-8 text-xs font-medium"
                         />
@@ -307,7 +307,7 @@ function KopstukPage() {
                       <div className="space-y-1">
                         <Label className="text-[11px]">Baris 2:</Label>
                         <Input
-                          value={cfg.line2}
+                          value={cfg?.line2 ?? ""}
                           onChange={(e) => handleUpdateLampiranKopstuk(lampKey, "line2", e.target.value)}
                           className="h-8 text-xs font-medium"
                         />
@@ -428,11 +428,10 @@ function KopstukPage() {
                         key={preset.id}
                         type="button"
                         onClick={() => handleSelectPreset(preset)}
-                        className={`relative flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
-                          isSelected
+                        className={`relative flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${isSelected
                             ? "border-primary bg-primary/5 ring-2 ring-primary/20 shadow-sm"
                             : "border-border bg-card hover:bg-muted/50 hover:border-primary/40"
-                        }`}
+                          }`}
                       >
                         <div className="size-10 shrink-0 rounded-lg border border-border/60 bg-card p-1 flex items-center justify-center">
                           <img src={preset.src} alt={preset.label} className="size-full object-contain" />
@@ -474,13 +473,13 @@ function KopstukPage() {
             <CardContent>
               <div className="print-sheet rounded-xl p-6 bg-card border border-border shadow-inner font-sans">
                 <div className="flex justify-between items-start text-xs font-bold text-foreground">
-                  <div className="text-left space-y-0.5">
-                    <p className="uppercase">{baris1}</p>
-                    <p className="uppercase">{baris2}</p>
+                  <div className="text-center space-y-0.5">
+                    <p className="uppercase text-center">{baris1}</p>
+                    <p className="uppercase text-center">{baris2}</p>
                   </div>
                   <div className="text-left space-y-0.5">
-                    <p>{lampiranKopstuk.lampiran2?.line1 || "Lampiran II"}</p>
-                    <p>{lampiranKopstuk.lampiran2?.line2 || "Lomba Rekayasa Teknologi Informasi TA 2026"}</p>
+                    <p>{lampiranKopstuk["lampiran2"]?.line1 || "Lampiran II"}</p>
+                    <p>{lampiranKopstuk["lampiran2"]?.line2 || "Lomba Rekayasa Teknologi Informasi TA 2026"}</p>
                   </div>
                 </div>
 

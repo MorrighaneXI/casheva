@@ -76,7 +76,7 @@ import { exportToCSV } from "@/lib/export-excel";
 export const Route = createFileRoute("/simpanan")({
   head: () => ({
     meta: [
-      { title: "Transaksi & Rekap Simpanan — Casheva Koperasi TNI AD" },
+      { title: "Transaksi & Rekap Simpanan — SISKOPAD Sistem Koperasi TNI AD" },
       {
         name: "description",
         content:
@@ -123,15 +123,18 @@ const KHUSUS_TIPE_OPTIONS = [
   "Dana Khusus Lainnya",
 ];
 
+import { SatminkalFilter } from "@/components/satminkal-filter";
+
 function SimpananPage() {
   const queryClient = useQueryClient();
-  const { role, isAdmin, user } = useSession();
-  const isBendaharaOrAdmin = isAdmin || role === "Bendahara" || role === "Admin Koperasi";
+  const { role, isAdmin, isKotamaAdmin, isGuestMode, user } = useSession();
+  const isBendaharaOrAdmin = isAdmin || role === "Bendahara" || role === "Admin Koperasi" || role === "Admin Kotama";
   const isJuruBayar = role === "Juru Bayar";
   const isJuruBayarOrAbove = isBendaharaOrAdmin || isJuruBayar;
 
   const [activeTab, setActiveTab] = useState<"saldo" | "upload-excel" | "bulanan" | "pengaturan">("saldo");
   const [search, setSearch] = useState("");
+  const [selectedSatminkalId, setSelectedSatminkalId] = useState<string>("");
 
   // Filter Rekap Bulanan
   const currentDate = new Date();
@@ -190,12 +193,12 @@ function SimpananPage() {
 
   // Queries
   const { data: rekapList = [], isLoading: loadingSaldo } = useQuery({
-    queryKey: ["simpanan-rekap"],
-    queryFn: () => apiSimpanan.getRekap(),
+    queryKey: ["simpanan-rekap", selectedSatminkalId],
+    queryFn: () => apiSimpanan.getRekap(selectedSatminkalId || undefined),
   });
 
   const { data: anggotaList = [] } = useQuery({
-    queryKey: ["anggota-list"],
+    queryKey: ["anggota-list", selectedSatminkalId],
     queryFn: () => apiAnggota.findAll(true),
   });
 
@@ -213,8 +216,8 @@ function SimpananPage() {
   });
 
   const { data: rekapBulananList = [], isLoading: loadingBulanan } = useQuery({
-    queryKey: ["simpanan-rekap-bulanan", selectedBulan, selectedTahun],
-    queryFn: () => apiSimpanan.getRekapBulanan(selectedBulan, selectedTahun),
+    queryKey: ["simpanan-rekap-bulanan", selectedBulan, selectedTahun, selectedSatminkalId],
+    queryFn: () => apiSimpanan.getRekapBulanan(selectedBulan, selectedTahun, selectedSatminkalId || undefined),
   });
 
   // Mutations
@@ -533,7 +536,7 @@ function SimpananPage() {
     const wb = XLSX.utils.book_new();
     const wsData = [
       ["REKAP HASIL PEMOTONGAN SIMPANAN ANGGOTA PER GOLONGAN"],
-      [`Satuan: INFOLAHTADAM IV/DIPONEGORO | Periode: ${BULAN_NAMES[batchPeriodeBulan - 1]} ${batchPeriodeTahun}`],
+      [`Satuan: ${user?.satminkal || "Koperasi Primkopad"} | Periode: ${BULAN_NAMES[batchPeriodeBulan - 1]} ${batchPeriodeTahun}`],
       [],
       [
         "No",
@@ -651,12 +654,12 @@ function SimpananPage() {
     const list = !q
       ? rekapList
       : rekapList.filter(
-          (r) =>
-            r.nama.toLowerCase().includes(q) ||
-            r.nrpNip.includes(q) ||
-            (r.pangkat || "").toLowerCase().includes(q) ||
-            (r.korps || "").toLowerCase().includes(q),
-        );
+        (r) =>
+          r.nama.toLowerCase().includes(q) ||
+          r.nrpNip.includes(q) ||
+          (r.pangkat || "").toLowerCase().includes(q) ||
+          (r.korps || "").toLowerCase().includes(q),
+      );
     return sortPersonelByPangkat(list);
   }, [rekapList, search]);
 
@@ -702,7 +705,7 @@ function SimpananPage() {
       <div className="space-y-6">
         <PageHeader
           title="Simpanan Saya"
-          description={`Posisi dan riwayat mutasi simpanan Anda di Koperasi INFOLAHTADAM IV/DIPONEGORO`}
+          description={`Posisi dan riwayat mutasi simpanan Anda di Koperasi ${user?.satminkal || "TNI AD"}`}
           actions={
             <Button
               variant="outline"
@@ -958,12 +961,14 @@ function SimpananPage() {
         title="Transaksi & Rekap Simpanan Koperasi"
         description="Pengelolaan simpanan pokok, wajib, sukarela, dan khusus dengan pengaturan nominal dinamis oleh Bendahara."
         actions={
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full lg:w-auto">
+          <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+            <SatminkalFilter value={selectedSatminkalId} onChange={setSelectedSatminkalId} />
             {isJuruBayarOrAbove && (
               <>
                 <Button
                   variant="outline"
-                  className="w-full justify-center gap-1.5 border-emerald-500/40 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-semibold shadow-sm h-9 text-xs sm:text-sm px-3.5 rounded-xl"
+                  disabled={isGuestMode}
+                  className="justify-center gap-1.5 border-emerald-500/40 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 font-semibold shadow-sm h-9 text-xs sm:text-sm px-3.5 rounded-xl disabled:opacity-50"
                   onClick={() => setOpenSukarelaModal(true)}
                 >
                   <PiggyBank className="size-4 shrink-0" /> Input Simpanan Sukarela
@@ -1049,9 +1054,8 @@ function SimpananPage() {
 
       <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="space-y-6">
         <TabsList
-          className={`grid w-full h-auto p-1 gap-1 ${
-            isBendaharaOrAdmin ? "max-w-3xl grid-cols-2 sm:grid-cols-4" : "max-w-md grid-cols-2"
-          }`}
+          className={`grid w-full h-auto p-1 gap-1 ${isBendaharaOrAdmin ? "max-w-3xl grid-cols-2 sm:grid-cols-4" : "max-w-md grid-cols-2"
+            }`}
         >
           <TabsTrigger value="saldo">Rekap Saldo Anggota</TabsTrigger>
           <TabsTrigger value="bulanan">Rekap Mutasi Bulanan</TabsTrigger>
@@ -1137,7 +1141,7 @@ function SimpananPage() {
                               <Copy className="size-3 opacity-60" />
                             </button>
                           </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{r.satminkal || "INFOLAHTADAM IV/DIPONEGORO"}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{r.satminkal || user?.satminkal || "Satminkal"}</TableCell>
                           <TableCell className="text-right font-medium">{formatRp(pokok)}</TableCell>
                           <TableCell className="text-right font-medium">{formatRp(wajib)}</TableCell>
                           <TableCell className="text-right text-success font-medium">
@@ -1271,10 +1275,10 @@ function SimpananPage() {
                                 item.jenis === "POKOK"
                                   ? "border-primary/40 bg-primary/10 text-primary text-[10px]"
                                   : item.jenis === "WAJIB"
-                                  ? "border-blue-500/40 bg-blue-500/10 text-blue-600 text-[10px]"
-                                  : item.jenis === "KHUSUS"
-                                  ? "border-amber-500/40 bg-amber-500/10 text-amber-600 text-[10px]"
-                                  : "border-success/40 bg-success/10 text-success text-[10px]"
+                                    ? "border-blue-500/40 bg-blue-500/10 text-blue-600 text-[10px]"
+                                    : item.jenis === "KHUSUS"
+                                      ? "border-amber-500/40 bg-amber-500/10 text-amber-600 text-[10px]"
+                                      : "border-success/40 bg-success/10 text-success text-[10px]"
                               }
                             >
                               {item.jenis}
@@ -1474,10 +1478,10 @@ function SimpananPage() {
                                       r.golongan === "Pati"
                                         ? "border-amber-500 bg-amber-500/10 text-amber-600 font-extrabold"
                                         : r.golongan === "Pamen"
-                                        ? "border-purple-500 bg-purple-500/10 text-purple-600 font-bold"
-                                        : r.golongan === "Pama"
-                                        ? "border-blue-500 bg-blue-500/10 text-blue-600 font-semibold"
-                                        : "border-emerald-500 bg-emerald-500/10 text-emerald-600"
+                                          ? "border-purple-500 bg-purple-500/10 text-purple-600 font-bold"
+                                          : r.golongan === "Pama"
+                                            ? "border-blue-500 bg-blue-500/10 text-blue-600 font-semibold"
+                                            : "border-emerald-500 bg-emerald-500/10 text-emerald-600"
                                     }
                                   >
                                     {r.golongan}
@@ -1622,10 +1626,10 @@ function SimpananPage() {
                                       item.golongan === "Pati"
                                         ? "border-amber-500 bg-amber-500/10 text-amber-600 font-extrabold text-[10px]"
                                         : item.golongan === "Pamen"
-                                        ? "border-purple-500 bg-purple-500/10 text-purple-600 font-bold text-[10px]"
-                                        : item.golongan === "Pama"
-                                        ? "border-blue-500 bg-blue-500/10 text-blue-600 font-semibold text-[10px]"
-                                        : "border-emerald-500 bg-emerald-500/10 text-emerald-600 text-[10px]"
+                                          ? "border-purple-500 bg-purple-500/10 text-purple-600 font-bold text-[10px]"
+                                          : item.golongan === "Pama"
+                                            ? "border-blue-500 bg-blue-500/10 text-blue-600 font-semibold text-[10px]"
+                                            : "border-emerald-500 bg-emerald-500/10 text-emerald-600 text-[10px]"
                                     }
                                   >
                                     {item.golongan}

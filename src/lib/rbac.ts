@@ -6,6 +6,22 @@ const SHARED_PATHS = new Set(["/", "/login"]);
 
 /** Extra paths granted beyond sidebar nav (deep links / shared tools) */
 const EXTRA_ACCESS: Partial<Record<Role, string[]>> = {
+  "Super Admin": [
+    "/monitoring-kotama",
+    "/users",
+    "/master-data",
+    "/kopstuk",
+    "/audit",
+    "/anggota",
+    "/simpanan",
+    "/pinjaman",
+    "/angsuran",
+    "/shu",
+    "/likuiditas",
+    "/laporan",
+    "/transaksi",
+    "/satminkal",
+  ],
   "Admin Koperasi": [
     "/users",
     "/master-data",
@@ -52,7 +68,8 @@ export function allowedPathsFor(role: Role): Set<string> {
 
 export function canAccessPath(role: Role, pathname: string, originalRole?: Role): boolean {
   if (SHARED_PATHS.has(pathname)) return true;
-  // Admin has full access to all paths
+  // Super Admin and Admin Koperasi have full access to all paths
+  if (originalRole === "Super Admin" || role === "Super Admin") return true;
   if (originalRole === "Admin Koperasi" || role === "Admin Koperasi") return true;
   const effectiveRole = originalRole || role;
   const allowed = allowedPathsFor(effectiveRole);
@@ -67,6 +84,8 @@ export function homePathFor(_role: Role): string {
 /** Primary CTA on dashboard per role */
 export function dashboardCta(role: Role): { to: string; label: string } | null {
   switch (role) {
+    case "Super Admin":
+      return { to: "/monitoring-kotama", label: "Buka Monitoring Kotama" };
     case "Juru Bayar":
       return { to: "/verifikasi", label: "Buka Antrean Verifikasi" };
     case "Pimpinan / Dan / Ka":

@@ -70,16 +70,17 @@ import { formatRp, formatPangkatKorps, formatNamaLengkapDinas, cleanNamaPersonel
 import { apiPinjaman, apiAnggota, type Pinjaman, type KalkulasiDinamisResponse, type BayarAngsuranDinamisDto } from "@/lib/api";
 import { exportToCSV } from "@/lib/export-excel";
 import { ConfirmActionDialog } from "@/components/confirm-action-dialog";
+import { SatminkalFilter } from "@/components/satminkal-filter";
 
 export const Route = createFileRoute("/angsuran")({
   head: () => ({
     meta: [
-      { title: "Rekap Angsuran Bulanan — Casheva Koperasi TNI AD" },
+      { title: "Rekap Angsuran Bulanan — SISKOPAD Sistem Koperasi TNI AD" },
       {
         name: "description",
         content: "Rekapitulasi angsuran pinjaman bulanan dengan rincian pengangsur, tanggal bayar, dan ekspor excel.",
       },
-      { property: "og:title", content: "Rekap Angsuran — Casheva" },
+      { property: "og:title", content: "Rekap Angsuran — SISKOPAD" },
       { property: "og:description", content: "Status cicilan berjalan anggota koperasi TNI AD." },
       { property: "og:type", content: "website" },
     ],
@@ -94,13 +95,14 @@ const BULAN_NAMES = [
 
 function Page() {
   const queryClient = useQueryClient();
-  const { user, role, isAdmin } = useSession();
+  const { user, role, isAdmin, isKotamaAdmin, isGuestMode } = useSession();
   const isAnggota = role === "Anggota";
-  const isBendaharaOrAdmin = isAdmin || role === "Bendahara" || role === "Admin Koperasi";
+  const isBendaharaOrAdmin = isAdmin || role === "Bendahara" || role === "Admin Koperasi" || role === "Admin Kotama";
 
   const currentDate = new Date();
   const [selectedBulan, setSelectedBulan] = useState<number>(currentDate.getMonth() + 1);
   const [selectedTahun, setSelectedTahun] = useState<number>(currentDate.getFullYear());
+  const [selectedSatminkalId, setSelectedSatminkalId] = useState<string>("");
   const [selectedLoan, setSelectedLoan] = useState<Pinjaman | null>(null);
 
   // States untuk Pembayaran Dinamis & Kwitansi
@@ -113,7 +115,7 @@ function Page() {
 
   // Ambil data anggota untuk pencocokan akun dinas personel
   const { data: anggotaList = [] } = useQuery({
-    queryKey: ["anggota-list-active"],
+    queryKey: ["anggota-list-active", selectedSatminkalId],
     queryFn: () => apiAnggota.findAll(true),
   });
 
@@ -124,7 +126,7 @@ function Page() {
       try {
         const raw = localStorage.getItem("casheva.anggota_cache");
         if (raw) pool = JSON.parse(raw);
-      } catch {}
+      } catch { }
     }
 
     if (pool.length > 0) {
@@ -148,13 +150,13 @@ function Page() {
 
   // Queries
   const { data: loanList = [], isLoading: loadingLoans } = useQuery({
-    queryKey: ["pinjaman-angsuran-all"],
-    queryFn: () => apiPinjaman.findAll(),
+    queryKey: ["pinjaman-angsuran-all", selectedSatminkalId],
+    queryFn: () => apiPinjaman.findAll(undefined, selectedSatminkalId || undefined),
   });
 
   const { data: rekapBulananList = [], isLoading: loadingBulanan } = useQuery({
-    queryKey: ["angsuran-rekap-bulanan", selectedBulan, selectedTahun],
-    queryFn: () => apiPinjaman.getRekapAngsuranBulanan(selectedBulan, selectedTahun),
+    queryKey: ["angsuran-rekap-bulanan", selectedBulan, selectedTahun, selectedSatminkalId],
+    queryFn: () => apiPinjaman.getRekapAngsuranBulanan(selectedBulan, selectedTahun, selectedSatminkalId || undefined),
   });
 
   // Query kalkulasi dinamis untuk pinjaman yang sedang dipilih di modal
@@ -550,6 +552,11 @@ function Page() {
       <PageHeader
         title="Pengelolaan Angsuran &amp; Pembayaran Dinamis"
         description="Kelola pembayaran cicilan fleksibel, alokasi prioritas bunga, opsi pelunasan dipercepat (2x bunga), masa toleransi 2 bulan, dan eksekusi potong juru bayar."
+        actions={
+          <div className="flex items-center gap-2">
+            <SatminkalFilter value={selectedSatminkalId} onChange={setSelectedSatminkalId} />
+          </div>
+        }
       />
 
       <Tabs defaultValue="rekap" className="space-y-4">
@@ -604,7 +611,7 @@ function Page() {
                 <Select value={String(selectedBulan)} onValueChange={(v) => setSelectedBulan(Number(v))}>
                   <SelectTrigger className="w-32 h-9 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {BULAN_NAMES.map((b, i) => <SelectItem key={i+1} value={String(i+1)}>{b}</SelectItem>)}
+                    {BULAN_NAMES.map((b, i) => <SelectItem key={i + 1} value={String(i + 1)}>{b}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Select value={String(selectedTahun)} onValueChange={(v) => setSelectedTahun(Number(v))}>

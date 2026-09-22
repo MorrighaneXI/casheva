@@ -66,6 +66,24 @@ function isH3SwallowedErrorBody(body: string): boolean {
   }
 }
 
+function applySecurityHeaders(res: Response): Response {
+  res.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  res.headers.set("X-Content-Type-Options", "nosniff");
+  res.headers.set("X-Frame-Options", "DENY");
+  res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+  res.headers.set("Cross-Origin-Opener-Policy", "same-origin");
+  res.headers.set("Cross-Origin-Resource-Policy", "same-origin");
+  res.headers.set("Cross-Origin-Embedder-Policy", "credentialless");
+  res.headers.set("X-Permitted-Cross-Domain-Policies", "none");
+  res.headers.set("X-XSS-Protection", "1; mode=block");
+  res.headers.set(
+    "Content-Security-Policy",
+    "default-src 'self' http: https: data: blob: 'unsafe-inline' 'unsafe-eval'; frame-ancestors 'none';",
+  );
+  return res;
+}
+
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
@@ -74,16 +92,20 @@ export default {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       if (request.signal.aborted) return abortedResponse();
-      return await normalizeCatastrophicSsrResponse(response, request);
+      const normalized = await normalizeCatastrophicSsrResponse(response, request);
+      return applySecurityHeaders(normalized);
     } catch (error) {
       if (isRequestAbortedError(error) || request.signal.aborted) {
         return abortedResponse();
       }
       console.error(error);
-      return new Response(renderErrorPage(), {
-        status: 500,
-        headers: { "content-type": "text/html; charset=utf-8" },
-      });
+      return applySecurityHeaders(
+        new Response(renderErrorPage(), {
+          status: 500,
+          headers: { "content-type": "text/html; charset=utf-8" },
+        }),
+      );
     }
   },
 };
+

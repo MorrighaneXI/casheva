@@ -5,7 +5,7 @@ import { TokoTransaksiWidget } from "@/components/widgets/toko-transaksi-widget"
 export const Route = createFileRoute("/toko-transaksi")({
   head: () => ({
     meta: [
-      { title: "Riwayat Transaksi Toko & Struk — Casheva Koperasi TNI AD" },
+      { title: "Riwayat Transaksi Toko & Struk — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Daftar histori transaksi penjualan kasir POS, filter metode bayar, dan cetak ulang struk thermal." },
       { property: "og:title", content: "Riwayat Transaksi Toko — Casheva" },
       { property: "og:description", content: "Histori Transaksi Kasir POS Koperasi TNI AD." },

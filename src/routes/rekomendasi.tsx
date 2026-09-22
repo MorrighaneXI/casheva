@@ -7,7 +7,7 @@ import { RekomendasiQueue } from "@/components/widgets/role-widgets";
 export const Route = createFileRoute("/rekomendasi")({
   head: () => ({
     meta: [
-      { title: "Antrean Rekomendasi — Casheva Koperasi TNI AD" },
+      { title: "Antrean Rekomendasi — SISKOPAD Sistem Koperasi TNI AD" },
       {
         name: "description",
         content: "Pengajuan pinjaman anggota satuan yang menunggu rekomendasi komandan.",

@@ -11,6 +11,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { FAVICON_BASE64 } from "../lib/favicon-data";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
@@ -84,13 +85,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Casheva — Sistem Koperasi TNI AD" },
+      { title: "SISKOPAD — Sistem Koperasi TNI AD" },
       {
         name: "description",
         content:
-          "Casheva: platform pengelolaan simpanan, pinjaman, verifikasi berjenjang, dan SHU koperasi TNI AD.",
+          "SISKOPAD: platform pengelolaan simpanan, pinjaman, verifikasi berjenjang, dan SHU koperasi TNI AD.",
       },
-      { property: "og:title", content: "Casheva — Sistem Koperasi TNI AD" },
+      { property: "og:title", content: "SISKOPAD — Sistem Koperasi TNI AD" },
       {
         property: "og:description",
         content:
@@ -98,8 +99,23 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "referrer", content: "strict-origin-when-cross-origin" },
+      {
+        httpEquiv: "Content-Security-Policy",
+        content: "default-src 'self' http: https: data: blob: 'unsafe-inline' 'unsafe-eval';",
+      },
+      {
+        httpEquiv: "X-Content-Type-Options",
+        content: "nosniff",
+      },
     ],
     links: [
+      { rel: "icon", href: FAVICON_BASE64, type: "image/png" },
+      { rel: "icon", href: "/favicon.png?v=siskopad", type: "image/png", sizes: "256x256" },
+      { rel: "icon", href: "/favicon-64x64.png?v=siskopad", type: "image/png", sizes: "64x64" },
+      { rel: "icon", href: "/favicon-32x32.png?v=siskopad", type: "image/png", sizes: "32x32" },
+      { rel: "shortcut icon", href: "/favicon.ico?v=siskopad" },
+      { rel: "apple-touch-icon", href: "/favicon.png?v=siskopad" },
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
@@ -111,7 +127,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
       },
-      { rel: "icon", href: "/favicon.png", type: "image/png" },
     ],
   }),
   shellComponent: RootShell,
@@ -124,6 +139,11 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="id">
       <head>
+        <link rel="icon" type="image/png" href={FAVICON_BASE64} />
+        <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64x64.png?v=siskopad" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=siskopad" />
+        <link rel="shortcut icon" href="/favicon.ico?v=siskopad" />
+        <link rel="apple-touch-icon" href="/favicon.png?v=siskopad" />
         <HeadContent />
       </head>
       <body>
@@ -138,6 +158,17 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const bare = pathname === "/login";
+
+  useEffect(() => {
+    let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+    }
+    link.type = "image/png";
+    link.href = FAVICON_BASE64;
+  }, []);
 
   if (bare) {
     return (

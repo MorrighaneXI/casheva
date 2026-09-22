@@ -14,3 +14,4 @@ export * from './users';
 export * from './dokumen';
 export * from './backup';
 export * from './pesanan';
+export * from './kotama';

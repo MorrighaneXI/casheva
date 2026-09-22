@@ -5,7 +5,7 @@ import { SupplierWidget } from "@/components/widgets/supplier-widget";
 export const Route = createFileRoute("/supplier")({
   head: () => ({
     meta: [
-      { title: "Supplier & Pengadaan Barang — Casheva Koperasi TNI AD" },
+      { title: "Supplier & Pengadaan Barang — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Manajemen supplier, faktur pembelian barang masuk, retur barang, dan pelunasan hutang dagang." },
       { property: "og:title", content: "Supplier & Pengadaan — Casheva" },
       { property: "og:description", content: "Manajemen supplier dan pengadaan toko koperasi." },

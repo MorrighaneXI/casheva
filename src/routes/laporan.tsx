@@ -62,17 +62,19 @@ import {
   apiTajukTtd,
   apiKeuangan,
 } from "@/lib/api";
+import { useSession } from "@/components/session-context";
+import { SatminkalFilter } from "@/components/satminkal-filter";
 
 export const Route = createFileRoute("/laporan")({
   head: () => ({
     meta: [
-      { title: "Laporan & Cetakan Resmi Lampiran — Casheva" },
+      { title: "Laporan & Cetakan Resmi Lampiran — SISKOPAD" },
       {
         name: "description",
         content:
           "Pusat cetak laporan resmi Lampiran II s.d IX sesuai Petunjuk Teknis Koperasi TNI AD 2026.",
       },
-      { property: "og:title", content: "Laporan & Cetakan Resmi — Casheva" },
+      { property: "og:title", content: "Laporan & Cetakan Resmi — SISKOPAD" },
       {
         property: "og:description",
         content: "Cetak dokumen resmi koperasi TNI AD dengan kopstuk dan tajuk tanda tangan dinamis.",
@@ -178,8 +180,10 @@ function generateBrosurPages() {
 
 function LaporanPage() {
   const queryClient = useQueryClient();
+  const { satminkal: sessionSatminkal, isKotamaAdmin, isGuestMode } = useSession();
   const currentYear = 2026;
   const [activeTab, setActiveTab] = useState("lampiran2");
+  const [selectedSatminkalId, setSelectedSatminkalId] = useState<string>("");
 
   // Layout & Margin States
   const [orientation, setOrientation] = useState<"landscape" | "portrait">("landscape");
@@ -298,28 +302,28 @@ function LaporanPage() {
   });
 
   const { data: tajukData } = useQuery({
-    queryKey: ["tajuk-ttd-active"],
+    queryKey: ["tajuk-ttd-active", selectedSatminkalId],
     queryFn: () => apiTajukTtd.get(),
   });
 
   const { data: reportAnggota, isLoading: loadingAnggota } = useQuery({
-    queryKey: ["reports-anggota"],
-    queryFn: () => apiReports.getAnggota(),
+    queryKey: ["reports-anggota", selectedSatminkalId],
+    queryFn: () => apiReports.getAnggota(selectedSatminkalId || undefined),
   });
 
   const { data: reportBrosur, isLoading: loadingBrosur } = useQuery({
-    queryKey: ["reports-brosur"],
-    queryFn: () => apiReports.getBrosurPinjaman(),
+    queryKey: ["reports-brosur", selectedSatminkalId],
+    queryFn: () => apiReports.getBrosurPinjaman(selectedSatminkalId || undefined),
   });
 
   const { data: reportSimpanan, isLoading: loadingSimpanan } = useQuery({
-    queryKey: ["reports-simpanan"],
-    queryFn: () => apiReports.getRekapSimpanan(),
+    queryKey: ["reports-simpanan", selectedSatminkalId],
+    queryFn: () => apiReports.getRekapSimpanan(selectedSatminkalId || undefined),
   });
 
   const { data: reportPinjaman, isLoading: loadingPinjaman } = useQuery({
-    queryKey: ["reports-pinjaman"],
-    queryFn: () => apiReports.getPinjamanAnggota(kwitansiTahun),
+    queryKey: ["reports-pinjaman", kwitansiTahun, selectedSatminkalId],
+    queryFn: () => apiReports.getPinjamanAnggota(kwitansiTahun, selectedSatminkalId || undefined),
   });
 
   const { data: reportAkad, isLoading: loadingAkad } = useQuery({
@@ -333,21 +337,40 @@ function LaporanPage() {
   });
 
   const { data: reportKwitansiBulanan, isLoading: loadingKwitansiBulanan, refetch: refetchKwitansiBulanan } = useQuery({
-    queryKey: ["reports-kwitansi-bulanan", kwitansiTahun, kwitansiBulan],
-    queryFn: () => apiReports.getRekapKwitansiBulanan(kwitansiTahun, kwitansiBulan),
+    queryKey: ["reports-kwitansi-bulanan", kwitansiTahun, kwitansiBulan, selectedSatminkalId],
+    queryFn: () => apiReports.getRekapKwitansiBulanan(kwitansiTahun, kwitansiBulan, selectedSatminkalId || undefined),
   });
 
   const { data: reportShu, isLoading: loadingShu } = useQuery({
-    queryKey: ["reports-shu-anggota", currentYear],
-    queryFn: () => apiReports.getShuAnggota(currentYear),
+    queryKey: ["reports-shu-anggota", currentYear, selectedSatminkalId],
+    queryFn: () => apiReports.getShuAnggota(currentYear, selectedSatminkalId || undefined),
   });
 
-  // Extract arrays
-  const anggotaList: any[] = (reportAnggota as any)?.data || (Array.isArray(reportAnggota) ? reportAnggota : []);
-  const simpananList: any[] = (reportSimpanan as any)?.data || (Array.isArray(reportSimpanan) ? reportSimpanan : []);
-  const pinjamanList: any[] = (reportPinjaman as any)?.data || (Array.isArray(reportPinjaman) ? reportPinjaman : []);
-  const kwitansiBulananList: any[] = (reportKwitansiBulanan as any)?.data || (Array.isArray(reportKwitansiBulanan) ? reportKwitansiBulanan : []);
-  const shuList: any[] = (reportShu as any)?.data || (Array.isArray(reportShu) ? reportShu : []);
+  // Extract arrays (Urut murni berdasarkan hierarki kepangkatan tertinggi TNI AD tanpa membedakan satuan)
+  const anggotaList: any[] = useMemo(() => {
+    const raw = (reportAnggota as any)?.data || (Array.isArray(reportAnggota) ? reportAnggota : []);
+    return sortPersonelByPangkat(raw);
+  }, [reportAnggota]);
+
+  const simpananList: any[] = useMemo(() => {
+    const raw = (reportSimpanan as any)?.data || (Array.isArray(reportSimpanan) ? reportSimpanan : []);
+    return sortPersonelByPangkat(raw);
+  }, [reportSimpanan]);
+
+  const pinjamanList: any[] = useMemo(() => {
+    const raw = (reportPinjaman as any)?.data || (Array.isArray(reportPinjaman) ? reportPinjaman : []);
+    return sortPersonelByPangkat(raw);
+  }, [reportPinjaman]);
+
+  const kwitansiBulananList: any[] = useMemo(() => {
+    const raw = (reportKwitansiBulanan as any)?.data || (Array.isArray(reportKwitansiBulanan) ? reportKwitansiBulanan : []);
+    return sortPersonelByPangkat(raw);
+  }, [reportKwitansiBulanan]);
+
+  const shuList: any[] = useMemo(() => {
+    const raw = (reportShu as any)?.data || (Array.isArray(reportShu) ? reportShu : []);
+    return sortPersonelByPangkat(raw);
+  }, [reportShu]);
 
   // Auto-select first real pinjaman if default or not set
   useEffect(() => {
@@ -371,7 +394,7 @@ function LaporanPage() {
     const nama = rawAkad?.debitur?.nama || p?.nama || "Sigit Suhendro";
     const pangkatKorpsNrp = rawAkad?.debitur?.pangkatKorpsNrp || p?.pktCrpNrp || p?.pangkatKorpsNrp || "Kolonel Inf NRP 11020019460278";
     const jabatan = rawAkad?.debitur?.jabatan || p?.kategoriPangkat || "PAMEN";
-    const kesatuan = "INFOLAHTADAM IV/DIP";
+    const kesatuan = rawAkad?.debitur?.kesatuan || p?.satminkal || p?.kesatuan || sessionSatminkal || "INFOLAHTADAM IV/DIP";
     const telpHp = rawAkad?.debitur?.telpHp || (p?.nrpNip ? `08${String(p.nrpNip).slice(-9).padStart(9, "0")}` : "081390411711");
     const alamat = "Jl. Perintis Kemerdekaan";
 
@@ -407,9 +430,9 @@ function LaporanPage() {
         const str = String(tglPinjam).trim();
         if (str.includes("-")) {
           const parts = str.split("-");
-          if (parts[0].length === 4) {
+          if (parts[0] && parts[0].length === 4) {
             baseDate = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]) || 1);
-          } else if (parts[2]?.length === 4) {
+          } else if (parts[2] && parts[2].length === 4) {
             baseDate = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]) || 1);
           }
         } else {
@@ -579,6 +602,7 @@ function LaporanPage() {
           description="Format cetak dokumen resmi militer sesuai juknis Lampiran Lomba RTI Koperasi TNI AD 2026"
           actions={
             <div className="flex flex-wrap items-center gap-2">
+              <SatminkalFilter value={selectedSatminkalId} onChange={setSelectedSatminkalId} />
               <Button variant="outline" size="sm" onClick={() => setKopstukSettingsOpen(true)}>
                 <Settings2 className="mr-1.5 size-4" /> Atur Kopstuk Dinamis
               </Button>
@@ -799,9 +823,9 @@ function LaporanPage() {
       >
         {/* TOP OFFICIAL MILITARY HEADER */}
         <div className="flex justify-between items-start text-xs uppercase font-bold text-black pb-4">
-          <div className="space-y-0.5 leading-tight border-b-2 border-black pb-2">
+          <div className="text-center space-y-0.5 leading-tight border-b-2 border-black pb-2">
             <p className="text-center">{kopKiri1}</p>
-            <p className="text-left">{kopKiri2}</p>
+            <p className="text-center">{kopKiri2}</p>
           </div>
           <div className="text-left space-y-0.5 leading-tight border-b-2 border-black pb-2">
             <p className="normal-case">{currentKopKanan.line1}</p>
@@ -1644,7 +1668,7 @@ function LaporanPage() {
               <p className="text-xs font-bold uppercase tracking-wider text-primary">Kopstuk Kanan Masing-Masing Lampiran</p>
 
               {Object.keys(DEFAULT_LAMPIRAN_KOPSTUK).map((lampKey) => {
-                const cfg = lampiranKopstuk[lampKey] || DEFAULT_LAMPIRAN_KOPSTUK[lampKey];
+                const cfg = lampiranKopstuk[lampKey] || DEFAULT_LAMPIRAN_KOPSTUK[lampKey] || { line1: "", line2: "" };
                 const label = lampKey.replace("lampiran", "Lampiran ");
                 return (
                   <div key={lampKey} className="p-3 bg-card rounded-xl border border-border space-y-2">
@@ -1653,7 +1677,7 @@ function LaporanPage() {
                       <div className="space-y-1">
                         <Label className="text-[11px]">Baris 1:</Label>
                         <Input
-                          value={cfg.line1}
+                          value={cfg?.line1 ?? ""}
                           onChange={(e) => handleUpdateLampiranKopstuk(lampKey, "line1", e.target.value)}
                           className="h-8 text-xs"
                         />
@@ -1661,7 +1685,7 @@ function LaporanPage() {
                       <div className="space-y-1">
                         <Label className="text-[11px]">Baris 2:</Label>
                         <Input
-                          value={cfg.line2}
+                          value={cfg?.line2 ?? ""}
                           onChange={(e) => handleUpdateLampiranKopstuk(lampKey, "line2", e.target.value)}
                           className="h-8 text-xs"
                         />

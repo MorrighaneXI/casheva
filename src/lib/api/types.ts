@@ -3,6 +3,9 @@
 // ==========================================
 
 export type BackendRole =
+  | 'SUPER_ADMIN'
+  | 'ADMIN_KOTAMA'
+  | 'ADMIN_SATMINKAL'
   | 'ADMIN_KOPERASI'
   | 'PIMPINAN'
   | 'KEPRIM'
@@ -10,7 +13,9 @@ export type BackendRole =
   | 'BENDAHARA'
   | 'PENGAWAS'
   | 'ANGGOTA'
-  | 'JURU_BAYAR';
+  | 'JURU_BAYAR'
+  | 'KASIR_TOKO'
+  | 'PETUGAS_GADAI';
 
 export type KategoriPangkat =
   | 'PATI'

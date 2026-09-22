@@ -2,7 +2,8 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 
-import cashevaLogo from "../assets/casheva-emblem.png";
+// import cashevaLogo from "../assets/casheva-emblem.png";
+import cashevaLogo from "../assets/primkop-kartika.png";
 
 import {
     Sidebar,
@@ -31,7 +32,7 @@ export function AppSidebar() {
     const { state } = useSidebar();
     const collapsed = state === "collapsed";
     const pathname = useRouterState({ select: (r) => r.location.pathname });
-    const { satminkal, kotama, role } = useSession();
+    const { satminkal, kotama, role, isKotamaAdmin, isSuperAdmin, isGuestMode, monitoringKotama } = useSession();
     const groups = roleNavGrouped[role] || [];
     const { getBadgeForUrl } = useLiveNotifications(role);
 
@@ -48,7 +49,7 @@ export function AppSidebar() {
             initial[g.groupTitle] = hasActive || true;
         });
         setOpenGroups((prev) => ({ ...initial, ...prev }));
-    }, [role, pathname]);
+    }, [pathname, role, groups]);
 
     const toggleGroup = (title: string) => {
         setOpenGroups((prev) => ({
@@ -58,24 +59,22 @@ export function AppSidebar() {
     };
 
     return (
-        <Sidebar collapsible="icon" className="transition-all duration-200">
-            <SidebarHeader className="border-b border-sidebar-border px-3 py-3.5">
-                <div className="flex min-w-0 items-center gap-3">
-                    <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-sidebar-accent/70 p-1.5 shadow-sm">
-                        <img
-                            src={cashevaLogo}
-                            alt="Logo Casheva Koperasi TNI AD"
-                            className="size-full object-contain"
-                        />
-                    </div>
+        <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar select-none">
+            <SidebarHeader className="border-b border-sidebar-border px-3 py-3">
+                <div className="flex items-center gap-2.5">
+                    <img
+                        src={cashevaLogo}
+                        alt="SISKOPAD"
+                        className="size-8 object-contain shrink-0 drop-shadow-sm"
+                    />
                     {!collapsed && (
-                        <div className="min-w-0">
-                            <p className="truncate text-base font-extrabold tracking-tight text-sidebar-accent-foreground">
-                                Casheva
-                            </p>
-                            <p className="truncate text-[11px] text-sidebar-foreground/70 font-medium">
-                                Koperasi TNI AD
-                            </p>
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-sm font-extrabold tracking-tight text-white leading-none">
+                                SISKOPAD
+                            </span>
+                            <span className="text-[10px] font-medium text-sidebar-foreground/70 leading-tight">
+                                Sistem Koperasi TNI Angkatan Darat
+                            </span>
                         </div>
                     )}
                 </div>
@@ -87,14 +86,54 @@ export function AppSidebar() {
                             </span>
                             <span className="inline-flex size-2 rounded-full bg-emerald-400 animate-pulse" />
                         </div>
-                        <p className="mt-1 truncate font-semibold text-sidebar-accent-foreground">
-                            {satminkal}
-                        </p>
-                        <p className="truncate text-[11px] text-sidebar-foreground/75">
-                            {kotama}
-                        </p>
+                        {isSuperAdmin && !isGuestMode ? (
+                            <>
+                                <p className="mt-1 truncate font-semibold text-sidebar-accent-foreground">
+                                    MABESAD / PUSAT
+                                </p>
+                                <p className="truncate text-[11px] text-sidebar-foreground/75">
+                                    Super Administrator TNI AD
+                                </p>
+                            </>
+                        ) : isSuperAdmin && isGuestMode && monitoringKotama ? (
+                            <>
+                                <p className="mt-1 truncate font-semibold text-sidebar-accent-foreground" title={monitoringKotama.nama}>
+                                    {monitoringKotama.nama}
+                                </p>
+                                <p className="truncate text-[11px] text-rose-400 font-medium">
+                                    Mode Monitoring Kotama
+                                </p>
+                            </>
+                        ) : isKotamaAdmin && !isGuestMode ? (
+                            <>
+                                <p className="mt-1 truncate font-semibold text-sidebar-accent-foreground" title={kotama}>
+                                    {kotama}
+                                </p>
+                                <p className="truncate text-[11px] text-sidebar-foreground/75">
+                                    Komando Utama / Balakpus
+                                </p>
+                            </>
+                        ) : isKotamaAdmin && isGuestMode ? (
+                            <>
+                                <p className="mt-1 truncate font-semibold text-sidebar-accent-foreground" title={satminkal}>
+                                    {satminkal}
+                                </p>
+                                <p className="truncate text-[11px] text-sidebar-foreground/75" title={kotama}>
+                                    Mode Monitoring · {kotama}
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <p className="mt-1 truncate font-semibold text-sidebar-accent-foreground" title={satminkal}>
+                                    {satminkal}
+                                </p>
+                                <p className="truncate text-[11px] text-sidebar-foreground/75" title={kotama}>
+                                    {kotama}
+                                </p>
+                            </>
+                        )}
                         <div className="mt-1.5 inline-flex items-center rounded-md bg-sidebar-accent px-2 py-0.5 text-[10px] font-bold text-sidebar-primary border border-sidebar-border/80">
-                            {role}
+                            {isGuestMode ? `${role} (Monitoring)` : role}
                         </div>
                     </div>
                 )}
@@ -122,8 +161,8 @@ export function AppSidebar() {
                                                         isActive={active}
                                                         tooltip={item.title}
                                                         className={`transition-all duration-150 rounded-lg ${active
-                                                                ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm"
-                                                                : "hover:bg-sidebar-accent/50 text-sidebar-foreground/90"
+                                                            ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm"
+                                                            : "hover:bg-sidebar-accent/50 text-sidebar-foreground/90"
                                                             }`}
                                                     >
                                                         <Link to={item.url} className="flex items-center justify-center">
@@ -181,8 +220,8 @@ export function AppSidebar() {
                                                             isActive={active}
                                                             tooltip={item.title}
                                                             className={`transition-all duration-150 rounded-lg text-xs py-1.5 h-8.5 ${active
-                                                                    ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm border-l-2 border-primary"
-                                                                    : "hover:bg-sidebar-accent/50 text-sidebar-foreground/85"
+                                                                ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm border-l-2 border-primary"
+                                                                : "hover:bg-sidebar-accent/50 text-sidebar-foreground/85"
                                                                 }`}
                                                         >
                                                             <Link to={item.url} className="flex items-center gap-2.5 pl-2">

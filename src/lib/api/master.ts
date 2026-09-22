@@ -1,6 +1,24 @@
 import { api } from './client';
 import type { Korps, Kotama, Pangkat, Satminkal } from './types';
 
+export interface CreateKotamaWithAdminDto {
+  kode: string;
+  nama: string;
+  tipe?: string;
+  adminUsername: string;
+  adminPassword: string;
+  adminNamaLengkap: string;
+}
+
+export interface CreateSatminkalWithAdminDto {
+  kode: string;
+  nama: string;
+  kotamaId: string;
+  adminUsername: string;
+  adminPassword: string;
+  adminNamaLengkap: string;
+}
+
 export const apiMaster = {
   getKotama: async (): Promise<Kotama[]> => {
     return api.get<Kotama[]>('/master/kotama');
@@ -10,6 +28,31 @@ export const apiMaster = {
     const query = kotamaId ? `?kotamaId=${kotamaId}` : '';
     return api.get<Satminkal[]>(`/master/satminkal${query}`);
   },
+
+  createKotamaWithAdmin: async (dto: CreateKotamaWithAdminDto): Promise<{ message: string; kotama: Kotama; admin: any }> => {
+    return api.post<any>('/master/kotama/with-admin', dto);
+  },
+
+  createSatminkalWithAdmin: async (dto: CreateSatminkalWithAdminDto): Promise<{ message: string; satminkal: Satminkal; admin: any }> => {
+    return api.post<any>('/master/satminkal/with-admin', dto);
+  },
+
+  updateKotama: async (id: string, dto: any): Promise<any> => {
+    return api.patch<any>(`/master/kotama/${id}`, dto);
+  },
+
+  deleteKotama: async (id: string): Promise<any> => {
+    return api.delete<any>(`/master/kotama/${id}`);
+  },
+
+  updateSatminkal: async (id: string, dto: any): Promise<any> => {
+    return api.patch<any>(`/master/satminkal/${id}`, dto);
+  },
+
+  deleteSatminkal: async (id: string): Promise<any> => {
+    return api.delete<any>(`/master/satminkal/${id}`);
+  },
+
 
   getPangkat: async (kategori?: string): Promise<Pangkat[]> => {
     const query = kategori ? `?kategori=${kategori}` : '';

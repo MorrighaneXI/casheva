@@ -5,9 +5,9 @@ import { PoinUndianWidget } from "@/components/widgets/poin-undian-widget";
 export const Route = createFileRoute("/poin-undian")({
   head: () => ({
     meta: [
-      { title: "Loyalty Poin & Undian RAT — Casheva Koperasi TNI AD" },
+      { title: "Loyalty Poin & Undian RAT — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Perolehan poin belanja toko, tracking target bulanan, penukaran kupon doorprize RAT, dan simulator pengundian." },
-      { property: "og:title", content: "Poin & Undian RAT — Casheva" },
+      { property: "og:title", content: "Poin & Undian RAT — SISKOPAD" },
       { property: "og:description", content: "Sistem Poin Belanja & Kupon Undian RAT Koperasi TNI AD." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

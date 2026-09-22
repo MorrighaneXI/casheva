@@ -5,9 +5,9 @@ import { GadaiWidget } from "@/components/widgets/gadai-widget";
 export const Route = createFileRoute("/gadai")({
   head: () => ({
     meta: [
-      { title: "Unit Usaha Gadai & Lelang — Casheva Koperasi TNI AD" },
+      { title: "Unit Usaha Gadai & Lelang — SISKOPAD Sistem Koperasi TNI AD" },
       { name: "description", content: "Layanan gadai syariah/konvensional emas & elektronik, Surat Bukti Gadai (SBG), dan etalase lelang barang sita." },
-      { property: "og:title", content: "Unit Gadai & Lelang — Casheva" },
+      { property: "og:title", content: "Unit Gadai & Lelang — SISKOPAD" },
       { property: "og:description", content: "Layanan Gadai Emas, Gadget & Etalase Lelang Koperasi TNI AD." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

@@ -53,12 +53,12 @@ import { apiAnggota, apiSimpanan, apiPinjaman, type Anggota } from "@/lib/api";
 export const Route = createFileRoute("/gaji")({
   head: () => ({
     meta: [
-      { title: "Rincian Gaji — Casheva Koperasi TNI AD" },
+      { title: "Rincian Gaji — SISKOPAD Sistem Koperasi TNI AD" },
       {
         name: "description",
         content: "Rincian gaji pokok, tunjangan, dan potongan anggota koperasi TNI AD.",
       },
-      { property: "og:title", content: "Rincian Gaji — Casheva" },
+      { property: "og:title", content: "Rincian Gaji — SISKOPAD" },
       {
         property: "og:description",
         content: "Pantau komponen gaji dan potongan koperasi Anda.",
@@ -223,7 +223,7 @@ function GajiPage() {
           const nominalAngsuran = unpaidAngsuran
             ? Number(unpaidAngsuran.total || 0)
             : Math.round(Number(loan.nominal || 0) / (loan.tenorBulan || 12));
-          
+
           if (nominalAngsuran > 0) {
             potonganList.push({
               nama: `Angsuran Pinjaman #${loan.id.slice(0, 8).toUpperCase()}`,

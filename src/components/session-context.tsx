@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { ROLES, type Role, backendRoleToFrontend, frontendRoleToBackend } from "@/lib/casheva-data";
-import { apiAuth, type LoginDto, type LoginResponse, type UserProfile } from "@/lib/api";
+import { apiAuth, apiKotama, type LoginDto, type LoginResponse, type UserProfile } from "@/lib/api";
 import { useIdleSession } from "@/hooks/use-idle-session";
 
 export interface UserSessionData {
@@ -18,20 +18,45 @@ export interface UserSessionData {
   role: Role;
   originalRole?: Role | undefined;
   satminkal: string;
+  satminkalId?: string | undefined;
   kotama: string;
+  kotamaId?: string | undefined;
   token: string;
+}
+
+export interface MonitoringSatminkalData {
+  id: string;
+  kode: string;
+  nama: string;
+}
+
+export interface MonitoringKotamaData {
+  id: string;
+  kode: string;
+  nama: string;
 }
 
 type SessionCtx = {
   role: Role;
   originalRole: Role;
   isAdmin: boolean;
+  isKotamaAdmin: boolean;
+  isSuperAdmin: boolean;
+  isGuestMode: boolean;
+  monitoringSatminkal: MonitoringSatminkalData | null;
+  monitoringKotama: MonitoringKotamaData | null;
+  startMonitoring: (target: MonitoringSatminkalData) => Promise<void>;
+  exitMonitoring: () => Promise<void>;
+  startMonitoringKotama: (target: MonitoringKotamaData) => Promise<void>;
+  exitMonitoringKotama: () => Promise<void>;
   setRole: (r: Role) => void;
   authenticated: boolean;
   setAuthenticated: (v: boolean) => void;
   ready: boolean;
   satminkal: string;
+  satminkalId?: string | undefined;
   kotama: string;
+  kotamaId?: string | undefined;
   user: UserSessionData | null;
   login: (dto: LoginDto) => Promise<LoginResponse>;
   logout: () => void;
@@ -44,19 +69,135 @@ function isRole(value: string | null): value is Role {
   return !!value && (ROLES as string[]).includes(value);
 }
 
+const DEFAULT_KOTAMA = "KODAM IV/DIPONEGORO";
+const DEFAULT_SATMINKAL = "INFOLAHTADAM IV/DIPONEGORO";
+
+function clearSatminkalCaches() {
+  localStorage.removeItem("casheva_kopstuk_baris1");
+  localStorage.removeItem("casheva_kopstuk_baris2");
+  localStorage.removeItem("casheva_kopstuk_baris3");
+  localStorage.removeItem("casheva_lokasi_kwitansi");
+  localStorage.removeItem("casheva_jabatan_kwitansi");
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [role, setRoleState] = useState<Role>(ROLES[0] as Role);
   const [originalRole, setOriginalRoleState] = useState<Role>(ROLES[0] as Role);
   const [authenticated, setAuthenticatedState] = useState(false);
   const [user, setUser] = useState<UserSessionData | null>(null);
   const [satminkal, setSatminkal] = useState("INFOLAHTADAM IV/DIPONEGORO");
+  const [satminkalId, setSatminkalId] = useState<string | undefined>();
   const [kotama, setKotama] = useState("KODAM IV/DIPONEGORO");
+  const [kotamaId, setKotamaId] = useState<string | undefined>();
   const [ready, setReady] = useState(false);
+
+  // Monitoring (Mode Tamu)
+  const [isGuestMode, setIsGuestMode] = useState(false);
+  const [monitoringSatminkal, setMonitoringSatminkal] = useState<MonitoringSatminkalData | null>(null);
+  const [monitoringKotama, setMonitoringKotama] = useState<MonitoringKotamaData | null>(null);
+
+  const isSuperAdmin = useMemo(() => {
+    const orig = user?.originalRole || originalRole || (typeof window !== "undefined" ? localStorage.getItem("casheva.originalRole") : null);
+    return orig === "Super Admin";
+  }, [user, originalRole]);
+
+  const isKotamaAdmin = useMemo(() => {
+    const orig = user?.originalRole || originalRole || (typeof window !== "undefined" ? localStorage.getItem("casheva.originalRole") : null);
+    return orig === "Admin Kotama";
+  }, [user, originalRole]);
 
   const isAdmin = useMemo(() => {
     const orig = user?.originalRole || originalRole || (typeof window !== "undefined" ? localStorage.getItem("casheva.originalRole") : null);
     return orig === "Admin Koperasi";
   }, [user, originalRole]);
+
+  const startMonitoring = useCallback(async (target: MonitoringSatminkalData) => {
+    try {
+      await apiKotama.startMonitoring(target.id);
+    } catch (e) {
+      console.warn("Failed to notify backend monitoring start:", e);
+    }
+    clearSatminkalCaches();
+    setIsGuestMode(true);
+    setMonitoringSatminkal(target);
+    setSatminkal(target.nama);
+    setSatminkalId(target.id);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("casheva.guest_monitoring", JSON.stringify(target));
+    }
+  }, []);
+
+  const exitMonitoring = useCallback(async () => {
+    try {
+      await apiKotama.endMonitoring();
+    } catch (e) {
+      console.warn("Failed to notify backend monitoring end:", e);
+    }
+    clearSatminkalCaches();
+    setIsGuestMode(false);
+    setMonitoringSatminkal(null);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("casheva.guest_monitoring");
+    }
+    // Restore Kotama / User's base Satminkal
+    if (user) {
+      setSatminkal(user.satminkal || "INFOLAHTADAM IV/DIPONEGORO");
+      setSatminkalId(user.satminkalId);
+    }
+  }, [user]);
+
+  // Super Admin -> Kotama Monitoring
+  const startMonitoringKotama = useCallback(async (target: MonitoringKotamaData) => {
+    try {
+      await apiKotama.startKotamaMonitoring(target.id);
+    } catch (e) {
+      console.warn("Failed to notify backend kotama monitoring start:", e);
+    }
+    clearSatminkalCaches();
+    setIsGuestMode(true);
+    setMonitoringKotama(target);
+    setMonitoringSatminkal(null);
+    setKotama(target.nama);
+    setKotamaId(target.id);
+    setSatminkal(target.nama);
+    setSatminkalId(undefined);
+    setRoleState("Admin Kotama");
+    if (typeof window !== "undefined") {
+      localStorage.setItem("casheva.guest_monitoring_kotama", JSON.stringify(target));
+      localStorage.setItem("casheva.role", "Admin Kotama");
+    }
+  }, []);
+
+  const exitMonitoringKotama = useCallback(async () => {
+    try {
+      if (monitoringKotama?.id) {
+        await apiKotama.endKotamaMonitoring(monitoringKotama.id);
+      } else {
+        await apiKotama.endKotamaMonitoring();
+      }
+    } catch (e) {
+      console.warn("Failed to notify backend kotama monitoring end:", e);
+    }
+    clearSatminkalCaches();
+    setIsGuestMode(false);
+    setMonitoringKotama(null);
+    setRoleState("Super Admin");
+    setKotama("MABES TNI AD / PUSAT");
+    setKotamaId(undefined);
+    setSatminkal("MABES TNI AD / PUSAT");
+    setSatminkalId(undefined);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("casheva.guest_monitoring_kotama");
+      localStorage.setItem("casheva.role", "Super Admin");
+    }
+    if (user) {
+      setKotama(user.kotama || "MABES TNI AD / PUSAT");
+      setKotamaId(user.kotamaId);
+      setSatminkal(user.satminkal || "MABES TNI AD / PUSAT");
+      setSatminkalId(user.satminkalId);
+    }
+  }, [monitoringKotama, user]);
+
 
   const refreshProfile = async () => {
     const token = localStorage.getItem("casheva.token");
@@ -69,8 +210,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     try {
       const profile: UserProfile = await apiAuth.getProfile();
       const mappedRole = backendRoleToFrontend(profile.role);
-      const satminkalName = profile.satminkal || "INFOLAHTADAM IV/DIPONEGORO";
-      const kotamaName = profile.kotama || "KODAM IV/DIPONEGORO";
+      const isKotama = mappedRole === "Admin Kotama";
+      const kotamaName = profile.kotama || (isKotama ? "PUSKOMLEKAD" : "KODAM IV/DIPONEGORO");
+      const defaultSatminkal = isKotama ? kotamaName : "INFOLAHTADAM IV/DIPONEGORO";
+      const satminkalName = profile.satminkal || defaultSatminkal;
+      const satId = profile.satminkalId || undefined;
+      const kotId = profile.kotamaId || undefined;
 
       setOriginalRoleState(mappedRole);
       if (mappedRole !== "Admin Koperasi") {
@@ -85,8 +230,51 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("casheva.role", mappedRole);
         }
       }
-      setSatminkal(satminkalName);
-      setKotama(kotamaName);
+
+      // Restore monitoring mode if previously saved
+      const savedMonitoring = typeof window !== "undefined" ? localStorage.getItem("casheva.guest_monitoring") : null;
+      const savedKotamaMonitoring = typeof window !== "undefined" ? localStorage.getItem("casheva.guest_monitoring_kotama") : null;
+
+      if (mappedRole === "Super Admin" && savedKotamaMonitoring) {
+        try {
+          const kmon = JSON.parse(savedKotamaMonitoring) as MonitoringKotamaData;
+          setIsGuestMode(true);
+          setMonitoringKotama(kmon);
+          setMonitoringSatminkal(null);
+          setKotama(kmon.nama);
+          setKotamaId(kmon.id);
+          setSatminkal(kmon.nama);
+          setSatminkalId(undefined);
+          setRoleState("Admin Kotama");
+        } catch {
+          setKotama(kotamaName);
+          setKotamaId(kotId);
+          setSatminkal(satminkalName);
+          setSatminkalId(satId);
+        }
+      } else if (mappedRole === "Admin Kotama" && savedMonitoring) {
+        try {
+          const mon = JSON.parse(savedMonitoring) as MonitoringSatminkalData;
+          setIsGuestMode(true);
+          setMonitoringSatminkal(mon);
+          setMonitoringKotama(null);
+          setSatminkal(mon.nama);
+          setSatminkalId(mon.id);
+          setKotama(kotamaName);
+          setKotamaId(kotId);
+        } catch {
+          setSatminkal(satminkalName);
+          setSatminkalId(satId);
+          setKotama(kotamaName);
+          setKotamaId(kotId);
+        }
+      } else {
+        setSatminkal(satminkalName);
+        setSatminkalId(satId);
+        setKotama(kotamaName);
+        setKotamaId(kotId);
+      }
+
       setAuthenticatedState(true);
 
       const sessionUser: UserSessionData = {
@@ -96,7 +284,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         role: mappedRole !== "Admin Koperasi" ? mappedRole : (isRole(localStorage.getItem("casheva.role")) ? (localStorage.getItem("casheva.role") as Role) : mappedRole),
         originalRole: mappedRole,
         satminkal: satminkalName,
+        satminkalId: satId,
         kotama: kotamaName,
+        kotamaId: kotId,
         token,
       };
 
@@ -115,135 +305,179 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("casheva.role");
       localStorage.removeItem("casheva.originalRole");
       localStorage.removeItem("casheva.user");
+      localStorage.removeItem("casheva.guest_monitoring");
+      localStorage.removeItem("casheva.guest_monitoring_kotama");
+      clearSatminkalCaches();
       setAuthenticatedState(false);
       setUser(null);
     }
   };
 
   useEffect(() => {
-    const init = async () => {
-      const token = localStorage.getItem("casheva.token");
-      const storedRole = localStorage.getItem("casheva.role");
-      const storedOriginalRole = localStorage.getItem("casheva.originalRole");
-      const storedAuth = localStorage.getItem("casheva.auth");
-      const storedUser = localStorage.getItem("casheva.user");
+    const raw = typeof window !== "undefined" ? localStorage.getItem("casheva.user") : null;
+    const isAuth = typeof window !== "undefined" ? localStorage.getItem("casheva.auth") === "1" : false;
+    const token = typeof window !== "undefined" ? localStorage.getItem("casheva.token") : null;
 
-      if (isRole(storedOriginalRole)) {
-        setOriginalRoleState(storedOriginalRole);
-        if (storedOriginalRole !== "Admin Koperasi") {
-          setRoleState(storedOriginalRole);
-        } else if (isRole(storedRole)) {
-          setRoleState(storedRole);
-        }
-      } else if (isRole(storedRole)) {
-        setRoleState(storedRole);
-      }
-
-      if (storedAuth === "1" && token) {
+    if (raw && isAuth && token) {
+      try {
+        const parsed = JSON.parse(raw) as UserSessionData;
+        const isKotama = parsed.originalRole === "Admin Kotama" || parsed.role === "Admin Kotama";
+        const kotamaVal = parsed.kotama || (isKotama ? "PUSKOMLEKAD" : "KODAM IV/DIPONEGORO");
+        const satminkalVal = isKotama ? (parsed.satminkal || kotamaVal) : (parsed.satminkal || "INFOLAHTADAM IV/DIPONEGORO");
+        setUser(parsed);
+        setSatminkal(satminkalVal);
+        setSatminkalId(parsed.satminkalId);
+        setKotama(kotamaVal);
+        setKotamaId(parsed.kotamaId);
         setAuthenticatedState(true);
-        if (storedUser) {
-          try {
-            const parsed = JSON.parse(storedUser);
-            setUser(parsed);
-            if (parsed.satminkal) setSatminkal(parsed.satminkal);
-            if (parsed.kotama) setKotama(parsed.kotama);
-            if (parsed.originalRole) {
-              setOriginalRoleState(parsed.originalRole);
-              if (parsed.originalRole !== "Admin Koperasi") {
-                setRoleState(parsed.originalRole);
-              }
-            }
-          } catch {}
-        }
-        // Sync profile from backend in background
-        refreshProfile().finally(() => setReady(true));
-      } else {
-        setReady(true);
-      }
-    };
 
-    init();
+        const storedRole = localStorage.getItem("casheva.role");
+        const storedOrig = localStorage.getItem("casheva.originalRole");
+
+        if (isRole(storedRole)) {
+          setRoleState(storedRole);
+        } else if (parsed.role) {
+          setRoleState(parsed.role);
+        }
+
+        if (isRole(storedOrig)) {
+          setOriginalRoleState(storedOrig);
+        } else if (parsed.originalRole) {
+          setOriginalRoleState(parsed.originalRole);
+        }
+
+        const savedKotamaMonitoring = localStorage.getItem("casheva.guest_monitoring_kotama");
+        const savedMonitoring = localStorage.getItem("casheva.guest_monitoring");
+
+        if (savedKotamaMonitoring) {
+          try {
+            const kmon = JSON.parse(savedKotamaMonitoring) as MonitoringKotamaData;
+            setIsGuestMode(true);
+            setMonitoringKotama(kmon);
+            setMonitoringSatminkal(null);
+            setKotama(kmon.nama);
+            setKotamaId(kmon.id);
+            setSatminkal(kmon.nama);
+            setSatminkalId(undefined);
+            setRoleState("Admin Kotama");
+          } catch {
+            // ignore
+          }
+        } else if (savedMonitoring) {
+          try {
+            const mon = JSON.parse(savedMonitoring) as MonitoringSatminkalData;
+            setIsGuestMode(true);
+            setMonitoringSatminkal(mon);
+            setMonitoringKotama(null);
+            setSatminkal(mon.nama);
+            setSatminkalId(mon.id);
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        localStorage.removeItem("casheva.user");
+      }
+    }
+
+    if (token) {
+      refreshProfile().finally(() => setReady(true));
+    } else {
+      setReady(true);
+    }
   }, []);
 
-  const login = async (dto: LoginDto): Promise<LoginResponse> => {
+  const login = async (dto: LoginDto) => {
+    clearSatminkalCaches();
+    localStorage.removeItem("casheva.guest_monitoring");
+    localStorage.removeItem("casheva.guest_monitoring_kotama");
+    setIsGuestMode(false);
+    setMonitoringSatminkal(null);
+    setMonitoringKotama(null);
+
     let res: LoginResponse;
     try {
       res = await apiAuth.login(dto);
     } catch (err: any) {
-      // Jika server backend offline/unreachable ("Failed to fetch" / status 0)
-      // Buat sesi demo lokal otomatis agar pengguna tetap bisa login lancar
-      if (
-        err.message?.includes("Failed to fetch") ||
-        err.message?.includes("Gagal menghubungi server") ||
-        err.statusCode === 0 ||
-        !err.statusCode
-      ) {
-        const u = dto.username.toLowerCase().trim();
-        let roleMapped: Role = "Anggota";
-        let roleBackend: any = "ANGGOTA";
-        let nama = "";
+      // Fallback for offline demo credentials
+      const u = dto.username.toLowerCase();
+      let demoRole: Role = "Anggota";
+      let demoName = dto.username;
+      let demoKotama = "KODAM IV/DIPONEGORO";
+      let demoSatminkal = "INFOLAHTADAM IV/DIPONEGORO";
 
-        // 1. Cek dari anggota cache lokal
-        try {
-          const rawCache = localStorage.getItem("casheva.anggota_cache");
-          if (rawCache) {
-            const cachedList: any[] = JSON.parse(rawCache);
-            const found = cachedList.find((a) => a.nrpNip?.toLowerCase() === u || a.id === u);
-            if (found) {
-              const pNama = (found.pangkat?.nama && found.pangkat.nama !== "-") ? `${found.pangkat.nama} ` : "";
-              const kNama = (found.korps?.nama && found.korps.nama !== "-") ? `${found.korps.nama} ` : "";
-              nama = found.nama?.toLowerCase().startsWith(pNama.trim().toLowerCase())
-                ? found.nama
-                : `${pNama}${kNama}${found.nama}`.trim();
-            }
-          }
-        } catch {}
-
-        if (!nama) {
-          if (u === "admin") {
-            roleMapped = "Admin Koperasi";
-            roleBackend = "ADMIN_KOPERASI";
-            nama = "Administrator Koperasi";
-          } else if (u === "pimpinan") {
-            roleMapped = "Pimpinan / Dan / Ka";
-            roleBackend = "PIMPINAN";
-            nama = "Kolonel Inf Heru (Dan/Ka)";
-          } else if (u === "keprim") {
-            roleMapped = "Keprim";
-            roleBackend = "KEPRIM";
-            nama = "Letkol Cba Dedi Kurnia (Keprim)";
-          } else if (u === "bendahara") {
-            roleMapped = "Bendahara";
-            roleBackend = "BENDAHARA";
-            nama = "Lettu Cku Budi (Bendahara)";
-          } else if (u === "jurubayar") {
-            roleMapped = "Juru Bayar";
-            roleBackend = "JURU_BAYAR";
-            nama = "Serma Agus (Juru Bayar)";
-          } else if (u === "pengawas") {
-            roleMapped = "Pengawas Koperasi";
-            roleBackend = "PENGAWAS";
-            nama = "Mayor Inf Tri (Pengawas)";
-          } else if (u === "1102123401") {
-            roleMapped = "Anggota";
-            roleBackend = "ANGGOTA";
-            nama = "Kolonel Inf Sigit Suhendro";
-          } else {
-            // Jika NRP angka dinas
-            nama = `Personel (${dto.username})`;
-          }
+      if (u.includes("kotama") || u.includes("admin_kodam") || u.includes("admin_kopassus") || u.includes("admin_puskomlekad")) {
+        demoRole = "Admin Kotama";
+        demoName = "Pabandya Ops Koperasi (Admin Kotama)";
+        if (u.includes("kodam5") || u.includes("brawijaya")) demoKotama = "KODAM V/BRAWIJAYA";
+        else if (u.includes("kopassus")) demoKotama = "KOPASSUS";
+        else if (u.includes("puskomlekad")) demoKotama = "PUSKOMLEKAD";
+        demoSatminkal = demoKotama;
+      } else if (u.includes("admin")) {
+        demoRole = "Admin Koperasi";
+        demoName = "PNS Hendro (Admin IT)";
+        if (u.includes("denma_puskomlekad")) {
+          demoKotama = "PUSKOMLEKAD";
+          demoSatminkal = "DENMA PUSKOMLEKAD";
+        } else if (u.includes("hubdam")) {
+          demoKotama = "KODAM IV/DIPONEGORO";
+          demoSatminkal = "HUBDAM IV/DIPONEGORO";
         }
+      } else if (u.includes("pimpinan") || u.includes("dan")) {
+        demoRole = "Pimpinan / Dan / Ka";
+        demoName = "Kolonel Inf Suryo (Dan/Ka)";
+      } else if (u.includes("keprim")) {
+        demoRole = "Keprim";
+        demoName = "Letkol Cba Dedi Kurnia";
+      } else if (u.includes("bendahara")) {
+        demoRole = "Bendahara";
+        demoName = "Lettu Cku Budi";
+      } else if (u.includes("pengawas")) {
+        demoRole = "Pengawas Koperasi";
+        demoName = "Mayor Inf Tri";
+      } else if (u.includes("jurubayar") || u.includes("juru")) {
+        demoRole = "Juru Bayar";
+        demoName = "Serma Agus (Juru Bayar)";
+      } else if (u.includes("kasir") || u.includes("gadai")) {
+        demoRole = "Kasir Toko";
+        demoName = "Kopda Hendra Setiawan";
+      }
 
-        const fakeToken = "demo-session-token-" + Math.random().toString(36).substring(2);
-        res = {
-          message: "Login berhasil",
-          accessToken: fakeToken,
+      if (demoRole) {
+        const dummyToken = `demo-session-token-${Date.now()}`;
+        localStorage.setItem("casheva.token", dummyToken);
+        localStorage.setItem("casheva.auth", "1");
+        localStorage.setItem("casheva.role", demoRole);
+        localStorage.setItem("casheva.originalRole", demoRole);
+
+        const dummyUser: UserSessionData = {
+          id: `demo-id-${dto.username}`,
+          namaLengkap: demoName,
+          username: dto.username,
+          role: demoRole,
+          originalRole: demoRole,
+          satminkal: demoSatminkal,
+          kotama: demoKotama,
+          token: dummyToken,
+        };
+
+        setUser(dummyUser);
+        setSatminkal(demoSatminkal);
+        setKotama(demoKotama);
+        setRoleState(demoRole);
+        setOriginalRoleState(demoRole);
+        setAuthenticatedState(true);
+        localStorage.setItem("casheva.user", JSON.stringify(dummyUser));
+
+        return {
+          message: "Login Berhasil (Mode Standalone)",
+          accessToken: dummyToken,
           user: {
-            id: "user-" + u,
-            namaLengkap: nama,
-            role: roleBackend,
-            kotama: "KODAM IV/DIPONEGORO",
-            satminkal: "INFOLAHTADAM IV/DIPONEGORO",
+            id: dummyUser.id,
+            namaLengkap: demoName,
+            role: frontendRoleToBackend(demoRole) as any,
+            kotama: demoKotama,
+            satminkal: demoSatminkal,
           },
         };
       } else {
@@ -255,13 +489,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("casheva.auth", "1");
 
     const mappedRole = backendRoleToFrontend(res.user.role);
-    const satminkalName = res.user.satminkal || "INFOLAHTADAM IV/DIPONEGORO";
-    const kotamaName = res.user.kotama || "KODAM IV/DIPONEGORO";
+    const isKotama = mappedRole === "Admin Kotama";
+    const kotamaName = res.user.kotama || (isKotama ? "PUSKOMLEKAD" : "KODAM IV/DIPONEGORO");
+    const defaultSatminkal = isKotama ? kotamaName : "INFOLAHTADAM IV/DIPONEGORO";
+    const satminkalName = res.user.satminkal || defaultSatminkal;
+    const satId = (res.user as any).satminkalId || undefined;
+    const kotId = (res.user as any).kotamaId || undefined;
 
     setOriginalRoleState(mappedRole);
     setRoleState(mappedRole);
     setSatminkal(satminkalName);
+    setSatminkalId(satId);
     setKotama(kotamaName);
+    setKotamaId(kotId);
     setAuthenticatedState(true);
 
     const sessionUser: UserSessionData = {
@@ -271,7 +511,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       role: mappedRole,
       originalRole: mappedRole,
       satminkal: satminkalName,
+      satminkalId: satId,
       kotama: kotamaName,
+      kotamaId: kotId,
       token: res.accessToken,
     };
 
@@ -289,6 +531,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("casheva.role");
     localStorage.removeItem("casheva.originalRole");
     localStorage.removeItem("casheva.user");
+    localStorage.removeItem("casheva.guest_monitoring");
+    localStorage.removeItem("casheva.guest_monitoring_kotama");
+    clearSatminkalCaches();
+    setIsGuestMode(false);
+    setMonitoringSatminkal(null);
+    setMonitoringKotama(null);
     setAuthenticatedState(false);
     setUser(null);
   }, []);
@@ -325,6 +573,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem("casheva.role");
       localStorage.removeItem("casheva.originalRole");
       localStorage.removeItem("casheva.user");
+      localStorage.removeItem("casheva.guest_monitoring");
+      localStorage.removeItem("casheva.guest_monitoring_kotama");
+      setIsGuestMode(false);
+      setMonitoringSatminkal(null);
+      setMonitoringKotama(null);
       setUser(null);
     }
   };
@@ -334,18 +587,50 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       role,
       originalRole,
       isAdmin,
+      isKotamaAdmin,
+      isSuperAdmin,
+      isGuestMode,
+      monitoringSatminkal,
+      monitoringKotama,
+      startMonitoring,
+      exitMonitoring,
+      startMonitoringKotama,
+      exitMonitoringKotama,
       setRole,
       authenticated,
       setAuthenticated,
       ready,
       satminkal,
+      satminkalId,
       kotama,
+      kotamaId,
       user,
       login,
       logout,
       refreshProfile,
     }),
-    [role, originalRole, isAdmin, authenticated, ready, satminkal, kotama, user],
+    [
+      role,
+      originalRole,
+      isAdmin,
+      isKotamaAdmin,
+      isSuperAdmin,
+      isGuestMode,
+      monitoringSatminkal,
+      monitoringKotama,
+      startMonitoring,
+      exitMonitoring,
+      startMonitoringKotama,
+      exitMonitoringKotama,
+      authenticated,
+      ready,
+      satminkal,
+      satminkalId,
+      kotama,
+      kotamaId,
+      user,
+      logout,
+    ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
