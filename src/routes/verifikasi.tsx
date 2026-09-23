@@ -349,7 +349,18 @@ function JuyarDetail({ item, onBack }: { item: Pinjaman; onBack: () => void }) {
                 const j = (doc.jenis || doc.jenisDokumen || "").toLowerCase();
                 const targetId = d.id.toLowerCase();
                 const targetName = d.name.toLowerCase();
-                return j.includes(targetId) || j.includes(targetName);
+                return (
+                  j === targetId ||
+                  j.includes(targetId) ||
+                  j.includes(targetId.replace(/_/g, " ")) ||
+                  j === targetName ||
+                  j.includes(targetName) ||
+                  (targetId === "usipa" && (j.includes("usipa") || j.includes("permohonan"))) ||
+                  (targetId === "jurbay" && (j.includes("jurbay") || j.includes("juru bayar") || j.includes("rekomendasi"))) ||
+                  (targetId === "slip" && (j.includes("slip") || (j.includes("gaji") && !j.includes("potong")))) ||
+                  (targetId === "kta" && (j.includes("kta") || j.includes("ktp") || j.includes("identitas"))) ||
+                  (targetId === "potong_gaji" && (j.includes("potong") || j.includes("akad") || j.includes("kuasa") || j.includes("pernyataan")))
+                );
               });
 
               return (
