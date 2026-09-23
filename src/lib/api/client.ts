@@ -100,11 +100,22 @@ export async function apiRequest<T = any>(
         // Respons bukan JSON
       }
 
-      // Jika 401 Unauthorized, hapus token kadaluarsa
+      // Jika 401 Unauthorized, periksa apakah konflik session ganda
       if (response.status === 401 && typeof window !== "undefined") {
-        if (errorMessage.includes("perangkat lain")) {
-          alert("⚠️ Akses Ditolak: Akun Anda sedang aktif di perangkat/device lain. Sesi di perangkat ini diakhiri.");
-        }
+        const isConflict =
+          errorMessage.includes("perangkat lain") ||
+          errorMessage.includes("SESSION_CONCURRENT_CONFLICT") ||
+          errorMessage.includes("dialihkan");
+
+        window.dispatchEvent(
+          new CustomEvent("casheva:concurrent-session-conflict", {
+            detail: {
+              isConflict,
+              message: errorMessage,
+            },
+          })
+        );
+
         localStorage.removeItem("casheva.token");
         localStorage.removeItem("casheva.auth");
         localStorage.removeItem("casheva.user");

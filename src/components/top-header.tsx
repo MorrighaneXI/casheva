@@ -53,7 +53,7 @@ import {
 } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/components/session-context";
-import { ROLES, type Role, formatNamaLengkapDinas } from "@/lib/casheva-data";
+import { ROLES, getAvailablePerspectiveRoles, type Role, formatNamaLengkapDinas } from "@/lib/casheva-data";
 import { apiAnggota, apiKotama } from "@/lib/api";
 import { useLiveNotifications } from "@/lib/notifications";
 
@@ -61,6 +61,7 @@ export function TopHeader() {
     const navigate = useNavigate();
     const {
         role,
+        originalRole,
         setRole,
         user,
         isAdmin,
@@ -78,6 +79,8 @@ export function TopHeader() {
     } = useSession();
     const { notifications, unreadCount } = useLiveNotifications(role);
     const [dark, setDark] = useState(false);
+
+    const perspectiveRoles = useMemo(() => getAvailablePerspectiveRoles(originalRole), [originalRole]);
     const [searchQuery, setSearchQuery] = useState("");
     const [profileOpen, setProfileOpen] = useState(false);
     const [notifOpen, setNotifOpen] = useState(false);
@@ -317,7 +320,7 @@ export function TopHeader() {
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent align="end" className="text-xs">
-                                    {ROLES.map((r) => (
+                                    {perspectiveRoles.map((r) => (
                                         <SelectItem key={r} value={r} className="text-xs">
                                             {r}
                                         </SelectItem>

@@ -87,9 +87,21 @@ function LoginPage() {
       const res = await login({ username: u, password: p });
       setLoading(false);
       setSuccess(true);
-      toast.success("Login Berhasil", {
-        description: `Selamat datang, ${res.user.namaLengkap} (${res.user.role})`,
-      });
+
+      if (res.wasActiveOnAnotherDevice) {
+        toast.warning("Peringatan Sesi Multi-Perangkat", {
+          description: `Akun ini sebelumnya aktif di perangkat lain. Sesi lama pada perangkat tersebut telah diputus secara otomatis demi keamanan data.`,
+          duration: 7000,
+        });
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("casheva.session_takeover_notice", "1");
+        }
+      } else {
+        toast.success("Login Berhasil", {
+          description: `Selamat datang, ${res.user.namaLengkap} (${res.user.role})`,
+        });
+      }
+
       track(() => setLeaving(true), 600);
       track(() => navigate({ to: "/" }), 1000);
     } catch (err: any) {

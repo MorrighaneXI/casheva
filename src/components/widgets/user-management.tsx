@@ -81,6 +81,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
     ROLES,
+    getAvailablePerspectiveRoles,
     backendRoleToFrontend,
     frontendRoleToBackend,
     formatPangkatKorps,
@@ -93,7 +94,7 @@ import { useSession } from "@/components/session-context";
 
 export function UserManagementWidget() {
     const queryClient = useQueryClient();
-    const { satminkal, satminkalId: sessionSatminkalId, kotama, kotamaId: sessionKotamaId, isSuperAdmin, isKotamaAdmin } = useSession();
+    const { satminkal, satminkalId: sessionSatminkalId, kotama, kotamaId: sessionKotamaId, isSuperAdmin, isKotamaAdmin, originalRole } = useSession();
     const [q, setQ] = useState("");
     const [roleFilter, setRoleFilter] = useState("Semua");
     const [statusFilter, setStatusFilter] = useState("Semua");
@@ -112,6 +113,7 @@ export function UserManagementWidget() {
     const [toggleStatusUser, setToggleStatusUser] = useState<UserItem | null>(null);
     const [deleteUser, setDeleteUser] = useState<UserItem | null>(null);
     const [openConfirmDeleteUser, setOpenConfirmDeleteUser] = useState(false);
+    const [sessionToTerminate, setSessionToTerminate] = useState<UserItem | null>(null);
 
     // New User Form State
     const [newNamaLengkap, setNewNamaLengkap] = useState("");
@@ -184,6 +186,10 @@ export function UserManagementWidget() {
         }
         return satminkalList;
     }, [satminkalList, isSuperAdmin, isKotamaAdmin, kotamaFilter, sessionKotamaId]);
+
+    const availableRolesForManagement = useMemo(() => {
+        return getAvailablePerspectiveRoles(originalRole);
+    }, [originalRole]);
 
     // MUTATIONS with Alert Pop-ups
     const createUserMutation = useMutation({
@@ -322,6 +328,21 @@ export function UserManagementWidget() {
             toast.error("Gagal Menghapus User", {
                 description: err.message || "Terjadi kesalahan saat menghapus pengguna dari database.",
             });
+        },
+    });
+
+    const terminateSessionMutation = useMutation({
+        mutationFn: (userId: string) => apiUsers.terminateSession(userId),
+        onSuccess: () => {
+            toast.success("Sesi Pengguna Berhasil Diputus", {
+                description: `Pengguna @${sessionToTerminate?.username} telah dikeluarkan dari perangkat yang terhubung.`,
+            });
+            queryClient.invalidateQueries({ queryKey: ["users-list"] });
+            queryClient.invalidateQueries({ queryKey: ["active-sessions"] });
+            setSessionToTerminate(null);
+        },
+        onError: (err: any) => {
+            toast.error("Gagal Memutus Sesi", { description: err.message });
         },
     });
 
@@ -544,7 +565,7 @@ export function UserManagementWidget() {
                             </SelectTrigger>
                             <SelectContent className="text-xs max-h-60">
                                 <SelectItem value="Semua">Semua Role</SelectItem>
-                                {ROLES.map((r) => (
+                                {availableRolesForManagement.map((r) => (
                                     <SelectItem key={r} value={r}>
                                         {r}
                                     </SelectItem>
@@ -762,6 +783,17 @@ export function UserManagementWidget() {
                                                             <UserCheck className="size-3.5 text-success" />
                                                         )}
                                                     </Button>
+                                                    {(Boolean((u as any).currentSessionToken) || isOnline || isIdle) && (
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            className="size-7 text-amber-600 hover:text-amber-700 hover:bg-amber-500/10"
+                                                            title="Force Logout (Putuskan Sesi Aktif)"
+                                                            onClick={() => setSessionToTerminate(u)}
+                                                        >
+                                                            <LogOut className="size-3.5" />
+                                                        </Button>
+                                                    )}
                                                     <Button
                                                         size="icon"
                                                         variant="ghost"
@@ -821,7 +853,7 @@ export function UserManagementWidget() {
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent className="text-xs max-h-56">
-                                        {ROLES.map((r) => (
+                                        {availableRolesForManagement.map((r) => (
                                             <SelectItem key={r} value={r} className="text-xs">
                                                 {r}
                                             </SelectItem>
@@ -1467,6 +1499,33 @@ export function UserManagementWidget() {
                 onConfirm={() => {
                     if (deleteUser) {
                         deleteUserMutation.mutate(deleteUser.id);
+                    }
+                }}
+            />
+
+            {/* Alert Pop-up: Force Logout Sesi Pengguna */}
+            <ConfirmActionDialog
+                open={!!sessionToTerminate}
+                onOpenChange={(o) => {
+                    if (!o) setSessionToTerminate(null);
+                }}
+                title="Paksa Logout (Force Logout Sesi)?"
+                description={
+                    <>
+                        Sesi aktif pengguna <strong>@{sessionToTerminate?.username}</strong> ({sessionToTerminate?.namaLengkap}) akan diputus secara paksa. Pengguna akan langsung dikeluarkan ke halaman login.
+                    </>
+                }
+                confirmText="Ya, Putuskan Sesi Sekarang"
+                variant="destructive"
+                isLoading={terminateSessionMutation.isPending}
+                details={[
+                    { label: "NRP / Username", value: `@${sessionToTerminate?.username || "-"}` },
+                    { label: "Nama Personel", value: sessionToTerminate?.namaLengkap || "-" },
+                    { label: "Role Hak Akses", value: sessionToTerminate ? backendRoleToFrontend(sessionToTerminate.role) : "-" },
+                ]}
+                onConfirm={() => {
+                    if (sessionToTerminate) {
+                        terminateSessionMutation.mutate(sessionToTerminate.id);
                     }
                 }}
             />

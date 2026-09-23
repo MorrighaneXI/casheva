@@ -19,6 +19,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { TopHeader } from "@/components/top-header";
 import { SessionProvider } from "@/components/session-context";
 import { RoleGate } from "@/components/role-gate";
+import { TakeoverNoticeBanner } from "@/components/takeover-notice-banner";
 
 function NotFoundComponent() {
   return (
@@ -153,7 +154,6 @@ function RootShell({ children }: { children: ReactNode }) {
     </html>
   );
 }
-
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -193,6 +193,7 @@ function RootComponent() {
               <div className="flex min-w-0 flex-1 flex-col">
                 <TopHeader />
                 <main className="flex-1 p-3 sm:p-6 max-w-full overflow-x-hidden">
+                  <TakeoverNoticeBanner />
                   {/* Required: nested routes render here. */}
                   <Outlet />
                 </main>

@@ -9,6 +9,7 @@ export interface LoginDto {
 export interface LoginResponse {
   message: string;
   accessToken: string;
+  wasActiveOnAnotherDevice?: boolean;
   user: {
     id: string;
     namaLengkap: string;
@@ -37,5 +38,13 @@ export const apiAuth = {
 
   getProfile: async (): Promise<UserProfile> => {
     return api.get<UserProfile>('/auth/profile');
+  },
+
+  checkSession: async (): Promise<{ valid: boolean; userId: string; username?: string }> => {
+    return api.get<{ valid: boolean; userId: string; username?: string }>('/auth/session-check');
+  },
+
+  logout: async (): Promise<{ message: string }> => {
+    return api.post<{ message: string }>('/auth/logout');
   },
 };

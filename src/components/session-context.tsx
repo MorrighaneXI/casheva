@@ -7,9 +7,19 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { ROLES, type Role, backendRoleToFrontend } from "@/lib/casheva-data";
-import { apiAuth, apiKotama, type LoginDto, type UserProfile } from "@/lib/api";
+import { ROLES, SATMINKAL_ROLES, type Role, backendRoleToFrontend } from "@/lib/casheva-data";
+import { apiAuth, apiKotama, type LoginDto, type LoginResponse, type UserProfile } from "@/lib/api";
 import { useIdleSession } from "@/hooks/use-idle-session";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ShieldAlert, LogOut } from "lucide-react";
 
 export interface UserSessionData {
   id: string;
@@ -90,6 +100,44 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [kotama, setKotama] = useState("KODAM IV/DIPONEGORO");
   const [kotamaId, setKotamaId] = useState<string | undefined>();
   const [ready, setReady] = useState(false);
+
+  // Real-time Concurrent Session Conflict Detection
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [conflictMessage, setConflictMessage] = useState("");
+
+  useEffect(() => {
+    const handleConflict = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const msg = customEvent.detail?.message || "Akun Anda sedang digunakan di perangkat lain.";
+      setConflictMessage(msg);
+      setConflictModalOpen(true);
+      setAuthenticatedState(false);
+      setUser(null);
+    };
+
+    window.addEventListener("casheva:concurrent-session-conflict", handleConflict);
+    return () => {
+      window.removeEventListener("casheva:concurrent-session-conflict", handleConflict);
+    };
+  }, []);
+
+  // Heartbeat session check every 3.5 seconds
+  useEffect(() => {
+    if (!authenticated || !ready || conflictModalOpen) return;
+
+    const interval = setInterval(async () => {
+      const token = typeof window !== "undefined" ? localStorage.getItem("casheva.token") : null;
+      if (!token) return;
+
+      try {
+        await apiAuth.checkSession();
+      } catch {
+        // If 401 occurs, client.ts automatically triggers the event and clears localStorage
+      }
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [authenticated, ready, conflictModalOpen]);
 
   // Monitoring (Mode Tamu)
   const [isGuestMode, setIsGuestMode] = useState(false);
@@ -223,8 +271,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         localStorage.setItem("casheva.role", mappedRole);
       } else {
         const storedRole = localStorage.getItem("casheva.role");
-        if (isRole(storedRole)) {
-          setRoleState(storedRole);
+        if (isRole(storedRole) && SATMINKAL_ROLES.includes(storedRole as Role)) {
+          setRoleState(storedRole as Role);
         } else {
           setRoleState(mappedRole);
           localStorage.setItem("casheva.role", mappedRole);
@@ -327,13 +375,22 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setKotamaId(parsed.kotamaId);
         setAuthenticatedState(true);
 
-        const storedRole = localStorage.getItem("casheva.role");
-        const storedOrig = localStorage.getItem("casheva.originalRole");
+        const effectiveOrig = isRole(storedOrig) ? (storedOrig as Role) : parsed.originalRole;
 
         if (isRole(storedRole)) {
-          setRoleState(storedRole);
+          if (effectiveOrig === "Admin Koperasi" && !SATMINKAL_ROLES.includes(storedRole as Role)) {
+            setRoleState("Admin Koperasi");
+            localStorage.setItem("casheva.role", "Admin Koperasi");
+          } else {
+            setRoleState(storedRole);
+          }
         } else if (parsed.role) {
-          setRoleState(parsed.role);
+          if (effectiveOrig === "Admin Koperasi" && !SATMINKAL_ROLES.includes(parsed.role)) {
+            setRoleState("Admin Koperasi");
+            localStorage.setItem("casheva.role", "Admin Koperasi");
+          } else {
+            setRoleState(parsed.role);
+          }
         }
 
         if (isRole(storedOrig)) {
@@ -435,6 +492,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = useCallback(() => {
+    apiAuth.logout().catch(() => {});
     localStorage.removeItem("casheva.token");
     localStorage.removeItem("casheva.auth");
     localStorage.removeItem("casheva.role");
@@ -463,6 +521,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     const currentOrig = user?.originalRole || originalRole || (typeof window !== "undefined" ? localStorage.getItem("casheva.originalRole") : null);
     if (currentOrig !== "Admin Koperasi") {
       console.warn("Akses ditolak: Hanya Admin Koperasi yang dapat beralih perspektif peran.");
+      return;
+    }
+    // Satminkal admin can only switch to Satminkal level roles (up to Admin Koperasi)
+    if (!SATMINKAL_ROLES.includes(nextRole)) {
+      console.warn(`Akses ditolak: Admin Satminkal hanya dapat beralih ke peran tingkat Satminkal / Koperasi (maksimal Admin Koperasi).`);
       return;
     }
     setRoleState(nextRole);
@@ -542,7 +605,51 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     ],
   );
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={value}>
+      {children}
+
+      {/* Concurrent Session Security Alert Modal */}
+      <AlertDialog
+        open={conflictModalOpen}
+        onOpenChange={(o) => {
+          if (!o) {
+            setConflictModalOpen(false);
+            window.location.href = "/login";
+          }
+        }}
+      >
+        <AlertDialogContent
+          className="max-w-md border-rose-500/30 bg-card/95 backdrop-blur-md shadow-2xl p-6"
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <AlertDialogHeader className="text-center sm:text-center items-center">
+            <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-rose-500/10 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-500/30 shadow-inner">
+              <ShieldAlert className="size-8 animate-pulse" />
+            </div>
+            <AlertDialogTitle className="text-lg font-bold text-foreground">
+              Sesi Berakhir: Akun Digunakan di Perangkat Lain
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-muted-foreground text-center leading-relaxed mt-2">
+              Akun Anda baru saja login melalui perangkat atau browser lain. Sesuai standar keamanan sistem informasi TNI AD, satu akun hanya diizinkan aktif pada <strong>1 perangkat dalam satu waktu</strong>. Sesi pada perangkat ini telah dihentikan secara otomatis demi keamanan data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-6 sm:justify-center">
+            <AlertDialogAction
+              onClick={() => {
+                setConflictModalOpen(false);
+                window.location.href = "/login";
+              }}
+              className="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold shadow-md gap-2"
+            >
+              <LogOut className="size-4" />
+              Kembali ke Halaman Login
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Ctx.Provider>
+  );
 }
 
 export function useSession() {
