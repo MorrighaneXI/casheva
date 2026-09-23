@@ -25,6 +25,27 @@ export const ROLES: Role[] = [
   "Pengawas Koperasi",
 ];
 
+export const SATMINKAL_ROLES: Role[] = [
+  "Admin Koperasi",
+  "Pimpinan / Dan / Ka",
+  "Keprim",
+  "Bendahara",
+  "Juru Bayar",
+  "Kasir Toko",
+  "Anggota",
+  "Pengawas Koperasi",
+];
+
+export function getAvailablePerspectiveRoles(originalRole?: Role | string | null): Role[] {
+  if (originalRole === "Super Admin") {
+    return ROLES;
+  }
+  if (originalRole === "Admin Kotama") {
+    return ["Admin Kotama", ...SATMINKAL_ROLES];
+  }
+  return SATMINKAL_ROLES;
+}
+
 export const roleShort: Record<Role, string> = {
   "Super Admin": "Super Admin",
   "Admin Kotama": "Kotama",
