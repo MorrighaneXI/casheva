@@ -482,7 +482,7 @@ export function InvoiceGenerator() {
 
   const antreanPencairan = useMemo(() => {
     const filtered = loanList.filter((l) =>
-      ["SETUJU_KAPRIM", "MENUNGGU_DOKUMEN", "DICAIRKAN"].includes(l.status),
+      ["SETUJU_KAPRIM", "SETUJU_KEPRIM", "MENUNGGU_DOKUMEN", "DICAIRKAN"].includes(l.status),
     );
     return sortPersonelByPangkat(filtered, (l) => l.anggota);
   }, [loanList]);
@@ -546,6 +546,7 @@ export function InvoiceGenerator() {
                 const uiStatus = backendStatusToFrontend(p.status);
                 const isReadyToCair = p.status === "MENUNGGU_DOKUMEN";
                 const isDisbursed = p.status === "DICAIRKAN";
+                const isNeedDocVerif = p.status === "SETUJU_KAPRIM" || p.status === "SETUJU_KEPRIM";
 
                 return (
                   <TableRow key={p.id}>
@@ -571,15 +572,30 @@ export function InvoiceGenerator() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {p.status === "SETUJU_KAPRIM" ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={updateStatusMutation.isPending}
-                          onClick={() => setConfirmVerifId(p.id)}
-                        >
-                          Verifikasi Dokumen
-                        </Button>
+                      {isNeedDocVerif ? (
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={updateStatusMutation.isPending}
+                            onClick={() => setConfirmVerifId(p.id)}
+                          >
+                            Verifikasi Dokumen
+                          </Button>
+                          <Button
+                            size="sm"
+                            disabled={cairkanMutation.isPending}
+                            className="bg-success text-success-foreground hover:bg-success/90"
+                            onClick={() => setConfirmCairId(p.id)}
+                          >
+                            {cairkanMutation.isPending ? (
+                              <Loader2 className="size-3.5 animate-spin mr-1" />
+                            ) : (
+                              <Banknote className="size-3.5 mr-1" />
+                            )}
+                            Cairkan
+                          </Button>
+                        </div>
                       ) : isReadyToCair ? (
                         <Button
                           size="sm"

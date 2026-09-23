@@ -189,14 +189,15 @@ export function DokumenViewerModal({
       return (
         j === targetId ||
         j.includes(targetId) ||
+        j.includes(targetId.replace(/_/g, " ")) ||
         j === targetTitle ||
         j.includes(targetTitle) ||
         j.includes(targetShort) ||
         (targetId === "usipa" && (j.includes("usipa") || j.includes("permohonan"))) ||
         (targetId === "jurbay" && (j.includes("jurbay") || j.includes("juru bayar") || j.includes("rekomendasi"))) ||
-        (targetId === "slip" && (j.includes("slip") || j.includes("gaji"))) ||
+        (targetId === "slip" && (j.includes("slip") || (j.includes("gaji") && !j.includes("potong")))) ||
         (targetId === "kta" && (j.includes("kta") || j.includes("ktp") || j.includes("identitas"))) ||
-        (targetId === "potong_gaji" && (j.includes("potong") || j.includes("akad") || j.includes("kuasa")))
+        (targetId === "potong_gaji" && (j.includes("potong") || j.includes("akad") || j.includes("kuasa") || j.includes("pernyataan")))
       );
     });
   }, [allDokumen, currentDoc]);
@@ -496,14 +497,15 @@ export function DokumenViewerModal({
                 return (
                   j === targetId ||
                   j.includes(targetId) ||
+                  j.includes(targetId.replace(/_/g, " ")) ||
                   j === targetTitle ||
                   j.includes(targetTitle) ||
                   j.includes(targetShort) ||
                   (targetId === "usipa" && (j.includes("usipa") || j.includes("permohonan"))) ||
                   (targetId === "jurbay" && (j.includes("jurbay") || j.includes("juru bayar") || j.includes("rekomendasi"))) ||
-                  (targetId === "slip" && (j.includes("slip") || j.includes("gaji"))) ||
+                  (targetId === "slip" && (j.includes("slip") || (j.includes("gaji") && !j.includes("potong")))) ||
                   (targetId === "kta" && (j.includes("kta") || j.includes("ktp") || j.includes("identitas"))) ||
-                  (targetId === "potong_gaji" && (j.includes("potong") || j.includes("akad") || j.includes("kuasa")))
+                  (targetId === "potong_gaji" && (j.includes("potong") || j.includes("akad") || j.includes("kuasa") || j.includes("pernyataan")))
                 );
               });
 

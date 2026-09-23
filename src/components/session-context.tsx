@@ -7,8 +7,8 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { ROLES, type Role, backendRoleToFrontend, frontendRoleToBackend } from "@/lib/casheva-data";
-import { apiAuth, apiKotama, type LoginDto, type LoginResponse, type UserProfile } from "@/lib/api";
+import { ROLES, type Role, backendRoleToFrontend } from "@/lib/casheva-data";
+import { apiAuth, apiKotama, type LoginDto, type UserProfile } from "@/lib/api";
 import { useIdleSession } from "@/hooks/use-idle-session";
 
 export interface UserSessionData {
@@ -295,11 +295,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       localStorage.setItem("casheva.auth", "1");
       localStorage.setItem("casheva.user", JSON.stringify(sessionUser));
     } catch {
-      // If token is a demo token or backend is temporarily down, preserve session
-      if (token && token.startsWith("demo-session-token-")) {
-        return;
-      }
-      // If unauthorized from real backend
+      // Token tidak valid atau backend menolak — hapus sesi dan reset state
       localStorage.removeItem("casheva.token");
       localStorage.removeItem("casheva.auth");
       localStorage.removeItem("casheva.role");
@@ -395,95 +391,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setMonitoringSatminkal(null);
     setMonitoringKotama(null);
 
-    let res: LoginResponse;
-    try {
-      res = await apiAuth.login(dto);
-    } catch (err: any) {
-      // Fallback for offline demo credentials
-      const u = dto.username.toLowerCase();
-      let demoRole: Role = "Anggota";
-      let demoName = dto.username;
-      let demoKotama = "KODAM IV/DIPONEGORO";
-      let demoSatminkal = "INFOLAHTADAM IV/DIPONEGORO";
-
-      if (u.includes("kotama") || u.includes("admin_kodam") || u.includes("admin_kopassus") || u.includes("admin_puskomlekad")) {
-        demoRole = "Admin Kotama";
-        demoName = "Pabandya Ops Koperasi (Admin Kotama)";
-        if (u.includes("kodam5") || u.includes("brawijaya")) demoKotama = "KODAM V/BRAWIJAYA";
-        else if (u.includes("kopassus")) demoKotama = "KOPASSUS";
-        else if (u.includes("puskomlekad")) demoKotama = "PUSKOMLEKAD";
-        demoSatminkal = demoKotama;
-      } else if (u.includes("admin")) {
-        demoRole = "Admin Koperasi";
-        demoName = "PNS Hendro (Admin IT)";
-        if (u.includes("denma_puskomlekad")) {
-          demoKotama = "PUSKOMLEKAD";
-          demoSatminkal = "DENMA PUSKOMLEKAD";
-        } else if (u.includes("hubdam")) {
-          demoKotama = "KODAM IV/DIPONEGORO";
-          demoSatminkal = "HUBDAM IV/DIPONEGORO";
-        }
-      } else if (u.includes("pimpinan") || u.includes("dan")) {
-        demoRole = "Pimpinan / Dan / Ka";
-        demoName = "Kolonel Inf Suryo (Dan/Ka)";
-      } else if (u.includes("keprim")) {
-        demoRole = "Keprim";
-        demoName = "Letkol Cba Dedi Kurnia";
-      } else if (u.includes("bendahara")) {
-        demoRole = "Bendahara";
-        demoName = "Lettu Cku Budi";
-      } else if (u.includes("pengawas")) {
-        demoRole = "Pengawas Koperasi";
-        demoName = "Mayor Inf Tri";
-      } else if (u.includes("jurubayar") || u.includes("juru")) {
-        demoRole = "Juru Bayar";
-        demoName = "Serma Agus (Juru Bayar)";
-      } else if (u.includes("kasir") || u.includes("gadai")) {
-        demoRole = "Kasir Toko";
-        demoName = "Kopda Hendra Setiawan";
-      }
-
-      if (demoRole) {
-        const dummyToken = `demo-session-token-${Date.now()}`;
-        localStorage.setItem("casheva.token", dummyToken);
-        localStorage.setItem("casheva.auth", "1");
-        localStorage.setItem("casheva.role", demoRole);
-        localStorage.setItem("casheva.originalRole", demoRole);
-
-        const dummyUser: UserSessionData = {
-          id: `demo-id-${dto.username}`,
-          namaLengkap: demoName,
-          username: dto.username,
-          role: demoRole,
-          originalRole: demoRole,
-          satminkal: demoSatminkal,
-          kotama: demoKotama,
-          token: dummyToken,
-        };
-
-        setUser(dummyUser);
-        setSatminkal(demoSatminkal);
-        setKotama(demoKotama);
-        setRoleState(demoRole);
-        setOriginalRoleState(demoRole);
-        setAuthenticatedState(true);
-        localStorage.setItem("casheva.user", JSON.stringify(dummyUser));
-
-        return {
-          message: "Login Berhasil (Mode Standalone)",
-          accessToken: dummyToken,
-          user: {
-            id: dummyUser.id,
-            namaLengkap: demoName,
-            role: frontendRoleToBackend(demoRole) as any,
-            kotama: demoKotama,
-            satminkal: demoSatminkal,
-          },
-        };
-      } else {
-        throw err;
-      }
-    }
+    // Login ke backend asli — jika gagal, error dilempar langsung ke pemanggil
+    const res = await apiAuth.login(dto);
 
     localStorage.setItem("casheva.token", res.accessToken);
     localStorage.setItem("casheva.auth", "1");
